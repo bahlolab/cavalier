@@ -23,7 +23,7 @@ OMIM_genemap2_file <- "/path/to/OMIM_data/genemap2.txt"
 
 # Use devtools to install cavalier R package
 library(devtools)
-install_github("https://github.com/bahlolab/cavalier")
+install_github("bahlolab/cavalier")
 
 library(cavalier)
 
