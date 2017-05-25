@@ -15,7 +15,7 @@ load_annovar_vcf <- function(vcf_filename, sampleID)
     vcf_tidy <- vcfR::vcfR2tidy(vcf, info_fields=vcf_info_fields, format_fields=vcf_format_fields)
 
     # Combine and clean VCF data...
-    vars <- vcf_tidy$fix[, c("CHROM", "POS", "REF", "ALT", "QUAL", "FILTER", "DP", "QD", "MQ", "FS", "SOR", "MQRankSum", "ReadPosRankSum", "InbreedingCoeff", "ExAC_AC", "ExAC_AN", "ExAC_Hom",  "ExAC_FILTER", "gnomAD_AC", "gnomAD_AN", "gnomAD_Hom", "gnomAD_FILTER", "Gene.refGene", "Func.refGene", "ExonicFunc.refGene", "AAChange.refGene", "avsnp147", "ExAC_ALL", "gnomAD_exome_ALL", "gnomAD_genome_ALL", "SIFT_pred", "Polyphen2_HVAR_pred")]
+    vars <- vcf_tidy$fix[, c("CHROM", "POS", "REF", "ALT", "QUAL", "FILTER", "DP", "QD", "MQ", "FS", "SOR", "MQRankSum", "ReadPosRankSum", "InbreedingCoeff", "ExAC_AC", "ExAC_AN", "ExAC_Hom",  "ExAC_FILTER", "gnomAD_exome_AC", "gnomAD_exome_AN", "gnomAD_exome_Hom", "gnomAD_exome_FILTER", "Gene.refGene", "Func.refGene", "ExonicFunc.refGene", "AAChange.refGene", "avsnp147", "ExAC_ALL", "gnomAD_exome_ALL", "gnomAD_genome_ALL", "SIFT_pred", "Polyphen2_HVAR_pred")]
     colnames(vars) <- c("chromosome", "start", "reference", "alternate", "QUAL", "FILTER", "DP", "QD", "MQ", "FS", "SOR", "MQRankSum", "ReadPosRankSum", "InbreedingCoeff", "ExAC count", "ExAC coverage", "ExAC hom count", "ExAC_FILTER", "gnomAD count", "gnomAD coverage", "gnomAD hom count", "gnomAD_FILTER", "gene", "region", "change", "annotation", "dbSNP", "MAF ExAC", "MAF gnomAD exome", "MAF gnomAD genome", "SIFT", "Polyphen2")
     
     for (sID in names(sampleID)) {

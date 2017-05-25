@@ -11,6 +11,7 @@
 
 create_candidate_table_html <- function(candidates, output_dir, sampleID, GTEx_median_rpkm=NULL, hide_missing_igv=FALSE, pubmed_keywords=NULL)
 {
+    candidates <- as.data.frame(candidates)
     if (hide_missing_igv) {
         candidates <- candidates[file.exists(candidates$igv_filename), ]
     }

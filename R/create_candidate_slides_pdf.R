@@ -13,6 +13,7 @@ create_candidate_slides_pdf <- function(candidates, output_dir, genemap2=NULL, G
 {
     # Output columns
     output_cols <- c("gene", "chromosome", "base", "ref / alt", "region", "change", "annotation", "ExAC count", "SIFT", "Polyphen2", "RVIS", "Grantham")
+    candidates <- as.data.frame(candidates)
 
     # Remove candidates without IGV files: currently this functions as a simple temporary method 
     # to remove technical artefacts by otherwise unwanted variants by deleting or moving IGV snapshot file
