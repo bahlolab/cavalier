@@ -49,9 +49,9 @@ create_cavalier_output <- function(candidates, output_dir, sampleID, hide_missin
     
     # Write table of candidate variants
     if (hide_missing_igv) {
-        write.table(candvars[file.exists(candvars$igv_filename), ], file="candvars.txt", quote=FALSE, sep="\t", row.names=FALSE)
+        write.table(candidates[file.exists(candidates$igv_filename), ], file="candvars.txt", quote=FALSE, sep="\t", row.names=FALSE)
     } else {
-        write.table(candvars, file="candvars.txt", quote=FALSE, sep="\t", row.names=FALSE)
+        write.table(candidates, file="candvars.txt", quote=FALSE, sep="\t", row.names=FALSE)
     }
     
     setwd(starting_wd)

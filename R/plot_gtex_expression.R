@@ -70,7 +70,7 @@ plot_gtex_expression <- function(gene, GTEx_median_rpkm=NULL, small_font=FALSE, 
     }
     
     # Plot log2rpkm expression of tissue types for gene
-    expression_df <- data.frame(tissue=tissues, expression=as.vector(unlist(expression)), stringsAsFactors=FALSE)
+    expression_df <- data.frame(tissue=tissues, expression=log2(as.numeric(as.vector(unlist(expression)))+1), stringsAsFactors=FALSE)
     expression_df$tissue <- factor(expression_df$tissue, levels=tissues)
     expression_df$tissue_name <- gsub(" - ", ": ", as.character(expression_df$tissue))
     expression_df$tissue_name <- factor(expression_df$tissue_name, levels=gsub(" - ", ": ", tissues))
@@ -80,7 +80,7 @@ plot_gtex_expression <- function(gene, GTEx_median_rpkm=NULL, small_font=FALSE, 
                 ggplot2::geom_bar(stat="identity") + 
                 ggplot2::scale_fill_manual(values=c(RColorBrewer::brewer.pal(8, "Set1"), RColorBrewer::brewer.pal(8, "Dark2"))[c(1, 3, 2, 4:16)]) + 
                 ggplot2::ggtitle(paste(gene, "expression\nin GTEx tissues")) + 
-                ggplot2::ylab("RPKM") + ggplot2::xlab("") +
+                ggplot2::ylab("log-2 RPKM") + ggplot2::xlab("") +
                 ggplot2::theme_bw() + 
                 ggplot2::theme(axis.text.x=ggplot2::element_text(angle=90, hjust=1, vjust=0.25)) + 
                 ggplot2::guides(fill=FALSE)

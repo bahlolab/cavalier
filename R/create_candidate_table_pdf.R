@@ -9,7 +9,7 @@
 create_candidate_table_pdf <- function(candidates, output_dir, hide_missing_igv=FALSE)
 {
     # Output columns
-    output_cols <- c("gene", "chr", "ref", "alt", "region", "change", "ExAC count", "SIFT", "PP2", "RVIS", "Grantham")
+    output_cols <- c("gene", "chr", "ref", "alt", "region", "change", "ExAC count", "gnomAD exome count", "SIFT", "PP2", "CADD", "Grantham", "RVIS")
     candidates <- as.data.frame(candidates)
     
     # Remove candidates without IGV files: currently this functions as a simple temporary method 

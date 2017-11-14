@@ -12,7 +12,7 @@
 create_candidate_slides_pdf <- function(candidates, output_dir, genemap2=NULL, GTEx_median_rpkm=NULL, hide_missing_igv=FALSE, layout="individual")
 {
     # Output columns
-    output_cols <- c("gene", "chromosome", "base", "ref / alt", "region", "change", "annotation", "ExAC count", "SIFT", "Polyphen2", "RVIS", "Grantham")
+    output_cols <- c("gene", "chromosome", "base", "ref / alt", "region", "change", "annotation", "ExAC count", "gnomAD exome count", "SIFT", "Polyphen2", "CADD", "Grantham", "RVIS")
     candidates <- as.data.frame(candidates)
 
     # Remove candidates without IGV files: currently this functions as a simple temporary method 
@@ -200,4 +200,3 @@ create_candidate_slides_pdf <- function(candidates, output_dir, genemap2=NULL, G
         dev.off()
     }
 }
-

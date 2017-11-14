@@ -31,13 +31,15 @@ create_candidate_table_html <- function(candidates, output_dir, sampleID, GTEx_m
     candidates$SIFT <- gsub(" *warning! low confidence.", "*", gsub(" due to stop", "", candidates$SIFT), fixed=TRUE)
     candidates$SIFT <- gsub("damaging", "D", gsub("tolerated", "T", candidates$SIFT))
     candidates$PP2 <- gsub(".", "", gsub("possibly damaging", "P", gsub("probably damaging", "D", gsub("benign", "B", candidates$Polyphen2))), fixed=TRUE)
+    candidates$CADD <- as.numeric(candidates$CADD)
+    candidates$Grantham <- as.numeric(candidates$Grantham)
+    
     candidates$RVIS <- round(candidates$RVIS, 1)
     # *** Must be a cleaner way to do the below... ***
     candidates[, "MAF ExAC"] <- gsub("e-0", "e-", gsub("0.0e+00", "0", format(candidates[, "MAF ExAC"], digits=2), fixed=TRUE))
     candidates[, "MAF 1000G"] <- gsub("e-0", "e-", gsub("0.0e+00", "0", format(candidates[, "MAF 1000G"], digits=2), fixed=TRUE))
     
-    output_cols <- c("inheritance model", "gene", "chr", "ref", "alt", "region", "change","ExAC count", 
-                     "MAF ExAC", "MAF 1000G", "SIFT", "PP2", "RVIS")
+    output_cols <- c("inheritance model", "gene", "chr", "ref", "alt", "region", "change","ExAC count", "gnomAD exome count", "SIFT", "PP2", "CADD", "Grantham", "RVIS")
     for (id in sampleID) {
         output_cols <- c(output_cols, paste(id, "genotype"))
     }
@@ -56,11 +58,13 @@ create_candidate_table_html <- function(candidates, output_dir, sampleID, GTEx_m
     table_candidates$region <- factor(table_candidates$region)
     table_candidates$change <- factor(table_candidates$change)
     table_candidates[, "ExAC count"] <- as.numeric(table_candidates[, "ExAC count"])
-    table_candidates[, "MAF ExAC"] <- as.numeric(table_candidates[, "MAF ExAC"])
-    table_candidates[, "MAF 1000G"] <- as.numeric(table_candidates[, "MAF 1000G"])
+    table_candidates[, "gnomAD exome count"] <- as.numeric(table_candidates[, "gnomAD exome count"])
     table_candidates$SIFT <- factor(table_candidates$SIFT)
     table_candidates$PP2 <- factor(table_candidates$PP2)
-    table_candidates[, "RVIS"] <- as.numeric(table_candidates[, "RVIS"])
+    table_candidates$CADD <- as.numeric(table_candidates$CADD)
+    table_candidates$Grantham <- as.numeric(table_candidates$Grantham)
+    table_candidates$RVIS <- as.numeric(table_candidates$RVIS)
+    
     for (id in sampleID) {
         id_colname <- paste(id, "genotype")
         table_candidates[, id_colname] <- factor(table_candidates[, id_colname])
@@ -133,7 +137,10 @@ create_candidate_table_html <- function(candidates, output_dir, sampleID, GTEx_m
 
     # Malacards
     Malacards_link <- paste0("<a href='http://www.malacards.org/search/results/", candidates$gene, "'>Malacards</a>")
-
+    
+    # Mouse Genome Informatics
+    MGI_link <- paste0("<a href='http://www.informatics.jax.org/searchtool/Search.do?query=", candidates$gene, "&submit=Quick%0D%0ASearch'>MGI</a>")
+    
     # # NCBI gene  *** TODO: Fix
     # symDB <- as.data.frame(org.Hs.eg.db::org.Hs.egSYMBOL)
     # Entrez_geneid <- symDB$gene_id[match(candidates$gene, symDB$symbol)]
@@ -143,16 +150,10 @@ create_candidate_table_html <- function(candidates, output_dir, sampleID, GTEx_m
     pubmed_search_terms <- ifelse(is.null(pubmed_keywords), "", paste0("+", paste0(pubmed_keywords, collapse="+")))
     pubmed_link <- paste0("<a href='https://www.ncbi.nlm.nih.gov/pubmed?EntrezSystem2.PEntrez.Pubmed.SearchBar.Db=pubmed&term=", candidates$gene, pubmed_search_terms, "'>pubmed search: ", candidates$gene, pubmed_search_terms, "</a>")
 
-    external_links <- paste(ExAC_link, gnomAD_link, OMIM_link, GWAScentral_link, GeneCards_link, Malacards_link, pubmed_link, sep=" <br> ")
+    external_links <- paste(ExAC_link, gnomAD_link, "<br>", OMIM_link, GWAScentral_link, "<br>", GeneCards_link, Malacards_link, "<br>", MGI_link, pubmed_link)
     # *** FIND BETTER WAY TO DO BELOW... JUST UGLY HACK TO BRUTE FORCE IT FOR NOW ***
-    external_links <- gsub(" <br>  <br> ", " <br> ", external_links, fixed=TRUE)
-    external_links <- gsub(" <br>  <br> ", " <br> ", external_links, fixed=TRUE)
-    external_links <- gsub(" <br>  <br> ", " <br> ", external_links, fixed=TRUE)
-    external_links <- gsub(" <br>  <br> ", " <br> ", external_links, fixed=TRUE)
-    external_links <- gsub(" <br>  <br> ", " <br> ", external_links, fixed=TRUE)
-    external_links <- gsub(" <br>  <br> ", " <br> ", external_links, fixed=TRUE)
-    external_links <- gsub(" <br>  <br> ", " <br> ", external_links, fixed=TRUE)
-    external_links <- gsub(" <br>  <br> ", " <br> ", external_links, fixed=TRUE)
+    external_links <- gsub("<br><br>", "<br>", external_links, fixed=TRUE)
+    external_links <- gsub("<br><br>", "<br>", external_links, fixed=TRUE)
     table_candidates <- cbind(table_candidates, external_links)
     colnames(table_candidates)[ncol(table_candidates)] <- "External Links"
 
