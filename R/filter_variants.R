@@ -132,8 +132,8 @@ filter_variants <- function(vars, inheritance_MAF, sampleID,
         }
         else if (inh_model == "trio comp het") {
 
-            comphet_father <- MAF_filter_vars[proband_GT %in% c("0/1", NA) & father_GT %in% c("0/1", NA) & mother_GT %in% c("0/0", NA), ]
-            comphet_mother <- MAF_filter_vars[proband_GT %in% c("0/1", NA) & mother_GT %in% c("0/1", NA) & father_GT %in% c("0/0", NA), ]
+            comphet_father <- MAF_filter_vars[proband_GT %in% c("0/1") & father_GT %in% c("0/1", NA) & mother_GT %in% c("0/0", NA), ]
+            comphet_mother <- MAF_filter_vars[proband_GT %in% c("0/1") & mother_GT %in% c("0/1", NA) & father_GT %in% c("0/0", NA), ]
             
             twohits_father <- comphet_father[comphet_father$gene %in% comphet_mother$gene, ]
             twohits_mother <- comphet_mother[comphet_mother$gene %in% comphet_father$gene, ]
