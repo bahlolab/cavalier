@@ -2,7 +2,7 @@
 #' 
 #' Pedersen & Quinlan, 2017, The American Journal of Human Genetics, 100, 3, 406-413
 #' Who’s Who? Detecting and Resolving Sample Anomalies in Human DNA Sequencing Studies with Peddy
-#' http://dx.doi.org/10.1016/j.ajhg.2017.01.017
+#' https://doi.org/10.1016/j.ajhg.2017.01.017
 #' https://github.com/brentp/peddy
 
 #' @param output_dir cavalier output directory
