@@ -14,11 +14,8 @@
 
 # *** TOFIX: location of IGV-snapshot-automator is hardcoded to lab_bahlo share ***
 
-make_IGV_snapshots <- "/wehisan/bioinf/lab_bahlo/software/apps/IGV-snapshot-automator/IGV-snapshot-automator_2019-02-21/make_IGV_snapshots.py"
-IGV_jar <- "/wehisan/bioinf/lab_bahlo/software/apps/IGV-snapshot-automator/IGV-snapshot-automator_2019-02-21/bin/IGV_2.3.81/igv.jar"
-
-
-create_igv_snapshots <- function(candidates, bams, reference_genome, output_dir, slop=20, overwrite=FALSE)
+create_igv_snapshots <- function(candidates, bams, reference_genome, output_dir, slop=20, overwrite=FALSE,
+                                 IGV_jar='/IGV-snapshot-automator/igv.jar', make_IGV_snapshots='/IGV-snapshot-automator/make_IGV_snapshots.py')
 {
     output_dir <- endslash_dirname(output_dir)
     igv_output_dir <- paste0(output_dir, "data/igv_output/")
