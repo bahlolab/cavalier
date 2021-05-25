@@ -14,7 +14,7 @@ omim_table <- function(gene, genemap2=NULL)
         return(NULL)
     } else if (!("genemap2_omim_table" %in% ls())) {
         genemap2_omim_table <- read.delim(genemap2, skip=3, stringsAsFactors=FALSE)
-        assign("genemap2_omim_table", "genemap2_omim_table", envir=.GlobalEnv)
+        assign("genemap2_omim_table", genemap2_omim_table, envir=.GlobalEnv)
     }
 
     # Find OMIM matches for gene
@@ -33,8 +33,13 @@ omim_table <- function(gene, genemap2=NULL)
     pt_pheno <- sapply(pt_split2, function(x){paste0(paste0(ifelse(length(x) == 1, x, x[-length(x)]), collapse=")"), ")")})
     pt_pheno <- gsub("?", "", gsub("(2)", "", gsub("(3)", "", pt_pheno, fixed=TRUE), fixed=TRUE), fixed=TRUE)
     pt_inher <- sapply(pt_split2, function(x){ifelse(length(x) > 1, x[length(x)], "NA")})
-    pt_inher <- ifelse(length(pt_inher) > 0, ifelse(startsWith(pt_inher, ", "), substr(pt_inher, 3, 999), pt_inher), pt_inher)
-    pt_inher <- ifelse(is.character(pt_inher), gsub(", ", "\n", pt_inher, fixed=TRUE), pt_inher)
+    # *** BELOW IF STATEMENTS NEED TO BE TESTED MORE THOROUGHLY ***
+    if (length(pt_inher) > 0) {
+        pt_inher <- ifelse(startsWith(pt_inher, ", "), substr(pt_inher, 3, 999), pt_inher)
+    }
+    if (is.character(pt_inher)) {
+        pt_inher <- gsub(", ", "\n", pt_inher, fixed=TRUE)
+    }
     OMIMtable <- data.frame(OMIM.phenotype=pt_pheno, OMIM.inheritance=pt_inher, stringsAsFactors=FALSE)
     if (nrow(OMIMtable) == 0 | ncol(OMIMtable) == 0) {
         return(NULL)

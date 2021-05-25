@@ -1,28 +1,24 @@
-#' Load variants from VCF file (annotations by ANNOVAR, ExAC counts by vcfanno)
+#' Load variants from VCF file
 #' 
-#' @param vcf_filename VEP annotated VCF filename
+#' @param vcf_filename ANNOVAR annotated VCF filename
 #' @param sampleID list of IDs and names for samples of interest
+#' @param rename_columns column names in VCF and names to rename them to
+#' @param numeric_columns columns to convert to numeric values
 # #' @examples
 # #' ***TODO***
 
-load_annovar_vcf <- function(vcf_filename, sampleID)
+load_annovar_vcf <- function(vcf_filename, sampleID, rename_columns=NULL, numeric_columns=NULL)
 {
-    # *** Eventually want the desired list of output columns to be something that can be specified in project settings ***
     vcf_info_fields <- NULL
     vcf_format_fields <- NULL
 
     vcf <- vcfR::read.vcfR(vcf_filename)
     vcf_tidy <- vcfR::vcfR2tidy(vcf, info_fields=vcf_info_fields, format_fields=vcf_format_fields)
 
-    # Combine and clean VCF data...
-    vars <- vcf_tidy$fix[, c("CHROM", "POS", "REF", "ALT", "QUAL", "FILTER", "DP", "QD", "MQ", "FS", "SOR", "MQRankSum", "ReadPosRankSum", "InbreedingCoeff", "ExAC_AC", "ExAC_AN", "ExAC_Hom",  "ExAC_FILTER", "gnomAD_exome_AC", "gnomAD_exome_AN", "gnomAD_exome_Hom", "gnomAD_exome_FILTER", "Gene.refGene", "Func.refGene", "ExonicFunc.refGene", "AAChange.refGene", "avsnp147", "ExAC_ALL", "gnomAD_exome_ALL", "gnomAD_genome_ALL", "SIFT_pred", "Polyphen2_HVAR_pred", "CADD_raw", "CADD_raw_rankscore", "CADD_phred")]
-    colnames(vars) <- c("chromosome", "start", "reference", "alternate", "QUAL", "FILTER", "DP", "QD", "MQ", "FS", "SOR", "MQRankSum", "ReadPosRankSum", "InbreedingCoeff", "ExAC count", "ExAC coverage", "ExAC hom count", "ExAC_FILTER", "gnomAD exome count", "gnomAD exome coverage", "gnomAD exome hom count", "gnomAD_exome_FILTER", "gene", "region", "change", "annotation", "dbSNP", "MAF ExAC", "MAF gnomAD exome", "MAF gnomAD genome", "SIFT", "Polyphen2", "CADD_raw", "CADD_raw_rankscore", "CADD")
-
+    vars <- as.data.frame(vcf_tidy$fix)
     
     for (sID in names(sampleID)) {
         vcf_tidy_gt_sID <- vcf_tidy$gt[vcf_tidy$gt$Indiv == sID, ]
-        # *** BETTER TESTING SOON ***
-        stopifnot(all(vcf_tidy_gt_sID$POS == vars$start))
 
         sID_name <- sampleID[[sID]]
         vars[, paste(sID_name, "genotype")] <- vcf_tidy_gt_sID[, "gt_GT"]
@@ -30,36 +26,89 @@ load_annovar_vcf <- function(vcf_filename, sampleID)
         vars[, paste(sID_name, "depth (R,A)")] <- vcf_tidy_gt_sID[, "gt_AD"]
     }
     
-    vars$chromosome <- ifelse(startsWith(vars$chromosome, "chr"), vars$chromosome, paste0("chr", vars$chromosome))
-
-    # Construct end position from start position and difference between length of ref and alt alleles
-    length_ref <- sapply(vars$reference, nchar)
-    length_alt <- sapply(vars$alternate, nchar)
-    # Start and end positions are the same for insertions or SNV but different for deletions
-    vars$end <- ifelse(length_ref <= length_alt, vars$start, vars$start + length_ref - length_alt - 1)
-
-    vars$change <- gsub("_", " ", vars$change, fixed=TRUE)
+    # Force all chromosomes to start with "chr", eg "chr1" rather than "1"
+    vars[, 2] <- ifelse(startsWith(vars[, 2], "chr"), vars[, 2], paste0("chr", vars[, 2]))
+    
+    # Default column renaming
+    if (is.null(rename_columns)) {
+        rename_columns <- c("CHROM"="chromosome",
+                            "POS"="position",
+                            "REF"="reference",
+                            "ALT"="alternate",
+                            "Gene.refGene"="gene",
+                            "Func.refGene"="region",
+                            "ExonicFunc.refGene"="change",
+                            "AAChange.refGene"="annotation",
+                            "SIFT_pred"="SIFT",
+                            "Polyphen2_HVAR_pred"="Polyphen2",
+                            "CADD_phred"="CADD",
+                            "ExAC_AC"="ExAC count",
+                            "ExAC_AN"="ExAC coverage",
+                            "ExAC_Hom"="ExAC hom count",
+                            "gnomAD_exome_AC"="gnomAD exome count",
+                            "gnomAD_exome_AN"="gnomAD exome coverage",
+                            "gnomAD_exome_Hom"="gnomAD exome hom count",
+                            "gnomAD_genome_AC"="gnomAD genome count",
+                            "gnomAD_genome_AN"="gnomAD genome coverage",
+                            "gnomAD_genome_Hom"="gnomAD genome hom count")
+    }
+    
+    for (cc in colnames(vars)[colnames(vars) %in% names(rename_columns)]) {
+        colnames(vars)[which(colnames(vars) == cc)] <- rename_columns[cc]
+    }
     
     # Fix ANNOVAR character format
-    vars$region <- gsub("\\x3b", ";", vars$region, fixed=TRUE)
-
-    # Add missing population frequency columns
-    vars$"MAF ESP6500" <- 0
-    vars$"MAF 1000G" <- 0
-    vars$"MAF ExAC" <- as.numeric(vars$"MAF ExAC")
-    vars$"MAF ExAC"[is.na(vars$"MAF ExAC")] <- 0
+    fix_format_columns <- c("gene", "Gene.refGene", "GeneDetail.refGene", "region", "ExonicFunc.refGene", "annotation", "AAChange.refGene", "genomicSuperDups")
+    for (cc in fix_format_columns) {
+        if (cc %in% colnames(vars)) {
+            vars[, cc] <- gsub("\\x3b", ";", gsub("\\x3d", "=", vars[, cc], fixed=TRUE), fixed=TRUE)
+        }
+    }
     
-    # Convert SIFT and Polyphen2 predictions to words
-    vars$SIFT[vars$SIFT == "T"] <- "tolerated"
-    vars$SIFT[vars$SIFT == "D"] <- "damaging"
-    vars$Polyphen2[vars$Polyphen2 == "B"] <- "benign"
-    vars$Polyphen2[vars$Polyphen2 == "D"] <- "probably damaging"
-    vars$Polyphen2[vars$Polyphen2 == "P"] <- "possibly damaging"    
+    # Split annotation and select longest only the longest transcript
+    # *** FUNCTION NEEDS WORK ***
+    get_annotation_longest_transcript <- function(annotations) {
+        annot_split <- unlist(strsplit(annotations, ","))
+        transcript <- unlist(lapply(annot_split, function(x) {y <- strsplit(x, ":")[[1]]; y[2]}))
+        codon <- unlist(lapply(annot_split, function(x) {y <- strsplit(x, ":")[[1]]; y[startsWith(y, "c.")]}))
+        prot <- unlist(lapply(annot_split, function(x) {y <- strsplit(x, ":")[[1]]; y[startsWith(y, "p.")]}))
+        if (length(codon) == 0) {
+            return(annotations)
+        }
+        bp_num <- sapply(codon, function(x){y <- strsplit(x, "")[[1]]; as.integer(paste(y[y %in% as.character(0:9)], collapse=""))})
+        longest <- which(bp_num == max(bp_num))[1]
+        # return(paste(transcript[longest], codon[longest], prot[longest], sep=":"))
+        return(paste(codon[longest], prot[longest], sep=":"))
+    }
     
-    vars$RVIS <- rvis_exac_percentile(vars$gene)
-    vars$Grantham <- as.character(grantham_score(vars$annotation))
-    vars$Grantham[is.na(vars$Grantham)] <- ""
-
-    return(as.data.frame(vars))
+    if ("annotation" %in% colnames(vars)) {
+        vars$annotation <- sapply(vars$annotation, get_annotation_longest_transcript)
+        vars$Grantham <- as.character(grantham_score(vars$annotation))
+        vars$Grantham[is.na(vars$Grantham)] <- ""
+    }
+    
+    if ("gene" %in% colnames(vars)) {
+        vars$RVIS <- rvis_exac_percentile(vars$gene)
+    }
+    
+    # Modify region and change for splicing variants (so synonymous SNV;splicing variants are not removed with other synonymous SNV)
+    # *** TODO: clean this up and test
+    if (all(c("change", "region") %in% colnames(vars))) {
+        vars$change[vars$region == "splicing"] <- "splicing"
+        vars$change[vars$region == "exonic;splicing"] <- paste0(vars$change[vars$region == "exonic;splicing"], ";splicing")
+    }
+    # Collapse duplicate gene names for variants in exonic and splice region
+    if (all(c("gene", "region") %in% colnames(vars))) {
+        vars$gene[vars$region == "exonic;splicing"] <- sapply(strsplit(vars$gene[vars$region == "exonic;splicing"], "\\", fixed=TRUE), function(x){x[1]})
+    }
+    
+    if (all(c("gnomAD exome count", "gnomAD genome count") %in% colnames(vars))) {
+        vars$"gnomAD count" <- as_numeric_na_zero(vars$"gnomAD exome count") + as_numeric_na_zero(vars$"gnomAD genome count")
+    }
+    if (all(c("gnomAD exome hom count", "gnomAD genome hom count") %in% colnames(vars))) {
+        vars$"gnomAD hom count" <- as_numeric_na_zero(vars$"gnomAD exome hom count") + as_numeric_na_zero(vars$"gnomAD genome hom count")
+    }
+    
+    return(vars)
 }
 

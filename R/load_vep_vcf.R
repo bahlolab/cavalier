@@ -1,4 +1,4 @@
-#' Load variants from VCF file (CSQ field from VEP, ExAC counts by vcfanno)
+#' Load variants from VCF file (ANN field from VEP, ExAC counts by vcfanno)
 #' 
 #' @param vcf_filename VEP annotated VCF filename
 #' @param sampleID list of IDs and names for samples of interest
@@ -13,17 +13,26 @@ load_vep_vcf <- function(vcf_filename, sampleID)
 
     vcf <- vcfR::read.vcfR(vcf_filename)
     vcf_tidy <- vcfR::vcfR2tidy(vcf, info_fields=vcf_info_fields, format_fields=vcf_format_fields)
-
-    # *** Currently take only first CSQ but need to handle cases where multiple are present more robustly ***
-    CSQ_columns <- strsplit(sub("\">", "", strsplit(vcf@meta[startsWith(vcf@meta, "##INFO=<ID=CSQ")], "Format: ")[[1]][2]), "|", fixed=TRUE)[[1]]
-    vcf_tidy[["CSQ"]] <- as.data.frame(do.call(rbind, lapply(strsplit(sapply(strsplit(vcf_tidy$fix$CSQ, ",", fixed=TRUE), function(x)x[1]), "|", fixed=TRUE), function(x){x[1:length(CSQ_columns)]})), stringsAsFactors=FALSE)
-    colnames(vcf_tidy$CSQ) <- CSQ_columns
-    rownames(vcf_tidy$CSQ) <- rownames(vcf_tidy$fix)
     
-
-    # Combine and clean VCF data...
-    vars <- vcf_tidy$fix[, c("CHROM", "POS", "REF", "ALT", "QUAL", "FILTER", "DP", "QD", "MQ", "FS", "SOR", "MQRankSum", "ReadPosRankSum", "InbreedingCoeff")]
-    vars <- cbind(vars, vcf_tidy$CSQ[, c("Consequence", "SYMBOL", "Existing_variation", "SIFT", "PolyPhen", "GMAF", "ExAC_Adj_MAF")])
+    # Get ANN format column names
+    ANN_columns <- strsplit(strsplit(vcf_tidy$meta$Description[vcf_tidy$meta$ID == "ANN"], "Format: ")[[1]][2], "|", fixed=TRUE)[[1]]
+    
+    ANN_split1 <- strsplit(vcf_tidy$fix$ANN, ",")
+    
+    get_canonical_ANN <- function(ANN) {
+        ANN_df <- as.data.frame(do.call(rbind, strsplit(ANN, "|", fixed=TRUE)), stringsAsFactors=FALSE)
+        colnames(ANN_df) <- ANN_columns[1:ncol(ANN_df)]
+        ANN_df <- ANN_df[ANN_df$CANONICAL == "YES", ]
+        apply(ANN_df, 2, function(x){paste(unique(x), collapse=",")})
+    }
+    
+    vcf_tidy[["ANN"]] <- as.data.frame(do.call(rbind, lapply(ANN_split1, get_canonical_ANN)), stringsAsFactors=FALSE)
+    colnames(vcf_tidy$ANN) <- ANN_columns
+    rownames(vcf_tidy$ANN) <- rownames(vcf_tidy$fix)
+    
+    # Combine and clean VCF data
+    vars <- as.data.frame(vcf_tidy$fix[, c("CHROM", "POS", "REF", "ALT", "QUAL", "FILTER", "DP", "QD", "MQ", "FS", "SOR", "MQRankSum", "ReadPosRankSum", "InbreedingCoeff")], stringsAsFactors=FALSE)
+    vars <- cbind(vars, vcf_tidy$ANN[, c("Consequence", "SYMBOL", "Existing_variation", "SIFT", "PolyPhen", "AF", "gnomAD_AF")])
 
     colnames(vars) <- c("chromosome", "start", "reference", "alternate", "QUAL", "FILTER", "DP", "QD", "MQ", "FS", "SOR", "MQRankSum", "ReadPosRankSum", "InbreedingCoeff", "change", "gene", "dbSNP", "SIFT", "Polyphen2", "MAF 1000G", "MAF ExAC")
 
@@ -49,29 +58,33 @@ load_vep_vcf <- function(vcf_filename, sampleID)
     vars$change <- gsub("&", ";", vars$change, fixed=TRUE)
     
     # Annotation  *** TODO: add
-    vars$annotation <- ""
+    AA_split <- strsplit(vcf_tidy$ANN$Amino_acids, "/", fixed=TRUE)
+    AA1 <- sapply(AA_split, function(x){x[1]})
+    AA2 <- sapply(AA_split, function(x){x[2]})
+    AA1[is.na(AA1)] <- ""
+    AA2[is.na(AA2)] <- ""
+    vars$annotation <- paste0("p.", AA1, vcf_tidy$ANN$Protein_position, AA2)
+    vars$annotation <- gsub(",", "", vars$annotation, fixed=TRUE)
+    vars$annotation[vars$annotation == "p."] <- ""
     
     vars$dbSNP <- sapply(strsplit(vars$dbSNP, "&"), function(x){paste(x[startsWith(x, "rs")], collapse=";")})
 
     # *** TODO: add more population frequency information and exact ExAC count ***
-    vars$"MAF 1000G" <- as.numeric(sapply(strsplit(sapply(strsplit(vars$"MAF 1000G", "&"), function(x)x[1]), ":"), function(x)x[2]))
-    vars$"MAF ExAC" <- as.numeric(sapply(strsplit(sapply(strsplit(vars$"MAF ExAC", "&"), function(x)x[1]), ":"), function(x)x[2]))
-    vars$"MAF ESP6500" <- as.numeric(".")
-    vars$"ExAC count" <- 120000 * as.numeric(vars$"MAF ExAC")
-    vars$"ExAC count"[is.na(vars$"ExAC count")] <- 0
-    vars$"MAF ExAC"[is.na(vars$"MAF ExAC")] <- 0
+    vars$"MAF 1000G" <- as.numeric(vars$"MAF 1000G")
     vars$"MAF 1000G"[is.na(vars$"MAF 1000G")] <- 0
-    vars$"MAF ESP6500"[is.na(vars$"MAF ESP6500")] <- 0
+    vars$"MAF ExAC" <- as.numeric(vars$"MAF ExAC")
+    vars$"MAF ExAC"[is.na(vars$"MAF ExAC")] <- 0
+    
 
-    sift_regex <- "([a-z]*)\\(([0-9\\.]*)\\)"
-    vars$SIFT <- sub(sift_regex, "\\1", vars$SIFT)
-    vars$SIFT <- gsub("_", " ", gsub("_low_confidence", " *warning! low confidence.", vars$SIFT))
-    polyphen_regex <- "([a-z_]*)\\(([0-9\\.]*)\\)"
-    vars$Polyphen2 <- sub(polyphen_regex, "\\1", vars$Polyphen2)
-    vars$Polyphen2 <- gsub("_", " ", vars$Polyphen2)
+    # sift_regex <- "([a-z]*)\\(([0-9\\.]*)\\)"
+    # vars$SIFT <- sub(sift_regex, "\\1", vars$SIFT)
+    # vars$SIFT <- gsub("_", " ", gsub("_low_confidence", " *warning! low confidence.", vars$SIFT))
+    # polyphen_regex <- "([a-z_]*)\\(([0-9\\.]*)\\)"
+    # vars$Polyphen2 <- sub(polyphen_regex, "\\1", vars$Polyphen2)
+    # vars$Polyphen2 <- gsub("_", " ", vars$Polyphen2)
 
     vars$RVIS <- rvis_exac_percentile(vars$gene)
-    vars$Grantham <- ""  # *** NEED TO FIX GRANTHAM FOR DIFFERENT ANNOTATION
+    vars$Grantham <- grantham_score(vars$annotation)
 
     return(vars)
 }

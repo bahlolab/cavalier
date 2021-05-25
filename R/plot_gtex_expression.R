@@ -3,7 +3,7 @@
 #' @param gene gene symbol
 #' @param GTEx_median_rpkm location of GTEx_Analysis_v6p_RNA-seq_RNA-SeQCv1.1.8_gene_median_rpkm.gct.gz file downloaded from GTEx Portal (see https://gtexportal.org/home/datasets)
 #' @param small_font TRUE or FALSE to use smaller font size (for PDF output instead of HTML)
-#' @param tissues optionally specify list of tissues to plot RPKM expression for
+#' @param tissues optionally specify list of tissues to plot
 #' @return ggplot2 plot of median RPKM expression for gene
 # #' @examples
 # #' ***TODO***

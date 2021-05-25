@@ -1,8 +1,9 @@
 #' Filter list of variants based on inheritance model, variant type and frequency
 #' 
 #' @param vars variants data.frame
-#' @param inheritance_MAF list of inheritance models and MAF thresholds to filter
 #' @param sampleID list of IDs and names for samples of interest
+#' @param inheritance_MAF list of inheritance models and MAF thresholds to filter
+#' @param MAF_column column to use to obtain MAF values for filtering
 #' @param gene_include genes to include in filtering
 #' @param gene_exclude genes to exclude from filtering (if gene_include not specified)
 #' @param region_include region to include in filtering
@@ -14,15 +15,21 @@
 # #' @examples
 # #' ***TODO***
 
-filter_variants <- function(vars, inheritance_MAF, sampleID,
+filter_variants <- function(vars, sampleID,
+                            inheritance_MAF, MAF_column,
                             gene_include=NULL,  gene_exclude=NULL,
                             region_include=NULL, region_exclude=NULL,
                             change_include=NULL, change_exclude=NULL,
                             min_depth=0)
 {
     names(inheritance_MAF) <- gsub("compound heterozygous", "comp het", names(inheritance_MAF))
+    
+    stopifnot(MAF_column %in% colnames(vars))
+    
+    
 
     # Filter based on genes
+    # (*** TODO: generalise to split gene values before comparing ***)
     if (!is.null(gene_include)) {
         gene_filter <- toupper(vars$gene) %in% toupper(gene_include)
     } else if (!is.null(gene_exclude)) {
@@ -38,7 +45,7 @@ filter_variants <- function(vars, inheritance_MAF, sampleID,
     } else {
         region_filter <- rep(TRUE, nrow(vars))
     }
-    # Filter based on change
+    # Filter based on change (if change has multiple entries separated by comma then split match at least one)
     if (!is.null(change_include)) {
         change_filter <- vars$change %in% change_include
     } else if (!is.null(change_exclude)) {
@@ -64,19 +71,21 @@ filter_variants <- function(vars, inheritance_MAF, sampleID,
 
     # Filter
     filter_vars <- vars[gene_filter & region_filter & change_filter & depth_filter, ]
+    
+    if (nrow(filter_vars) == 0) {
+        return(filter_vars)
+    }
 
     # Filter inheritance models
-    candvars <- NULL
+    candvars <- data.frame(NULL, stringsAsFactors=FALSE)
     for (inh_model in names(inheritance_MAF)) {
 
         new_candvars <- NULL
 
         # Filter for MAF
         MAF_thresh <- inheritance_MAF[[inh_model]]
-        MAF_ExAC_filter <- filter_vars$`MAF ExAC` <= MAF_thresh
-        MAF_ESP6500_filter <- filter_vars$`MAF ESP6500` <= MAF_thresh
-        MAF_1000G_filter <- filter_vars$`MAF 1000G` <= MAF_thresh
-        MAF_filter <- MAF_ExAC_filter & MAF_ESP6500_filter & MAF_1000G_filter
+        MAF_values <- as_numeric_na_zero(filter_vars[, MAF_column])
+        MAF_filter <- MAF_values <= MAF_thresh
         MAF_filter_vars <- filter_vars[MAF_filter, ]
 
         # For individual inheritance model use "proband" sample (works even if multiple samples present)
@@ -91,13 +100,13 @@ filter_variants <- function(vars, inheritance_MAF, sampleID,
                 individual_name <- sampleID[[1]]
             }
             individual_GT <- paste(individual_name, "genotype")
-        } else if (startsWith(inh_model, "trio") | endsWith(inh_model, "isodisomy")) {
+        } else if (startsWith(inh_model, "trio")) {
             if (!all(c("proband", "father", "mother") %in% sampleID)) {
                 stop("Error: invalid sampleID for trio analysis, names should be proband, father, mother")
             }
-            proband_GT <- MAF_filter_vars$`proband genotype`
-            father_GT <- MAF_filter_vars$`father genotype`
-            mother_GT <- MAF_filter_vars$`mother genotype`
+            proband_GT <- MAF_filter_vars$"proband genotype"
+            father_GT <- MAF_filter_vars$"father genotype"
+            mother_GT <- MAF_filter_vars$"mother genotype"
         }
 
         # *** Need to check genotypes of X and Y chromosome genes more carefully ***
@@ -132,32 +141,13 @@ filter_variants <- function(vars, inheritance_MAF, sampleID,
         }
         else if (inh_model == "trio comp het") {
 
-            comphet_father <- MAF_filter_vars[proband_GT %in% c("0/1") & father_GT %in% c("0/1", NA) & mother_GT %in% c("0/0", NA), ]
-            comphet_mother <- MAF_filter_vars[proband_GT %in% c("0/1") & mother_GT %in% c("0/1", NA) & father_GT %in% c("0/0", NA), ]
+            comphet_father <- MAF_filter_vars[proband_GT %in% c("0/1", NA) & father_GT %in% c("0/1", NA) & mother_GT %in% c("0/0", NA), ]
+            comphet_mother <- MAF_filter_vars[proband_GT %in% c("0/1", NA) & mother_GT %in% c("0/1", NA) & father_GT %in% c("0/0", NA), ]
             
             twohits_father <- comphet_father[comphet_father$gene %in% comphet_mother$gene, ]
             twohits_mother <- comphet_mother[comphet_mother$gene %in% comphet_father$gene, ]
 
             new_candvars <- merge(twohits_father, twohits_mother, all.x=TRUE, all.y=TRUE)
-        }
-        else if (inh_model == "paternal isodisomy") {
-            
-            # *** TODO: ADD FILTER TO SPECIFIC REGION ***
-
-            # Potential paternal isodisomy variants
-            new_candvars <- MAF_filter_vars[father_GT %in% "0/1" & proband_GT %in% "0/1" & mother_GT %in% c("0/0", "0/1"), ]
-
-            # Filter candidates with alternate > 50% of counts (i.e., they got copy of alt from paternal side)
-            proband_depth <- gsub("(", "", gsub(")", "", new_candvars$`proband depth (R,A)`, fixed=TRUE), fixed=TRUE)
-            proband_split <- strsplit(proband_depth, ",")
-            proband_ref_counts <- as.integer(sapply(proband_split, function(x)x[1]))
-            proband_alt_counts <- as.integer(sapply(proband_split, function(x)x[2]))
-            proband_alt_allele_freq <- proband_alt_counts / (proband_ref_counts + proband_alt_counts)
-
-            new_candvars <- new_candvars[proband_alt_allele_freq > 0.5, ]
-        }
-        else if (inh_model %in% c("trio x-linked dominant", "paternal heterodisomy", "maternal isodisomy", "maternal heterodisomy")) {
-            stop(paste("Error:", inh_model, "inheritance model not yet implemented"))
         }
         else {
             stop(paste("Error: invalid inheritance model", inh_model))
