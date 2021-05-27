@@ -180,12 +180,8 @@ load_vep_vcf_2 <- function(vcf_filename, sampleID, field = 'CSQ')
             PICK = col_integer()
         )
     
-    # *** Eventually want the desired list of output columns to be something that can be specified in project settings ***
-    vcf_info_fields <- NULL
-    vcf_format_fields <- NULL
-    
     vcf <- vcfR::read.vcfR(vcf_filename)
-    vcf_tidy <- vcfR::vcfR2tidy(vcf, info_fields=vcf_info_fields, format_fields=vcf_format_fields)
+    vcf_tidy <- vcfR::vcfR2tidy(vcf)
     
     # Get ANN format column names
     ANN_columns <- strsplit(strsplit(vcf_tidy$meta$Description[vcf_tidy$meta$ID == field], "Format: ")[[1]][2], "|", fixed=TRUE)[[1]]
@@ -211,7 +207,7 @@ load_vep_vcf_2 <- function(vcf_filename, sampleID, field = 'CSQ')
         select(c("CHROM", "POS", "REF", "ALT", "QUAL", "FILTER", "DP", "QD", "MQ", "FS", "SOR", "MQRankSum", "ReadPosRankSum", "InbreedingCoeff")) %>% 
         (function(x) { bind_cols(x[ANN$index, ], ANN) }) %>% 
         rename(chromosome = CHROM,
-               start = POS,
+               position = POS,
                reference = REF,
                alternate = ALT,
                change = Consequence,
@@ -226,7 +222,7 @@ load_vep_vcf_2 <- function(vcf_filename, sampleID, field = 'CSQ')
                SIFT = str_extract(SIFT, '^.+(?=\\([0-9\\.]+\\)$)') %>% str_remove('_low_confidence'),
                Polyphen2_score = str_extract(Polyphen2, '(?<=\\()[0-9\\.]+(?=\\)$)') %>% as.numeric(),
                Polyphen2 = str_extract(Polyphen2, '^.+(?=\\([0-9\\.]+\\)$)')) %>% 
-        select(., chromosome, start, reference, alternate, gene,
+        select(., chromosome, position, reference, alternate, gene,
                starts_with('MAF'), starts_with('SIFT'), starts_with('Polyphen2'), everything())
     
     for (sID in names(sampleID)) {
@@ -245,7 +241,7 @@ load_vep_vcf_2 <- function(vcf_filename, sampleID, field = 'CSQ')
     length_ref <- sapply(vars$reference, nchar)
     length_alt <- sapply(vars$alternate, nchar)
     # Start and end positions are the same for insertions or SNV but different for deletions
-    vars$end <- ifelse(length_ref <= length_alt, vars$start, vars$start + length_ref - length_alt - 1)
+    vars$end <- ifelse(length_ref <= length_alt, vars$position, vars$position + length_ref - length_alt - 1)
     
     vars$change <- gsub("&", ";", vars$change, fixed=TRUE)
     
