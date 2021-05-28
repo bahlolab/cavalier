@@ -13,12 +13,18 @@ omim_table <- function(gene, genemap2=NULL)
         print("Download genemap2.txt from https://omim.org/downloads/ or specify location of file.")
         return(NULL)
     } else if (!("genemap2_omim_table" %in% ls())) {
-        genemap2_omim_table <- read.delim(genemap2, skip=3, stringsAsFactors=FALSE)
+        require(tidyverse)
+        genemap2_omim_table <- 
+            read.delim(genemap2, skip=3, stringsAsFactors=FALSE) %>% 
+            mutate(alt_symbol = map(Gene.Symbols, 
+                                 ~ str_trim(c(str_split(., ',', simplify = TRUE))))) %>% 
+            unnest(alt_symbol) %>% 
+            as.data.frame()
         assign("genemap2_omim_table", genemap2_omim_table, envir=.GlobalEnv)
     }
 
     # Find OMIM matches for gene
-    gene_gm2 <- genemap2_omim_table[genemap2_omim_table$Approved.Symbol %in% gene, ]
+    gene_gm2 <- genemap2_omim_table[genemap2_omim_table$alt_symbol %in% gene, ]
     if (nrow(gene_gm2) == 0) {
         return(NULL)
     }
