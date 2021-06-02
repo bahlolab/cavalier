@@ -15,7 +15,7 @@
 # *** TOFIX: location of IGV-snapshot-automator is hardcoded to lab_bahlo share ***
 
 create_igv_snapshots <- function(candidates, bams, reference_genome, output_dir, slop=20, overwrite=FALSE,
-                                 IGV_jar='/IGV-snapshot-automator/igv.jar', make_IGV_snapshots='/IGV-snapshot-automator/make_IGV_snapshots.py')
+                                 IGV_sh=NULL, make_IGV_snapshots='make_IGV_snapshots.py')
 {
     output_dir <- endslash_dirname(output_dir)
     igv_output_dir <- paste0(output_dir, "data/igv_output/")
@@ -41,12 +41,12 @@ create_igv_snapshots <- function(candidates, bams, reference_genome, output_dir,
         temp_igv_bed <- paste0(igv_output_dir, "temp_igv.bed")
         write.table(bed, file=temp_igv_bed, quote=FALSE, sep="\t", row.names=FALSE, col.names=FALSE)
         
-        command <- paste0("python ", make_IGV_snapshots, 
-                            " ", paste(bams, collapse=" "), 
-                            " -g ", reference_genome, 
-                            " -bin ", IGV_jar, 
-                            " -r ", temp_igv_bed,
-                            " -o ", igv_output_dir)
+        command <- paste0(make_IGV_snapshots, 
+                          " ", paste(bams, collapse=" "), 
+                          " -g ", reference_genome, 
+                          `if`(!is.null(IGV_sh), paste0(" -igv ", IGV_sh, ), ""),
+                          " -r ", temp_igv_bed,
+                          " -o ", igv_output_dir)
         system(command)
         file.remove(temp_igv_bed)
     }

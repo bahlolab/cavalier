@@ -10,7 +10,8 @@
 # #' @examples
 # #' ***TODO***
 
-create_candidate_slides_pdf <- function(candidates, output_dir, output_cols, genemap2=NULL, GTEx_median_rpkm=NULL, GTEx_tissues=NULL, hide_missing_igv=FALSE, layout="individual")
+create_candidate_slides_pdf <- function(candidates, output_dir, output_cols, genemap2=NULL, GTEx_median_rpkm=NULL, GTEx_tissues=NULL, hide_missing_igv=FALSE, layout="individual",
+                                        width=14, height=8, title_col = NULL, add_data_col = NULL)
 {
     # If option specified then remove candidates without IGV files
     if (hide_missing_igv) {
@@ -42,16 +43,17 @@ create_candidate_slides_pdf <- function(candidates, output_dir, output_cols, gen
 
     table_base_size <- 14
     omim_table_base_size <- 12
+    add_data_base_size <- 10
     
     candidate_types <- unique(as.character(candidates[, "inheritance model"]))
     for (ct in candidate_types) {
         filename <- paste0(output_dir, "pdf_files/candidate_variants_report_", gsub(" ", "_", ct), ".pdf")
         ct_candidates <- candidates[as.character(candidates$`inheritance model`) %in% ct, ]
 
-        pdf(filename, 10, 8)
+        pdf(filename, width = width, height = height)
         for (ii in 1:nrow(ct_candidates)) {
             ii_gene <- ct_candidates$gene[ii]
-
+            
             # Title
             ii_title <- paste0("Candidate ", ii, ":  ", ii_gene)
             ii_title_grob <- grid::textGrob(ii_title, gp=grid::gpar(cex=2, col="navy"))
@@ -60,7 +62,7 @@ create_candidate_slides_pdf <- function(candidates, output_dir, output_cols, gen
             ii_table <- data.frame(value=as.vector(unlist(ct_candidates[ii, output_cols])))
             rownames(ii_table) <- output_cols
             ii_table_grob <- gridExtra::tableGrob(ii_table, cols=NULL, theme=gridExtra::ttheme_minimal(base_size=table_base_size, 
-                                                 core=list(fg_params=list(hjust=0, x=0.05))))
+                                                                                                       core=list(fg_params=list(hjust=0, x=0.05))))
             # *** TODO: colour text for different predictions green / red etc
             
             # IGV
@@ -70,13 +72,13 @@ create_candidate_slides_pdf <- function(candidates, output_dir, output_cols, gen
             } else {
                 ii_igv_grob <- grid::textGrob("")
             }
-
+            
             # GTEx
             ii_GTEx <- plot_gtex_expression(ii_gene, GTEx_median_rpkm=GTEx_median_rpkm, small_font=TRUE, tissues=GTEx_tissues)
             if (is.null(ii_GTEx)) {
                 ii_GTEx <- grid::textGrob("")
             }
-
+            
             # *** OMIM ***
             ii_omim_table <- omim_table(ii_gene, genemap2=genemap2)
             if (is.null(ii_omim_table)) {
@@ -84,105 +86,47 @@ create_candidate_slides_pdf <- function(candidates, output_dir, output_cols, gen
             }
             else {
                 ii_omim_grob <- gridExtra::tableGrob(ii_omim_table, rows=NULL,
-                                    theme=gridExtra::ttheme_default(base_size=omim_table_base_size, 
-                                                         core=list(fg_params=list(hjust=0, x=0.05))))
+                                                     theme=gridExtra::ttheme_default(base_size=omim_table_base_size, 
+                                                                                     core=list(fg_params=list(hjust=0, x=0.05))))
             }
             
-            # Combine images
-
-            # # *** DEFINE SEVERAL LAYOUTS ***
-            # if (length(project_info$sampleID) == 1) {
-            #     grid_layout <- rbind(c(1, 1, 1),
-            #                          c(2, 3, 3),
-            #                          c(4, 4, 5))
-            # } 
-            # else {
-            #     grid_layout <- rbind(c(1, 1, 1),
-            #                          c(2, 5, 3),
-            #                          c(4, 4, 3))
-            # }
-            # grid_widths <- c(4, 2, 3)
-            # grid_heights <- c(1, 5, 3)
-
-            # *** DEFINE SEVERAL LAYOUTS ***
-            if (layout == "individual") {
-                grid_layout <- rbind(c(6,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  7),
-                                     c(6,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  7),
-                                     c(6,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  7),
-                                     c(6,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10, 11, 11, 11, 11, 11, 11, 11, 11, 11, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10, 11, 11, 11, 11, 11, 11, 11, 11, 11,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10, 11, 11, 11, 11, 11, 11, 11, 11, 11,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10, 11, 11, 11, 11, 11, 11, 11, 11, 11,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  7),
-                                     c(6,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9, 12,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  7),
-                                     c(6,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4, 12,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  7),
-                                     c(6,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4, 12,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  7),
-                                     c(6,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4, 12,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  7),
-                                     c(6,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4, 12,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  7),
-                                     c(6,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4, 12,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  7),
-                                     c(6,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4, 12,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  7),
-                                     c(6,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4, 12,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  7),
-                                     c(6,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4, 12,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  7),
-                                     c(6,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  7))
-            } 
-            else if (layout == "multiple") {
-                grid_layout <- rbind(c(6,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  7),
-                                     c(6,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  7),
-                                     c(6,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  7),
-                                     c(6,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10,  5,  5,  5,  5,  5,  5,  5,  5, 13,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10,  5,  5,  5,  5,  5,  5,  5,  5, 13,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10,  5,  5,  5,  5,  5,  5,  5,  5, 13,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10,  5,  5,  5,  5,  5,  5,  5,  5, 13,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10,  5,  5,  5,  5,  5,  5,  5,  5, 13,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10,  5,  5,  5,  5,  5,  5,  5,  5, 13,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10,  5,  5,  5,  5,  5,  5,  5,  5, 13,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10,  5,  5,  5,  5,  5,  5,  5,  5, 13,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10,  5,  5,  5,  5,  5,  5,  5,  5, 13,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10,  5,  5,  5,  5,  5,  5,  5,  5, 13,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10,  5,  5,  5,  5,  5,  5,  5,  5, 13,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10,  5,  5,  5,  5,  5,  5,  5,  5, 13,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10,  5,  5,  5,  5,  5,  5,  5,  5, 13,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10,  5,  5,  5,  5,  5,  5,  5,  5, 13,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10,  5,  5,  5,  5,  5,  5,  5,  5, 13,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10, 11, 11, 11, 11, 11, 11, 11, 11, 11,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10, 11, 11, 11, 11, 11, 11, 11, 11, 11,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 10, 11, 11, 11, 11, 11, 11, 11, 11, 11,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9, 12,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4, 12,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4, 12,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4, 12,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4, 12,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4, 12,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4, 12,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4, 12,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4, 12,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  7),
-                                     c(6,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  7))
-            } else {
-                stop("Error: unrecognised layout option")
+            # *** add data ***
+            add_data_grob <- NULL
+            if (!is.null(add_data_col)) {
+                add_data_table <- candidates[[add_data_col]][[ii]]
+                if (nrow(add_data_table)) {
+                    add_data_grob <- gridExtra::tableGrob(add_data_table, rows=NULL,
+                                                          theme=gridExtra::ttheme_default(base_size=add_data_base_size, 
+                                                                                          core=list(fg_params=list(hjust=0, x=0.05))))
+                }
+                
             }
-            grid_widths <- rep(0.25, 40)
-            grid_heights <- rep(0.25, 32)
+            
+            cowplot::plot_grid(ii_table_grob, ii_igv_grob,
+                               ii_omim_grob, ii_GTEx,
+                               ncol =2)
+            
+            rh <-  c(nrow(ii_table), 0.5, `if`(is.null(ii_omim_grob), 0, nrow(ii_omim_grob) + 2))
+            pl <- cowplot::plot_grid(ii_table_grob, NULL, ii_omim_grob, ncol = 1,
+                                     rel_heights = rh)
+            
+            pr <- cowplot::plot_grid(ii_igv_grob, NULL, ii_GTEx, ncol = 1,
+                                     rel_heights = c(10,1,10))
 
-            ii_grob_list <- list(ii_title_grob, ii_table_grob, ii_igv_grob, ii_omim_grob, ii_GTEx, grid::textGrob(""), grid::textGrob(""), grid::textGrob(""), grid::textGrob(""), grid::textGrob(""), grid::textGrob(""), grid::textGrob(""), grid::textGrob(""))
-            gridExtra::grid.arrange(grobs=ii_grob_list, layout_matrix=grid_layout, widths=grid_widths, heights=grid_heights, right="")
-
-            grid::textGrob("")
-            grid::textGrob("")
+            pm <- cowplot::plot_grid(pl, pr,ncol =2)
+            if (!is.null(add_data_grob)) {
+                pb <- cowplot::plot_grid(pm, add_data_grob, 
+                                         ncol = 1,
+                                         rel_heights = c(sum(rh), nrow(add_data_table) + 1))
+            } else {
+                pb <- pm
+            }
+            if (!is.null(title_col)) {
+                pt <- cowplot::ggdraw() + cowplot::draw_text(title, fontface = 2, size = 16)
+                print(cowplot::plot_grid(pt, pb, ncol = 1, rel_heights = c(1,10)))
+            } else {
+                print(pb)
+            }
         }
         dev.off()
     }

@@ -13,7 +13,8 @@
 # #' @examples
 # #' ***TODO***
 
-create_cavalier_output <- function(candidates, output_dir, sampleID, output_cols, hide_missing_igv=FALSE, pubmed_keywords="", layout="individual", genemap2=NULL, GTEx_median_rpkm=NULL, GTEx_tissues=NULL)
+create_cavalier_output <- function(candidates, output_dir, sampleID, output_cols, hide_missing_igv=FALSE, pubmed_keywords="", layout="individual", genemap2=NULL, GTEx_median_rpkm=NULL, GTEx_tissues=NULL,
+                                   add_data_col = NULL, title_col = NULL)
 {
     output_dir <- endslash_dirname(output_dir)
     
@@ -47,7 +48,8 @@ create_cavalier_output <- function(candidates, output_dir, sampleID, output_cols
     create_candidate_table_pdf(candidates, output_dir, output_cols, hide_missing_igv=hide_missing_igv)
 
     create_candidate_slides_pdf(candidates, output_dir, output_cols, hide_missing_igv=hide_missing_igv, 
-                                GTEx_median_rpkm=GTEx_median_rpkm, GTEx_tissues=GTEx_tissues, genemap2=genemap2, layout=layout)
+                                GTEx_median_rpkm=GTEx_median_rpkm, GTEx_tissues=GTEx_tissues, genemap2=genemap2, layout=layout,
+                                add_data_col = add_data_col, title_col = title_col)
     
     # Write table of candidate variants
     if (hide_missing_igv) {
