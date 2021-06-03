@@ -56,6 +56,9 @@ create_cavalier_output <- function(candidates, output_dir, sampleID, output_cols
         candidates <- candidates[file.exists(candidates$igv_filename), ]
     }
     if (nrow(candidates) > 0) {
+        if(!is.null(add_data_col)) {
+            candidates[[add_data_col]] <- NULL
+        }
         write.table(candidates, file=paste0(output_dir, "/candidate_variants.txt"), quote=FALSE, sep="\t", row.names=FALSE)
     }
 }
