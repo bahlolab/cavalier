@@ -14,6 +14,10 @@ create_candidate_slides_ppt <- function(candidates, output_dir, output_cols,
                                         title_col = NULL,
                                         add_data_col = NULL,
                                         slide_template = NULL){
+    
+    require(officer)
+    require(flextable)
+    
     if (nrow(candidates) == 0) {
         return(NULL)
     }
