@@ -51,6 +51,10 @@ create_cavalier_output <- function(candidates, output_dir, sampleID, output_cols
                                 GTEx_median_rpkm=GTEx_median_rpkm, GTEx_tissues=GTEx_tissues, genemap2=genemap2, layout=layout,
                                 add_data_col = add_data_col, title_col = title_col)
     
+    create_candidate_slides_ppt(candidates, output_dir, output_cols,
+                                GTEx_median_rpkm=GTEx_median_rpkm, GTEx_tissues=GTEx_tissues, genemap2=genemap2,
+                                add_data_col = add_data_col, title_col = title_col)
+    
     # Write table of candidate variants
     if (hide_missing_igv) {
         candidates <- candidates[file.exists(candidates$igv_filename), ]

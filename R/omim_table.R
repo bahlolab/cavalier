@@ -6,13 +6,13 @@
 # #' @examples
 # #' ***TODO***
 
-omim_table <- function(gene, genemap2=NULL)
+omim_table <- function(gene, genemap2=NULL, wrap = TRUE)
 {
     if ((is.null(genemap2) | !file.exists(genemap2)) & !("genemap2_omim_table" %in% ls())) {
         print("Warning: no OMIM genemap2 table found.")
         print("Download genemap2.txt from https://omim.org/downloads/ or specify location of file.")
         return(NULL)
-    } else if (!("genemap2_omim_table" %in% ls())) {
+    } else if (!("genemap2_omim_table" %in% ls(envir = .GlobalEnv))) {
         require(tidyverse)
         genemap2_omim_table <- 
             read.delim(genemap2, skip=3, stringsAsFactors=FALSE) %>% 
@@ -52,12 +52,14 @@ omim_table <- function(gene, genemap2=NULL)
     }
     OMIMtable$OMIM.inheritance[OMIMtable$OMIM.inheritance == "NA"] <- ""
     rownames(OMIMtable) <- NULL
-    colnames(OMIMtable) <- c("OMIM phenotype", "inheritance")
-    if (all(OMIMtable$inheritance == "")) {
-        OMIMtable <- OMIMtable[, "OMIM phenotype", drop=FALSE]
-        OMIMtable[, "OMIM phenotype"] <- sapply(OMIMtable[, "OMIM phenotype"], function(x){paste0(strwrap(x, width=60), collapse="  \n")})
-    } else {
-        OMIMtable[, "OMIM phenotype"] <- sapply(OMIMtable[, "OMIM phenotype"], function(x){paste0(strwrap(x, width=42), collapse="  \n")})
+    colnames(OMIMtable) <- c("OMIM phenotype", "Inheritance")
+    if (wrap) {
+        if (all(OMIMtable$inheritance == "")) {
+            OMIMtable <- OMIMtable[, "OMIM phenotype", drop=FALSE]
+            OMIMtable[, "OMIM phenotype"] <- sapply(OMIMtable[, "OMIM phenotype"], function(x){paste0(strwrap(x, width=60), collapse="  \n")})
+        } else {
+            OMIMtable[, "OMIM phenotype"] <- sapply(OMIMtable[, "OMIM phenotype"], function(x){paste0(strwrap(x, width=42), collapse="  \n")})
+        }
     }
     return(OMIMtable)
 }

@@ -93,7 +93,7 @@ create_candidate_slides_pdf <- function(candidates, output_dir, output_cols, gen
             # *** add data ***
             add_data_grob <- NULL
             if (!is.null(add_data_col)) {
-                add_data_table <- candidates[[add_data_col]][[ii]]
+                add_data_table <- ct_candidates[[add_data_col]][[ii]]
                 if (nrow(add_data_table)) {
                     add_data_grob <- gridExtra::tableGrob(add_data_table, rows=NULL,
                                                           theme=gridExtra::ttheme_default(base_size=add_data_base_size, 
@@ -122,7 +122,7 @@ create_candidate_slides_pdf <- function(candidates, output_dir, output_cols, gen
                 pb <- pm
             }
             if (!is.null(title_col)) {
-                pt <- cowplot::ggdraw() + cowplot::draw_text(candidates[[title_col]][[ii]], fontface = 2, size = 16)
+                pt <- cowplot::ggdraw() + cowplot::draw_text(ct_candidates[[title_col]][[ii]], fontface = 2, size = 16)
                 print(cowplot::plot_grid(pt, pb, ncol = 1, rel_heights = c(1,10)))
             } else {
                 print(pb)
