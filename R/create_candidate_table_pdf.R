@@ -6,24 +6,27 @@
 # #' @examples
 # #' ***TODO***
 
-create_candidate_table_pdf <- function(candidates, output_dir, hide_missing_igv=FALSE)
+create_candidate_table_pdf <- function(candidates, output_dir, output_cols, hide_missing_igv=FALSE)
 {
-    # Output columns
-    output_cols <- c("gene", "chr", "ref", "alt", "region", "change", "ExAC count", "gnomAD exome count", "SIFT", "PP2", "CADD", "Grantham", "RVIS")
-    candidates <- as.data.frame(candidates)
-    
-    # Remove candidates without IGV files: currently this functions as a simple temporary method 
-    # to remove technical artefacts by otherwise unwanted variants by deleting or moving IGV snapshot file
+    # If option specified then remove candidates without IGV files
     if (hide_missing_igv) {
-        candidates <- candidates[sapply(candidates$igv_filename, file.exists), ]
+        candidates <- candidates[file.exists(candidates$igv_filename), ]
     }
-
+    if (nrow(candidates) == 0) {
+        return(NULL)
+    }
+    
+    output_dir <- endslash_dirname(output_dir)
+    
+    if (!dir.exists(paste0(output_dir, "pdf_files/"))) {
+        dir.create(paste0(output_dir, "pdf_files/"), recursive=TRUE)
+    }
+    
     candidates$chr <- candidates$chromosome
-    # Abbreviate long ref and alt sequences with "..."
     candidates$ref <- sapply(candidates$reference, function(x){ifelse(nchar(x) > 7, paste0(substr(x, 1, 5), "..."), x)})
     candidates$alt <- sapply(candidates$alternate, function(x){ifelse(nchar(x) > 7, paste0(substr(x, 1, 5), "..."), x)})
-    candidates$PP2 <- candidates$Polyphen2
-    candidates$RVIS <- round(candidates$RVIS, 1)
+    
+    output_cols <- intersect(output_cols, colnames(candidates))
 
     table_candidates <- candidates[, output_cols]
     rownames(table_candidates) <- NULL

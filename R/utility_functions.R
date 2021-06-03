@@ -19,3 +19,10 @@ newline_every_n_chars <- function(x, n)
     }
 }
 
+# Convert to numeric replacing NA with zero
+as_numeric_na_zero <- function(x) {
+    y <- as.numeric(x)
+    y[is.na(y)] <- 0
+    return(y)
+}
+

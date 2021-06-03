@@ -54,6 +54,9 @@ grantham_score <- function(annotation)
     # Get amino acid change part of annotation
     last_strsplit <- function(x, split) {
         x_split <- strsplit(x, split)[[1]]
+        if(length(x_split) == 0) {
+            return(".")
+        }
         return(as.vector(unlist(x_split[length(x_split)])))
     }
     annotation <- sapply(annotation, function(x){last_strsplit(x, ":")})
