@@ -1,56 +1,74 @@
-#' Create IGV snapshots
-#' 
-#' Creates IGV images automatically using IGV-snapshot-automator
-#' 
-#' @param candidates candidate variants data.frame
-#' @param bams bam file(s) to load into IGV and take snapshots of
-#' @param reference_genome reference genome to use (hg19, hg38)
-#' @param output_dir output base directory
-#' @param slop number of base pairs to include on either side of variant (default: 20)
-#' @param overwrite overwrite existing files with same name (default: FALSE)
-#' @return candidate variants data.frame with additional 'igv_filename' column containing filename of IGV snapshot
-# #' @examples
-# #' ***TODO***
 
-# *** TOFIX: location of IGV-snapshot-automator is hardcoded to lab_bahlo share ***
+# creates IGV snapshots using xvfb-run and igv.sh
+# Can either set igv_sh to full path to igv.sh, or Sys.setenv(PATH=...), likewise for xvfb-run/ singularity
+create_igv_snapshots <- function(candidates, bams, genome,
+                                 output_dir = 'igv_snapshots',
+                                 overwrite = FALSE,
+                                 slop = 20,
+                                 preferences = c('NAME_PANEL_WIDTH 70'),
+                                 igv_sh = 'igv.sh',
+                                 igv_max_height = 500,
+                                 xvfb_run = 'xvfb-run',
+                                 singularity_img = NULL,
+                                 singularity_bin = 'singularity',
+                                 width = 800,
+                                 height = 500) {
 
-create_igv_snapshots <- function(candidates, bams, reference_genome, output_dir, slop=20, overwrite=FALSE,
-                                 IGV_sh=NULL, make_IGV_snapshots='make_IGV_snapshots.py')
-{
-    output_dir <- endslash_dirname(output_dir)
-    igv_output_dir <- paste0(output_dir, "data/igv_output/")
+    snapshot_tbl <-
+        candidates %>% 
+        transmute(chrom = chromosome,
+                  start = position,
+                  end = start + nchar(reference)) %>% 
+        mutate(start = start - slop,
+               end = end + slop,
+               filename = file.path(output_dir, str_c(chrom, start, end, sep='_')) %>% 
+                   str_c('.png'))
+    candidates$igv_filename <- snapshot_tbl$filename
     
-    if (!dir.exists(igv_output_dir)) {
-        dir.create(igv_output_dir, showWarnings=TRUE, recursive=TRUE)
-    }
-    
-    # Create IGV snapshot filenames and bed file for IGV-snapshot automator
-    length_ref <- sapply(candidates$reference, nchar)
-    length_alt <- sapply(candidates$alternate, nchar)
-    start <- candidates$position
-    end <- ifelse(length_ref <= length_alt, start, start + length_ref - length_alt - 1)
-    
-    candidates$igv_filename <- paste0(igv_output_dir, candidates$chromosome, "_", start - slop, "_", end + slop, "_h500.png")
-    
-    bed <- data.frame(candidates$chromosome, start - slop, end + slop, candidates$igv_filename, stringsAsFactors=FALSE)
     if (!overwrite) {
-        bed <- bed[!file.exists(candidates$igv_filename), ]
+        snapshot_tbl <- filter(snapshot_tbl, !file.exists(filename))
     }
     
-    if (nrow(bed) > 0) {
-        temp_igv_bed <- paste0(igv_output_dir, "temp_igv.bed")
-        write.table(bed, file=temp_igv_bed, quote=FALSE, sep="\t", row.names=FALSE, col.names=FALSE)
+    if (nrow(snapshot_tbl)) {
+        # write batch script
+        if (!dir.exists(output_dir)) { dir.create(output_dir, recursive = TRUE) }
+        batch_tmp <- tempfile(tmpdir = output_dir, pattern = 'igv_', fileext = '.bat')
+        c('new',
+          str_c('genome ', genome),
+          map_chr(preferences, ~ str_c('preference ', .)),
+          map_chr(bams, ~ str_c('load ', .)),
+          str_c('maxPanelHeight ', igv_max_height),
+          pmap(snapshot_tbl, function(chrom, start, end, filename, ...) {
+              c(str_c('goto ', chrom, ':', start, '-', end),
+                str_c('snapshot ', filename))
+          }) %>% unlist(),
+          'exit') %>% 
+            write_lines(batch_tmp)
         
-        command <- paste0(make_IGV_snapshots, 
-                          " ", paste(bams, collapse=" "), 
-                          " -g ", reference_genome, 
-                          `if`(!is.null(IGV_sh), paste0(" -igv ", IGV_sh, ), ""),
-                          " -r ", temp_igv_bed,
-                          " -o ", igv_output_dir)
-        system(command)
-        file.remove(temp_igv_bed)
+        # snapshot command
+        cmd <-
+            str_c(xvfb_run,
+                  '--auto-servernum',
+                  '--server-num=1',
+                  str_c('-s \'-screen 0 ', width, 'x', height, 'x8\''),
+                  igv_sh,
+                  '-b',
+                  batch_tmp,
+                  sep = ' ')
+        # wrap singularity if using
+        if (!is.null(singularity_img)) {
+            bind_dirs <- c(getwd(), map_chr(c(bams, snapshot_tbl$filename, batch_tmp), dirname)) %>% unique() %>% setdiff('.')
+            cmd <-
+                str_c(singularity_bin, 
+                      'exec',
+                      str_c('-B ', bind_dirs, collapse = ' '),
+                      singularity_img,
+                      cmd,
+                      sep = ' ')
+        }
+        # execute command
+        system(cmd)
     }
+    
     return(candidates)
 }
-
-

@@ -13,11 +13,8 @@ create_candidate_slides_ppt <- function(candidates, output_dir, output_cols,
                                         GTEx_tissues=NULL,
                                         title_col = NULL,
                                         add_data_col = NULL,
-                                        slide_template = NULL){
-    
-    require(officer)
-    require(flextable)
-    
+                                        slide_template = NULL) {
+
     if (nrow(candidates) == 0) {
         return(NULL)
     }

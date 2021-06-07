@@ -13,7 +13,6 @@ omim_table <- function(gene, genemap2=NULL, wrap = TRUE)
         print("Download genemap2.txt from https://omim.org/downloads/ or specify location of file.")
         return(NULL)
     } else if (!("genemap2_omim_table" %in% ls(envir = .GlobalEnv))) {
-        require(tidyverse)
         genemap2_omim_table <- 
             read.delim(genemap2, skip=3, stringsAsFactors=FALSE) %>% 
             mutate(alt_symbol = map(Gene.Symbols, 

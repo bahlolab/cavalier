@@ -31,7 +31,7 @@ create_candidate_table_html <- function(candidates, output_dir, sampleID, output
     for (id in sampleID) {
         output_cols <- c(output_cols, paste(id, "genotype"))
     }
-    table_candidates <- as.data.frame(candidates[, output_cols])
+    table_candidates <- as.data.frame(candidates[, union('gene', output_cols)])
     
     # *** GENERALISE
     # # Abbreviate long sequences with "..." and hovertext
