@@ -1,4 +1,4 @@
-#' Create PDF output slide for each candidate variant
+#' Create powerpoint .pptx output slide for each candidate variant
 #' 
 #' @param candidates candidate variants data.frame
 #' @param output_dir cavalier output directory
@@ -7,6 +7,11 @@
 #' @param GTEx_tissues optionally specify list of tissues to plot GTEx expression data
 #' @param hide_missing_igv hide variants that are missing IGV snapshot (default: FALSE)
 #' @param layout slide layout choice: "individual" or "multiple" designed for a single or multiple individuals (default: "individual")
+#' @importFrom officer read_pptx add_slide ph_with ph_location_type ph_location_template external_img 
+#' @importFrom flextable flextable delete_part theme_zebra italic bold colformat_char align autofit fit_to_width
+#' @importFrom dplyr arrange select mutate
+#' @importFrom tibble rownames_to_column
+#' @importFrom purrr walk map
 create_candidate_slides_ppt <- function(candidates, output_dir, output_cols,
                                         genemap2=NULL,
                                         GTEx_median_rpkm=NULL,
@@ -16,7 +21,6 @@ create_candidate_slides_ppt <- function(candidates, output_dir, output_cols,
                                         slide_template = NULL) {
 
     # shouldn't be need as in imports, but getting read_pptx() not found
-    require(officer)
     if (nrow(candidates) == 0) {
         return(NULL)
     }

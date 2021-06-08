@@ -12,6 +12,7 @@
 #' @param change_exclude change to exclude from filtering (if change_include not specified)
 #' @param min_depth minimum depth to require in all individuals to keep variant (default: 0)
 #' @return data frame of candidate variants for each inheritance model
+#' @export
 # #' @examples
 # #' ***TODO***
 

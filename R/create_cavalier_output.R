@@ -10,6 +10,7 @@
 #' @param GTEx_median_rpkm location of GTEx_Analysis_v6p_RNA-seq_RNA-SeQCv1.1.8_gene_median_rpkm.gct.gz file downloaded from GTEx Portal (see https://gtexportal.org/home/datasets)
 #' @param GTEx_tissues optionally specify list of tissues to plot GTEx expression data
 #' @param genemap2 location of genemap2.txt file downloaded from OMIM (see https://omim.org/downloads/)
+#' @export
 # #' @examples
 # #' ***TODO***
 

@@ -7,5 +7,8 @@
 #'
 #' @docType package
 #' @name cavalier
+#' @export HGNC_alias
 
 NULL
+
+

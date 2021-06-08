@@ -2,6 +2,11 @@
 #' 
 #' @param vcf_filename VEP annotated VCF filename
 #' @param sampleID list of IDs and names for samples of interest
+#' @importFrom stringr str_c str_extract str_split
+#' @importFrom magrittr '%>%' set_colnames
+#' @importFrom dplyr bind_cols
+#' @importFrom tidyr unnest chop
+#' @export
 # #' @examples
 # #' ***TODO***
 
@@ -97,9 +102,9 @@ load_vep_vcf <- function(vcf_filename, sampleID, field = 'CSQ') {
         unnest(data) %>% 
         (function(x) {
             x <- str_split(x$data, '\\|', simplify = TRUE) %>% 
-                magrittr::set_colnames(ANN_columns) %>% 
+                set_colnames(ANN_columns) %>% 
                 as_tibble() %>% 
-                readr::type_convert(col_types = vep_col_spec) %>% 
+                type_convert(col_types = vep_col_spec) %>% 
                 { bind_cols(select(x, index), .)}
         }) %>% 
         filter(PICK == 1)

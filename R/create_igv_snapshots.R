@@ -1,6 +1,9 @@
 
 # creates IGV snapshots using xvfb-run and igv.sh
 # Can either set igv_sh to full path to igv.sh, or Sys.setenv(PATH=...), likewise for xvfb-run/ singularity
+#' @importFrom purrr walk map_chr
+#' @importFrom stringr str_c
+#' @export
 create_igv_snapshots <- function(candidates, bams, genome,
                                  output_dir = 'igv_snapshots',
                                  overwrite = FALSE,
@@ -8,6 +11,7 @@ create_igv_snapshots <- function(candidates, bams, genome,
                                  preferences = c('NAME_PANEL_WIDTH 70'),
                                  igv_sh = 'igv.sh',
                                  igv_max_height = 500,
+                                 igv_args = character(),
                                  xvfb_run = 'xvfb-run',
                                  singularity_img = NULL,
                                  singularity_bin = 'singularity',
@@ -52,6 +56,7 @@ create_igv_snapshots <- function(candidates, bams, genome,
                   '--server-num=1',
                   str_c('-s \'-screen 0 ', width, 'x', height, 'x8\''),
                   igv_sh,
+                  igv_args,
                   '-b',
                   batch_tmp,
                   sep = ' ')
