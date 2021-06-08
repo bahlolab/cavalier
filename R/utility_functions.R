@@ -26,3 +26,10 @@ as_numeric_na_zero <- function(x) {
     return(y)
 }
 
+# replace gene symbols alias with HGNC approved symbol
+#' @export
+hgnc_name_replace <- function(genes) {
+    at <- which(genes %in% HGNC_alias$alias)
+    replace(genes, at, HGNC_alias$symbol[match(genes[at], HGNC_alias$alias)])
+}
+

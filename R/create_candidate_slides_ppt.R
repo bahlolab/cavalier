@@ -125,11 +125,13 @@ create_candidate_slides_ppt <- function(candidates, output_dir, output_cols,
                         location = ph_location_template(left = seg_left[2],
                                                         top = top,
                                                         width = seg_width*1.1)) %>% 
-                ph_with(value = gtex_plot,
-                        location = ph_location_template(left = seg_left[3],
-                                                        top = top,
-                                                        width = seg_width,
-                                                        height = h1)) %>% 
+                { `if`(is.null(gtex_plot), .,
+                       ph_with(value = gtex_plot,
+                               location = ph_location_template(left = seg_left[3],
+                                                               top = top,
+                                                               width = seg_width,
+                                                               height = h1))
+                )} %>% 
                 { `if`(is.null(omim_ft), .,
                        ph_with(.,
                                value = omim_ft,

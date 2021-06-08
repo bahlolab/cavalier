@@ -16,7 +16,7 @@ plot_gtex_expression <- function(gene, GTEx_median_rpkm=NULL, small_font=FALSE, 
         print("from https://gtexportal.org/home/datasets or specify location of file.")
         return(NULL)
     } else if (!("GTEx_median_rpkm_table" %in% ls(envir = .GlobalEnv))) {
-        GTEx_median_rpkm_table <- readr::read_delim(GTEx_median_rpkm, delim="\t", skip=2)
+        GTEx_median_rpkm_table <- readr::read_delim(GTEx_median_rpkm, delim="\t", skip=2, col_types = cols())
         assign("GTEx_median_rpkm_table", GTEx_median_rpkm_table, envir=.GlobalEnv)
     }
     
