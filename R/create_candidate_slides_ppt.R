@@ -15,6 +15,8 @@ create_candidate_slides_ppt <- function(candidates, output_dir, output_cols,
                                         add_data_col = NULL,
                                         slide_template = NULL) {
 
+    # shouldn't be need as in imports, but getting read_pptx() not found
+    require(officer)
     if (nrow(candidates) == 0) {
         return(NULL)
     }
