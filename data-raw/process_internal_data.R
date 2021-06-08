@@ -1,7 +1,7 @@
 # Run this script to create internal data tables of public OMIM and RVIS data: R/sysdata.rda
 
 # get approved names and aliases from HGNC
-# downloaded from https://www.genenames.org/download/custom/
+# downloaded from https://www.genenames.org/download/custom/ June 2021
 HGNC <- readr::read_tsv('HGNC_2021_06_07.txt.gz', col_types = readr::cols())
 HGNC_alias <- dplyr::select(HGNC, symbol = `Approved symbol`)
 HGNC_alias$alias <- purrr::map2(HGNC$`Previous symbols`, HGNC$`Alias symbols`,

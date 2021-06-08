@@ -8,14 +8,13 @@ create_igv_snapshots <- function(candidates, bams, genome,
                                  output_dir = 'igv_snapshots',
                                  overwrite = FALSE,
                                  slop = 20,
-                                 preferences = c('NAME_PANEL_WIDTH 70'),
                                  igv_sh = 'igv.sh',
                                  igv_max_height = 500,
                                  igv_args = character(),
                                  xvfb_run = 'xvfb-run',
                                  singularity_img = NULL,
                                  singularity_bin = 'singularity',
-                                 width = 800,
+                                 width = 720,
                                  height = 500) {
 
     snapshot_tbl <-
@@ -39,7 +38,6 @@ create_igv_snapshots <- function(candidates, bams, genome,
         batch_tmp <- tempfile(tmpdir = output_dir, pattern = 'igv_', fileext = '.bat')
         c('new',
           str_c('genome ', genome),
-          map_chr(preferences, ~ str_c('preference ', .)),
           map_chr(bams, ~ str_c('load ', .)),
           str_c('maxPanelHeight ', igv_max_height),
           pmap(snapshot_tbl, function(chrom, start, end, filename, ...) {
@@ -56,7 +54,7 @@ create_igv_snapshots <- function(candidates, bams, genome,
                   '--server-num=1',
                   str_c('-s \'-screen 0 ', width, 'x', height, 'x8\''),
                   igv_sh,
-                  igv_args,
+                  str_c(igv_args, collapse = ' '),
                   '-b',
                   batch_tmp,
                   sep = ' ')

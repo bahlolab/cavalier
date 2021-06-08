@@ -33,6 +33,7 @@ hgnc_name_replace <- function(genes) {
     replace(genes, at, HGNC_alias$symbol[match(genes[at], HGNC_alias$alias)])
 }
 
+#' @importFrom flextable fontsize autofit dim_pretty width height_all fit_to_width
 flextable_fit <- function(ft, width, height,
                           start_size = 11,
                           min_size = 5,
