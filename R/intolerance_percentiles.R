@@ -12,11 +12,11 @@ rvis_exac_percentile <- function(genes, round = 1) {
 }
 
 gevir_percentile <- function(genes, round = 1) {
-  p <- GeVIR$gevir_percentile[match(genes, GeVIR$symbol)]
+  p <- GeVIR$gevir_percentile[match(genes, GeVIR$gene_name)]
   round(p, round)
 }
 
 loeuf_percentile <- function(genes, round = 1) {
-  p <- GeVIR$loeuf_percentile[match(genes, GeVIR$symbol)]
+  p <- GeVIR$loeuf_percentile[match(genes, GeVIR$gene_name)]
   round(p, round)
 }
