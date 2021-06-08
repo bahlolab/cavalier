@@ -73,7 +73,7 @@ create_candidate_slides_ppt <- function(candidates, output_dir, output_cols,
                 mutate_if(is.character, ~str_replace_all(., '\\n', ', ')) %>% 
                 flextable() %>% 
                 delete_part(part = "header") %>% 
-                theme_zebra() %>% 
+                theme_zebra(even_header = 'white', even_body = 'white') %>% 
                 italic(j = 1) %>% 
                 bold(j = 1) %>% 
                 colformat_char(j = 1, suffix = ':') %>% 
@@ -86,7 +86,7 @@ create_candidate_slides_ppt <- function(candidates, output_dir, output_cols,
                 omim_ft <-
                     omim_table %>% 
                     flextable() %>% 
-                    theme_zebra() %>% 
+                    theme_zebra(even_header = 'white', even_body = 'white') %>% 
                     flextable_fit(width = omim_width, 
                                   height = h2)
             }
@@ -98,7 +98,7 @@ create_candidate_slides_ppt <- function(candidates, output_dir, output_cols,
                     add_data_ft <-
                         add_data_table %>% 
                         flextable() %>% 
-                        theme_zebra() %>% 
+                        theme_zebra(even_header = 'white', even_body = 'white') %>% 
                         autofit() %>% 
                         flextable_fit(width = add_data_width, 
                                       height = h2)
@@ -126,7 +126,7 @@ create_candidate_slides_ppt <- function(candidates, output_dir, output_cols,
                 ph_with(value = external_img(cand$igv_filename),
                         location = ph_location_template(left = seg_left[2],
                                                         top = top,
-                                                        width = seg_width*1.1)) %>% 
+                                                        width = seg_width)) %>% 
                 { `if`(is.null(gtex_plot), .,
                        ph_with(.,
                                value = gtex_plot,
