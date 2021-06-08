@@ -159,6 +159,10 @@ load_vep_vcf <- function(vcf_filename, sampleID, field = 'CSQ') {
     vars$annotation[vars$annotation == "p."] <- ""
     
     vars$dbSNP <- sapply(strsplit(vars$dbSNP, "&"), function(x){paste(x[startsWith(x, "rs")], collapse=";")})
+    # fix gene names
+    genes_wrong <- which(vars$gene %in% HGNC_alias$alias)
+    vars$gene[genes_wrong] <- HGNC_alias$symbol[match(vars$gene[genes_wrong], HGNC_alias$alias)]
+    # add Intolerance scores
     vars$RVIS <- rvis_exac_percentile(vars$gene)
     vars$GeVIR <- gevir_percentile(vars$gene)
     vars$LOEUF <- loeuf_percentile(vars$gene)
