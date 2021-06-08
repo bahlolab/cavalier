@@ -33,3 +33,38 @@ hgnc_name_replace <- function(genes) {
     replace(genes, at, HGNC_alias$symbol[match(genes[at], HGNC_alias$alias)])
 }
 
+flextable_fit <- function(ft, width, height,
+                          start_size = 11,
+                          min_size = 5,
+                          max_size = 20,
+                          max_row_height = 0.33) {
+    # goal is to shrink until both width and height are less than dim_pretty
+    curr_size <- start_size
+    ft <- 
+        fontsize(ft, size = curr_size, part = 'all') %>% 
+        autofit()    
+    dims <- dim_pretty(ft) %>% map(sum)
+    # too small 
+    while (curr_size < max_size & dims$heights < height & dims$widths < width) {
+        curr_size <- curr_size + 1L
+        ft <- 
+            fontsize(ft, size = curr_size, part = 'all') %>%
+            autofit()
+        dims <- dim_pretty(ft) %>% map(sum)
+    }
+    # too big 
+    while (curr_size > min_size & (dims$heights > height | dims$widths > width)) {
+        curr_size <- curr_size - 1L
+        ft <- 
+            fontsize(ft, size = curr_size, part = 'all') %>% 
+            autofit()
+        dims <- dim_pretty(ft) %>% map(sum)
+    }
+    dims <- dim_pretty(ft)
+    dims$widths <- (dims$widths / sum(dims$widths)) * width
+    height <- {height / length(dims$heights) } %>% min( max_row_height)
+    ft %>%
+        width(seq_along(dims$widths), dims$widths) %>% 
+        height_all(height)
+}
+

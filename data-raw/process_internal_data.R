@@ -3,7 +3,7 @@
 # get approved names and aliases from HGNC
 # downloaded from https://www.genenames.org/download/custom/
 HGNC <- readr::read_tsv('HGNC_2021_06_07.txt.gz', col_types = readr::cols())
-HGNC_alias <- dplyr::select(hgnc, symbol = `Approved symbol`)
+HGNC_alias <- dplyr::select(HGNC, symbol = `Approved symbol`)
 HGNC_alias$alias <- purrr::map2(HGNC$`Previous symbols`, HGNC$`Alias symbols`,
                                 ~ c(stringr::str_split(.x, ', ', simplify = T),
                                     stringr::str_split(.y, ', ', simplify = T)))
@@ -25,7 +25,7 @@ colnames(RVIS_ExACv2_March2017) <- c("gene", "gene_coverage", "RVIS", "RVIS_perc
 RVIS_ExACv2_March2017 <- as.data.frame(RVIS_ExACv2_March2017[, c("gene", "RVIS_percentile")])
 RVIS_ExACv2_March2017$gene <- hgnc_name_replace(RVIS_ExACv2_March2017$gene)
 rownames(RVIS_ExACv2_March2017) <- RVIS_ExACv2_March2017$gene
-RVIS_ExACv2_March2017$RVIS_percentile <- round(RVIS_ExACv2_March2017$RVIS_percentile, 1)
+# RVIS_ExACv2_March2017$RVIS_percentile <- round(RVIS_ExACv2_March2017$RVIS_percentile, 1)
 
 # Convert between MIM id and gene using public mim2gene table
 mim2gene <- read.delim("mim2gene.txt.gz", skip=4, stringsAsFactors=FALSE)

@@ -5,15 +5,18 @@
 # #' @examples
 # #' ***TODO***
 
-rvis_exac_percentile <- function(genes) {
+rvis_exac_percentile <- function(genes, round = 1) {
   # RVIS_ExACv2_March2017 table from http://genic-intolerance.org stored as internal data
-  RVIS_ExACv2_March2017$RVIS_percentile[match(genes, RVIS_ExACv2_March2017$gene)]
+  p <- RVIS_ExACv2_March2017$RVIS_percentile[match(genes, RVIS_ExACv2_March2017$gene)]
+  round(p, round)
 }
 
-gevir_percentile <- function(genes) {
-  GeVIR$gevir_percentile[match(genes, GeVIR$symbol)]
+gevir_percentile <- function(genes, round = 1) {
+  p <- GeVIR$gevir_percentile[match(genes, GeVIR$symbol)]
+  round(p, round)
 }
 
-loeuf_percentile <- function(genes) {
-  GeVIR$loeuf_percentile[match(genes, GeVIR$symbol)]
+loeuf_percentile <- function(genes, round = 1) {
+  p <- GeVIR$loeuf_percentile[match(genes, GeVIR$symbol)]
+  round(p, round)
 }

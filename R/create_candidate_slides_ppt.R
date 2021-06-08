@@ -55,8 +55,9 @@ create_candidate_slides_ppt <- function(candidates, output_dir, output_cols,
     h1 <- 4
     top <- 0.9
     pad_h <- pad_w
-    panel_width <- 7.5
+    add_data_width <- 7.2
     omim_width <- 5
+    h2 <- 2.1
     
     candidates %>% 
         arrange(`inheritance model`, gene) %>% 
@@ -67,8 +68,9 @@ create_candidate_slides_ppt <- function(candidates, output_dir, output_cols,
             info_ft <-
                 select(cand, all_of(output_cols)) %>% 
                 t() %>% 
-                as.data.frame() %>% 
+                as.data.frame(stringsAsFactors = FALSE) %>% 
                 rownames_to_column('name') %>% 
+                mutate_if(is.character, ~str_replace_all(., '\\n', ', ')) %>% 
                 flextable() %>% 
                 delete_part(part = "header") %>% 
                 theme_zebra() %>% 
@@ -76,8 +78,7 @@ create_candidate_slides_ppt <- function(candidates, output_dir, output_cols,
                 bold(j = 1) %>% 
                 colformat_char(j = 1, suffix = ':') %>% 
                 align(j = 1, align = 'right', part = 'all') %>% 
-                autofit() %>% 
-                fit_to_width(seg_width)
+                flextable_fit(width = seg_width, height = h1)
             
             omim_ft <- NULL
             omim_table <- omim_table(gene, genemap2=genemap2, wrap = FALSE)
@@ -86,8 +87,8 @@ create_candidate_slides_ppt <- function(candidates, output_dir, output_cols,
                     omim_table %>% 
                     flextable() %>% 
                     theme_zebra() %>% 
-                    autofit() %>% 
-                    fit_to_width(omim_width)
+                    flextable_fit(width = omim_width, 
+                                  height = h2)
             }
             
             add_data_ft <- NULL
@@ -99,7 +100,8 @@ create_candidate_slides_ppt <- function(candidates, output_dir, output_cols,
                         flextable() %>% 
                         theme_zebra() %>% 
                         autofit() %>% 
-                        fit_to_width(panel_width)
+                        flextable_fit(width = add_data_width, 
+                                      height = h2)
                 }
             }
             
@@ -126,7 +128,8 @@ create_candidate_slides_ppt <- function(candidates, output_dir, output_cols,
                                                         top = top,
                                                         width = seg_width*1.1)) %>% 
                 { `if`(is.null(gtex_plot), .,
-                       ph_with(value = gtex_plot,
+                       ph_with(.,
+                               value = gtex_plot,
                                location = ph_location_template(left = seg_left[3],
                                                                top = top,
                                                                width = seg_width,
@@ -142,9 +145,9 @@ create_candidate_slides_ppt <- function(candidates, output_dir, output_cols,
                 { `if`(is.null(add_data_ft), .,
                        ph_with(.,
                                value = add_data_ft,
-                               location = ph_location_template(left = seg_left[1] + omim_width + 0.1,
+                               location = ph_location_template(left = seg_left[1] + omim_width + 0.35,
                                                                top = top + h1 + pad_h,
-                                                               width = panel_width))
+                                                               width = add_data_width))
                 )} 
         })
     
