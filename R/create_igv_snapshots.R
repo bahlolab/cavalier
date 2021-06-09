@@ -5,6 +5,7 @@
 #' @importFrom stringr str_c
 #' @export
 create_igv_snapshots <- function(candidates, bams, genome,
+                                 vcfs = NULL,
                                  output_dir = 'igv_snapshots',
                                  overwrite = FALSE,
                                  slop = 20,
@@ -54,12 +55,12 @@ create_igv_snapshots <- function(candidates, bams, genome,
           prefs) %>%
             write_lines(file.path(user_dir, 'prefs.properties'))
         # write batch script
-        batchfile <- file.path(output_dir, 'igv_snapshots.batch')
+        batchfile <- file.path(output_dir, 'igv_snapshot.batch')
         c('new',
           str_c('genome ', genome),
-          map_chr(bams, ~ str_c('load ', .)),
+          str_c('load ', c(vcfs, bams)),
           str_c('maxPanelHeight ', height - 95),
-          pmap(snapshot_tbl, function(chrom, start, end, filename, ...) {
+          pmap(distinct(snapshot_tbl), function(chrom, start, end, filename, ...) {
               c(str_c('goto ', chrom, ':', start, '-', end),
                 str_c('snapshot ', filename))
           }) %>% unlist(),
@@ -81,7 +82,7 @@ create_igv_snapshots <- function(candidates, bams, genome,
             bind_dirs <- 
                 c(getwd(),
                   output_dir,
-                  normalizePath(bams) %>% dirname()) %>% 
+                  normalizePath(c(vcfs, bams)) %>% dirname()) %>% 
                 normalizePath() %>% 
                 unique() %>% 
                 remove_child_dirs()

@@ -23,50 +23,51 @@ create_cavalier_output <- function(candidates, output_dir, sampleID, output_cols
                                    GTEx_tissues=NULL,
                                    add_data_col = NULL,
                                    title_col = NULL,
-                                   output = c('pdf_slides', 'pdf_table', 'html', 'ppt'))
-{
+                                   output = c('pdf', 'html', 'ppt')) {
     output_dir <- endslash_dirname(output_dir)
     
     if (!dir.exists(output_dir)) {
         dir.create(output_dir, recursive=TRUE)
     }
     
-    # Create output directory for HTML and PDF files if they do not exist
-    if (!dir.exists(paste0(output_dir, "html_files/candidate_variants/"))) {
-        dir.create(paste0(output_dir, "html_files/candidate_variants/"), recursive=TRUE)
-    }
-    if (!dir.exists(paste0(output_dir, "pdf_files/"))) {
-        dir.create(paste0(output_dir, "pdf_files/"))
-    }
-    
-    # Copy peddy.html and IGV plots to HTML output dir (if they exist)
-    if (file.exists(paste0(output_dir, "data/peddy/peddy.html"))) {
-        system(paste0("cp ", output_dir, "data/peddy/peddy.html ", output_dir, "/html_files/peddy.html"))
-    }
-    if (dir.exists(paste0(output_dir, "data/igv_output/"))) {
-        # Remove existing IGV output dir (if it exists)
-        if (dir.exists(paste0(output_dir, "html_files/candidate_variants/igv_output/"))) {
-            system(paste0("rm -r ", output_dir, "html_files/candidate_variants/igv_output"))
+    # create html output
+    if ('html' %in% output) {
+        # Create output directory for HTML and PDF files if they do not exist
+        if (!dir.exists(paste0(output_dir, "html_files/candidate_variants/"))) {
+            dir.create(paste0(output_dir, "html_files/candidate_variants/"), recursive=TRUE)
         }
-        system(paste0("cp -r ", output_dir, "data/igv_output/ ", output_dir, "html_files/candidate_variants/igv_output/"))
-    }
-    
-    if ('html' %in% output)
+        # Copy peddy.html and IGV plots to HTML output dir (if they exist)
+        if (file.exists(paste0(output_dir, "data/peddy/peddy.html"))) {
+            system(paste0("cp ", output_dir, "data/peddy/peddy.html ", output_dir, "/html_files/peddy.html"))
+        }
+        if (dir.exists(paste0(output_dir, "data/igv_output/"))) {
+            # Remove existing IGV output dir (if it exists)
+            if (dir.exists(paste0(output_dir, "html_files/candidate_variants/igv_output/"))) {
+                system(paste0("rm -r ", output_dir, "html_files/candidate_variants/igv_output"))
+            }
+            system(paste0("cp -r ", output_dir, "data/igv_output/ ", output_dir, "html_files/candidate_variants/igv_output/"))
+        }
         create_candidate_table_html(candidates, output_dir, sampleID, output_cols, hide_missing_igv=hide_missing_igv, 
                                     pubmed_keywords=pubmed_keywords, GTEx_median_rpkm=GTEx_median_rpkm, GTEx_tissues=GTEx_tissues)
-    
-    if ('pdf_table' %in% output)
+    }
+        
+    # create pdf output
+    if ('pdf' %in% output) {
+        if (!dir.exists(paste0(output_dir, "pdf_files/"))) {
+            dir.create(paste0(output_dir, "pdf_files/"))
+        }
         create_candidate_table_pdf(candidates, output_dir, output_cols, hide_missing_igv=hide_missing_igv)
-    
-    if ('pdf_slides' %in% output)
         create_candidate_slides_pdf(candidates, output_dir, output_cols, hide_missing_igv=hide_missing_igv, 
                                     GTEx_median_rpkm=GTEx_median_rpkm, GTEx_tissues=GTEx_tissues, genemap2=genemap2, layout=layout,
                                     add_data_col = add_data_col, title_col = title_col)
+    }
     
-    if ('ppt' %in% output)
+    # create ppt output
+    if ('ppt' %in% output) {
         create_candidate_slides_ppt(candidates, output_dir, output_cols,
                                     GTEx_median_rpkm=GTEx_median_rpkm, GTEx_tissues=GTEx_tissues, genemap2=genemap2,
                                     add_data_col = add_data_col, title_col = title_col)
+    }
     
     # Write table of candidate variants
     if (hide_missing_igv) {
