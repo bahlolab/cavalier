@@ -11,6 +11,8 @@ create_igv_snapshots <- function(candidates, bams, genome,
                                  igv_sh = 'igv.sh',
                                  width = 720,
                                  height = 720,
+                                 crop_left = 20,
+                                 crop_right = 17,
                                  xvfb_run = 'xvfb-run',
                                  singularity_img = NULL,
                                  singularity_bin = 'singularity',
@@ -94,6 +96,11 @@ create_igv_snapshots <- function(candidates, bams, genome,
         message('executing: ', cmd)
         # execute command
         stopifnot(system(cmd) == 0)
+        # crop snapshots
+        if (crop_left > 0 | crop_right > 0) {
+            walk(snapshot_tbl$filename, 
+                 ~ crop_png(., left=crop_left, right=crop_right, overwrite = TRUE))
+        }
     }
     
     return(candidates)

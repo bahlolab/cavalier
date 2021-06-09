@@ -69,11 +69,29 @@ flextable_fit <- function(ft, width, height,
         height_all(height)
 }
 
+
+
+#' @importFrom png readPNG writePNG
+#' @importFrom stringr str_c str_remove
+crop_png <- function(filename,
+                     overwrite = FALSE,
+                     output = str_c(str_remove(filename, 'png$'), 'cropped.png'),
+                     left = 0, 
+                     right = 0) {
+    png <- readPNG(filename)
+    if (overwrite) { 
+        output <- filename 
+    }
+    writePNG(png[,seq.int(left+1, dim(png)[2] - right),],
+             target = output)
+}
+
 # read png with png::readPNG to get dimensions
-# also create external_image with officer
+# create external_image with officer
+#' @importFrom officer external_img
 read_png <- function(filename, dpi = 300) {
-    png_dim <- dim(png::readPNG(filename))[1:2] / dpi
-    officer::external_img(filename, width = png_dim[1], height = png_dim[2])
+    png_dim <- dim(readPNG(filename))[1:2] / dpi
+    external_img(filename, width = png_dim[1], height = png_dim[2])
 }
 
 remove_child_dirs <- function(dirs) {
