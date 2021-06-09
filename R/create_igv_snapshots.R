@@ -9,13 +9,14 @@ create_igv_snapshots <- function(candidates, bams, genome,
                                  overwrite = FALSE,
                                  slop = 20,
                                  igv_sh = 'igv.sh',
-                                 igv_max_height = 650,
-                                 igv_args = character(),
+                                 width = 720,
+                                 height = 720,
                                  xvfb_run = 'xvfb-run',
                                  singularity_img = NULL,
                                  singularity_bin = 'singularity',
-                                 width = 720,
-                                 height = 500) {
+                                 genome_file = NULL,
+                                 name_panel_width = 10,
+                                 prefs = character()) {
 
     snapshot_tbl <-
         candidates %>% 
@@ -33,19 +34,35 @@ create_igv_snapshots <- function(candidates, bams, genome,
     }
     
     if (nrow(snapshot_tbl)) {
-        # write batch script
+        # create output dir
         if (!dir.exists(output_dir)) { dir.create(output_dir, recursive = TRUE) }
-        batch_tmp <- tempfile(tmpdir = output_dir, pattern = 'igv_', fileext = '.bat')
+        # create igv user dir and genome dir
+        user_dir <- file.path(output_dir, 'igv')
+        genome_dir <- file.path(user_dir, 'genomes')
+        dir.create(genome_dir, showWarnings = FALSE, recursive = TRUE)
+        # link genome
+        if (!is.null(genome_file)) {
+            if (!file.exists(genome_link)){
+                file.symlink(normalizePath(genome_file), genome_dir)
+            }
+        }
+        # write prefs.properties to set IGV dimensions
+        c(str_c('NAME_PANEL_WIDTH=', name_panel_width),
+          str_c('IGV.Bounds=0,0,', width, ',', height),
+          prefs) %>%
+            write_lines(file.path(user_dir, 'prefs.properties'))
+        # write batch script
+        batchfile <- file.path(output_dir, 'igv_snapshots.batch')
         c('new',
           str_c('genome ', genome),
           map_chr(bams, ~ str_c('load ', .)),
-          str_c('maxPanelHeight ', igv_max_height),
+          str_c('maxPanelHeight ', height - 95),
           pmap(snapshot_tbl, function(chrom, start, end, filename, ...) {
               c(str_c('goto ', chrom, ':', start, '-', end),
                 str_c('snapshot ', filename))
           }) %>% unlist(),
           'exit') %>% 
-            write_lines(batch_tmp)
+            write_lines(batchfile)
         
         # snapshot command
         cmd <-
@@ -54,13 +71,18 @@ create_igv_snapshots <- function(candidates, bams, genome,
                   '--server-num=1',
                   str_c('-s \'-screen 0 ', width, 'x', height, 'x8\''),
                   igv_sh,
-                  str_c(igv_args, collapse = ' '),
-                  '-b',
-                  batch_tmp,
+                  '--igvDirectory', user_dir,
+                  '-b', batchfile,
                   sep = ' ')
         # wrap singularity if using
         if (!is.null(singularity_img)) {
-            bind_dirs <- c(getwd(), map_chr(c(bams, snapshot_tbl$filename, batch_tmp), dirname)) %>% unique() %>% setdiff('.')
+            bind_dirs <- 
+                c(getwd(),
+                  output_dir,
+                  normalizePath(bams) %>% dirname()) %>% 
+                normalizePath() %>% 
+                unique() %>% 
+                remove_child_dirs()
             cmd <-
                 str_c(singularity_bin, 
                       'exec',
@@ -69,8 +91,9 @@ create_igv_snapshots <- function(candidates, bams, genome,
                       cmd,
                       sep = ' ')
         }
+        message('executing: ', cmd)
         # execute command
-        system(cmd)
+        stopifnot(system(cmd) == 0)
     }
     
     return(candidates)

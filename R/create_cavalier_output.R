@@ -14,8 +14,16 @@
 # #' @examples
 # #' ***TODO***
 
-create_cavalier_output <- function(candidates, output_dir, sampleID, output_cols, hide_missing_igv=FALSE, pubmed_keywords="", layout="individual", genemap2=NULL, GTEx_median_rpkm=NULL, GTEx_tissues=NULL,
-                                   add_data_col = NULL, title_col = NULL)
+create_cavalier_output <- function(candidates, output_dir, sampleID, output_cols,
+                                   hide_missing_igv=FALSE,
+                                   pubmed_keywords="",
+                                   layout="individual",
+                                   genemap2=NULL,
+                                   GTEx_median_rpkm=NULL,
+                                   GTEx_tissues=NULL,
+                                   add_data_col = NULL,
+                                   title_col = NULL,
+                                   output = c('pdf_slides', 'pdf_table', 'html', 'ppt'))
 {
     output_dir <- endslash_dirname(output_dir)
     
@@ -43,18 +51,22 @@ create_cavalier_output <- function(candidates, output_dir, sampleID, output_cols
         system(paste0("cp -r ", output_dir, "data/igv_output/ ", output_dir, "html_files/candidate_variants/igv_output/"))
     }
     
-    create_candidate_table_html(candidates, output_dir, sampleID, output_cols, hide_missing_igv=hide_missing_igv, 
-                                pubmed_keywords=pubmed_keywords, GTEx_median_rpkm=GTEx_median_rpkm, GTEx_tissues=GTEx_tissues)
-
-    create_candidate_table_pdf(candidates, output_dir, output_cols, hide_missing_igv=hide_missing_igv)
-
-    create_candidate_slides_pdf(candidates, output_dir, output_cols, hide_missing_igv=hide_missing_igv, 
-                                GTEx_median_rpkm=GTEx_median_rpkm, GTEx_tissues=GTEx_tissues, genemap2=genemap2, layout=layout,
-                                add_data_col = add_data_col, title_col = title_col)
+    if ('html' %in% output)
+        create_candidate_table_html(candidates, output_dir, sampleID, output_cols, hide_missing_igv=hide_missing_igv, 
+                                    pubmed_keywords=pubmed_keywords, GTEx_median_rpkm=GTEx_median_rpkm, GTEx_tissues=GTEx_tissues)
     
-    create_candidate_slides_ppt(candidates, output_dir, output_cols,
-                                GTEx_median_rpkm=GTEx_median_rpkm, GTEx_tissues=GTEx_tissues, genemap2=genemap2,
-                                add_data_col = add_data_col, title_col = title_col)
+    if ('pdf_table' %in% output)
+        create_candidate_table_pdf(candidates, output_dir, output_cols, hide_missing_igv=hide_missing_igv)
+    
+    if ('pdf_slides' %in% output)
+        create_candidate_slides_pdf(candidates, output_dir, output_cols, hide_missing_igv=hide_missing_igv, 
+                                    GTEx_median_rpkm=GTEx_median_rpkm, GTEx_tissues=GTEx_tissues, genemap2=genemap2, layout=layout,
+                                    add_data_col = add_data_col, title_col = title_col)
+    
+    if ('ppt' %in% output)
+        create_candidate_slides_ppt(candidates, output_dir, output_cols,
+                                    GTEx_median_rpkm=GTEx_median_rpkm, GTEx_tissues=GTEx_tissues, genemap2=genemap2,
+                                    add_data_col = add_data_col, title_col = title_col)
     
     # Write table of candidate variants
     if (hide_missing_igv) {

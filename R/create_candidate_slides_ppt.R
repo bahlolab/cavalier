@@ -113,6 +113,10 @@ create_candidate_slides_ppt <- function(candidates, output_dir, output_cols,
                 title <- gene
             }
             
+            igv_img <- read_png(cand$igv_filename)
+            igv_width <- seg_width*1.05
+            igv_height <-  with(attributes(igv_img)$dims, height * (seg_width / width))
+            
             slides <-
                 slides %>% 
                 add_slide(layout = "Title and Content") %>% 
@@ -123,10 +127,11 @@ create_candidate_slides_ppt <- function(candidates, output_dir, output_cols,
                                                         top = top,
                                                         width = seg_width,
                                                         height = h1)) %>% 
-                ph_with(value = external_img(cand$igv_filename),
+                ph_with(value = igv_img,
                         location = ph_location_template(left = seg_left[2],
                                                         top = top,
-                                                        width = seg_width)) %>% 
+                                                        width = igv_width,
+                                                        height = igv_height)) %>% 
                 { `if`(is.null(gtex_plot), .,
                        ph_with(.,
                                value = gtex_plot,

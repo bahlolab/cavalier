@@ -69,3 +69,17 @@ flextable_fit <- function(ft, width, height,
         height_all(height)
 }
 
+# read png with png::readPNG to get dimensions
+# also create external_image with officer
+read_png <- function(filename, dpi = 300) {
+    png_dim <- dim(png::readPNG(filename))[1:2] / dpi
+    officer::external_img(filename, width = png_dim[1], height = png_dim[2])
+}
+
+remove_child_dirs <- function(dirs) {
+    map(dirs, ~ which(str_detect(dirs, str_c('^', .)) &
+                          ! str_detect(dirs, str_c('^', ., '$')))) %>%
+        unlist() %>% 
+        { dirs[-.] }
+}
+
