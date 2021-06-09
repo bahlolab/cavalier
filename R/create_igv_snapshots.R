@@ -3,6 +3,7 @@
 # Can either set igv_sh to full path to igv.sh, or Sys.setenv(PATH=...), likewise for xvfb-run/ singularity
 #' @importFrom purrr walk map_chr
 #' @importFrom stringr str_c
+#' @importFrom dplyr distinct transmute mutate filter
 #' @export
 create_igv_snapshots <- function(candidates, bams, genome,
                                  vcfs = NULL,
@@ -11,7 +12,7 @@ create_igv_snapshots <- function(candidates, bams, genome,
                                  slop = 20,
                                  igv_sh = 'igv.sh',
                                  width = 720,
-                                 height = 720,
+                                 height = 620,
                                  crop_left = 20,
                                  crop_right = 17,
                                  xvfb_run = 'xvfb-run',
@@ -35,6 +36,7 @@ create_igv_snapshots <- function(candidates, bams, genome,
     if (!overwrite) {
         snapshot_tbl <- filter(snapshot_tbl, !file.exists(filename))
     }
+    snapshot_tbl <- distinct(snapshot_tbl)
     
     if (nrow(snapshot_tbl)) {
         # create output dir
@@ -60,7 +62,7 @@ create_igv_snapshots <- function(candidates, bams, genome,
           str_c('genome ', genome),
           str_c('load ', c(vcfs, bams)),
           str_c('maxPanelHeight ', height - 95),
-          pmap(distinct(snapshot_tbl), function(chrom, start, end, filename, ...) {
+          pmap(snapshot_tbl, function(chrom, start, end, filename, ...) {
               c(str_c('goto ', chrom, ':', start, '-', end),
                 str_c('snapshot ', filename))
           }) %>% unlist(),

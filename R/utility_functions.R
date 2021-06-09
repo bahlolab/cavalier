@@ -91,7 +91,7 @@ crop_png <- function(filename,
 #' @importFrom officer external_img
 read_png <- function(filename, dpi = 300) {
     png_dim <- dim(readPNG(filename))[1:2] / dpi
-    external_img(filename, width = png_dim[1], height = png_dim[2])
+    external_img(filename, width = png_dim[2], height = png_dim[1])
 }
 
 remove_child_dirs <- function(dirs) {
