@@ -44,21 +44,31 @@ create_candidate_slides_ppt <- function(candidates, output_dir, output_cols,
     
     slides <- read_pptx(slide_template)
     
-    # caclulate position of slide elements
+    # caclulate position of slide elements (in inches), based on widescreen slide of 13.33 x 7.5 inches
     tot_width <- 13.33
-    pad <- 0.025
+    tot_height <- 7.5
+    pad <- 0.02
+    # heights
+    pad_h <- tot_height * pad
+    header <- 0.8
+    r1_p <- 2/3
+    nrows <- 2
+    use_height <- tot_height - header - (nrows+1) * pad_h
+    r1_h <- r1_p * use_height
+    r2_h <- use_height - r1_h
+    # widths, top row
     pad_w <- pad * tot_width
-    n_seg <- 3
-    use_width <- tot_width - (n_seg+1) * pad_w
-    seg_width <- use_width / n_seg
-    seg_left <- seq(from=pad_w, by = seg_width + pad_w, length.out = n_seg)
-    h1 <- 4
-    top <- 0.9
-    pad_h <- pad_w
-    add_data_width <- 7.2
-    omim_width <- 5
-    h2 <- 2.1
-    
+    n_cols_1 <- 3
+    use_width_1 <- tot_width - (n_cols_1+1) * pad_w
+    seg_width_1 <- use_width_1 / n_cols_1
+    seg_left_1 <- seq(from=pad_w, by = seg_width_1 + pad_w, length.out = n_cols_1)
+    # widths, bottom row
+    n_cols_2 <- 2
+    omim_p <- 2/5
+    use_width_2 <- tot_width - (n_cols_2+1)* pad_w
+    omim_width <- use_width_2 * omim_p
+    add_data_width <- use_width_2 - omim_width
+
     candidates %>% 
         arrange(`inheritance model`, gene) %>% 
         split.data.frame(seq_len(nrow(.))) %>% 
@@ -78,7 +88,7 @@ create_candidate_slides_ppt <- function(candidates, output_dir, output_cols,
                 bold(j = 1) %>% 
                 colformat_char(j = 1, suffix = ':') %>% 
                 align(j = 1, align = 'right', part = 'all') %>% 
-                flextable_fit(width = seg_width, height = h1)
+                flextable_fit(width = seg_width_1, height = r1_h)
             
             omim_ft <- NULL
             omim_table <- omim_table(gene, genemap2=genemap2, wrap = FALSE)
@@ -88,7 +98,7 @@ create_candidate_slides_ppt <- function(candidates, output_dir, output_cols,
                     flextable() %>% 
                     theme_zebra(even_header = 'white', even_body = 'white') %>% 
                     flextable_fit(width = omim_width, 
-                                  height = h2)
+                                  height = r2_h)
             }
             
             add_data_ft <- NULL
@@ -101,7 +111,7 @@ create_candidate_slides_ppt <- function(candidates, output_dir, output_cols,
                         theme_zebra(even_header = 'white', even_body = 'white') %>% 
                         autofit() %>% 
                         flextable_fit(width = add_data_width, 
-                                      height = h2)
+                                      height = r2_h)
                 }
             }
             
@@ -113,9 +123,9 @@ create_candidate_slides_ppt <- function(candidates, output_dir, output_cols,
                 title <- gene
             }
             
+            # calculate igv height to preserve aspect ratio
             igv_img <- read_png(cand$igv_filename)
-            igv_width <- seg_width*1.05
-            igv_height <-  with(attributes(igv_img)$dims, height * (seg_width / width))
+            igv_height <- with(attributes(igv_img)$dims, height * (seg_width_1 / width))
             
             slides <-
                 slides %>% 
@@ -123,39 +133,39 @@ create_candidate_slides_ppt <- function(candidates, output_dir, output_cols,
                 ph_with(value = title,
                         location = ph_location_type(type = "title")) %>% 
                 ph_with(value = info_ft,
-                        location = ph_location_template(left = seg_left[1],
-                                                        top = top,
-                                                        width = seg_width,
-                                                        height = h1)) %>% 
+                        location = ph_location_template(left = seg_left_1[1],
+                                                        top = header + pad_h,
+                                                        width = seg_width_1,
+                                                        height = r1_h)) %>% 
                 ph_with(value = igv_img,
-                        location = ph_location_template(left = seg_left[2],
-                                                        top = top,
-                                                        width = igv_width,
+                        location = ph_location_template(left = seg_left_1[2],
+                                                        top = header + pad_h,
+                                                        width = seg_width_1,
                                                         height = igv_height)) %>% 
                 { `if`(is.null(gtex_plot), .,
                        ph_with(.,
                                value = gtex_plot,
-                               location = ph_location_template(left = seg_left[3],
-                                                               top = top,
-                                                               width = seg_width,
-                                                               height = h1))
+                               location = ph_location_template(left = seg_left_1[3],
+                                                               top = header + pad_h,
+                                                               width = seg_width_1,
+                                                               height = r1_h))
                 )} %>% 
                 { `if`(is.null(omim_ft), .,
                        ph_with(.,
                                value = omim_ft,
-                               location = ph_location_template(left = seg_left[1],
-                                                               top = top + h1 + pad_h,
+                               location = ph_location_template(left = seg_left_1[1],
+                                                               top = header + r1_h + 2*pad_h,
                                                                width = omim_width))
                 )} %>% 
                 { `if`(is.null(add_data_ft), .,
                        ph_with(.,
                                value = add_data_ft,
-                               location = ph_location_template(left = seg_left[1] + omim_width + 0.35,
-                                                               top = top + h1 + pad_h,
+                               location = ph_location_template(left = seg_left_1[1] + omim_width + pad_w,
+                                                               top = header + r1_h + 2*pad_h,
                                                                width = add_data_width))
                 )} 
         })
     
-    slides %>% print(target = file.path(output_dir, 'candidate_variants_report.pptx'))
+    print(slides, target = file.path(output_dir, 'candidate_variants_report.pptx'))
 }
 
