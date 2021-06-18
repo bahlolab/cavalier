@@ -33,12 +33,15 @@ load_vep_vcf <- function(vcf_filename, sampleID, field = 'CSQ') {
                 type_convert(col_types = vep_col_spec) %>% 
                 { bind_cols(select(x, index), .)}
         }) %>% 
-        { `if`('PICK' %in% names(.), filter(., PICK ==1), .)}
+        { `if`('PICK' %in% names(.), filter(., PICK ==1), .)} %>% 
+        rename(MAF_1000G = AF)
 
     # Combine and clean VCF data
     vars <-
         vcf_tidy$fix %>% 
-        select(c("CHROM", "POS", "REF", "ALT", "QUAL", "FILTER", "DP", "QD", "MQ", "FS", "SOR", "MQRankSum", "ReadPosRankSum", "InbreedingCoeff", "AC")) %>% 
+        select(c("CHROM", "POS", "REF", "ALT", "QUAL", "FILTER", "DP", "QD", "MQ", "FS", "SOR", "MQRankSum", "ReadPosRankSum", "InbreedingCoeff", "AC", "AF")) %>%
+        mutate(AC = as.integer(AC),
+               AF = as.numeric(AF)) %>% 
         (function(x) { bind_cols(x[ANN$index, ], ANN) }) %>% 
         rename(chromosome = CHROM,
                position = POS,
@@ -48,7 +51,6 @@ load_vep_vcf <- function(vcf_filename, sampleID, field = 'CSQ') {
                gene = SYMBOL,
                dbSNP = Existing_variation,
                Polyphen2 = PolyPhen,
-               MAF_1000G = AF,
                MAF_gnomAD = gnomAD_AF) %>% 
         mutate(MAF_1000G = replace_na(MAF_1000G, 0),
                MAF_gnomAD = replace_na(MAF_gnomAD, 0),
