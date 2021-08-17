@@ -1,64 +1,65 @@
-#' Return OMIM phenotype and inhertance model for given gene symbol
-#' 
-#' @param gene gene symbol
-#' @param genemap2 location of genemap2.txt file downloaded from OMIM (see https://omim.org/downloads/)
-#' @return data frame of OMIM phenotypes and inheritance associated with gene
-# #' @examples
-# #' ***TODO***
 
-omim_table <- function(gene, genemap2=NULL, wrap = TRUE)
+#' @importFrom tidyr replace_na separate_rows
+#' @importFrom stringr str_c str_remove str_extract
+#' @importFrom dplyr "%>%" mutate rename select if_else summarise group_by bind_rows arrange_all
+#' @export
+get_omim_table <- function(genemap2)
 {
-    if ((is.null(genemap2) | !file.exists(genemap2)) & !("genemap2_omim_table" %in% ls())) {
-        print("Warning: no OMIM genemap2 table found.")
-        print("Download genemap2.txt from https://omim.org/downloads/ or specify location of file.")
-        return(NULL)
-    } else if (!("genemap2_omim_table" %in% ls(envir = .GlobalEnv))) {
-        genemap2_omim_table <- 
-            read.delim(genemap2, skip=3, stringsAsFactors=FALSE) %>% 
-            mutate(alt_symbol = map(Gene.Symbols, 
-                                 ~ str_trim(c(str_split(., ',', simplify = TRUE))))) %>% 
-            unnest(alt_symbol) %>% 
-            as.data.frame()
-        assign("genemap2_omim_table", genemap2_omim_table, envir=.GlobalEnv)
-    }
-
-    # Find OMIM matches for gene
-    gene_gm2 <- genemap2_omim_table[genemap2_omim_table$alt_symbol %in% gene, ]
-    if (nrow(gene_gm2) == 0) {
-        return(NULL)
-    }
+    if (!file.exists(genemap2)) {
+        stop("Provided OMIM genemap2 table does not exist. ", 
+             "Download genemap2.txt from https://omim.org/downloads/ and specify file location.")
+    } 
+    
+    omim_table <- getOption('cavalier.omim_table')
+    
+    if (is.null(omim_table)) {
         
-    phenotypes <- paste(gene_gm2$Phenotypes, collapse="; ")
-    if (phenotypes == "") {
-        return(NULL)
+        col_names <- c(
+            'chromosome', 'genomic_position_start', 'genomic_position_end', 'cyto_location', 
+            'computed_cyto_location', 'mim_number', 'gene_symbols', 'gene_name', 
+            'approved_gene_symbol', 'entrez_gene_id', 'ensembl_gene_id', 'comments', 
+            'phenotypes', 'mouse_gene_symbol_id')
+        
+        hgnc_alias <- get_hgnc_alias()
+        hgnc_ensembl <-
+            hgnc_alias %>% 
+            select(symbol, ensembl_gene_id) %>% 
+            na.omit() %>% 
+            distinct()
+        
+        omim_table <- 
+            read_tsv(genemap2, col_names = col_names, comment = '#', col_types = cols()) %>% 
+            select(gene_symbols, ensembl_gene_id, phenotypes) %>% 
+            filter(!is.na(phenotypes)) %>% 
+            # match symbol with ensemble_gene_id first
+            mutate(symbol = hgnc_ensembl$symbol[match(ensembl_gene_id, hgnc_ensembl$ensembl_gene_id)]) %>% 
+            # next try hgnc_symbol
+            (function(data) {
+                filter(data, is.na(symbol)) %>% 
+                    mutate(id = seq_along(gene_symbols)) %>% 
+                    separate_rows(gene_symbols, sep = ',\\s+') %>% 
+                    mutate(symbol_1 = if_else(gene_symbols %in% hgnc_alias$symbol, gene_symbols, NA_character_),
+                           symbol_2 = hgnc_alias$symbol[match(gene_symbols,hgnc_alias$alias)]) %>% 
+                    group_by(id, phenotypes) %>% 
+                    summarise(symbol = if_else(any(!is.na(symbol_1)),
+                                               na.omit(symbol_1) %>% first(),
+                                               na.omit(symbol_2) %>% first()
+                    ),
+                    .groups = 'drop') %>% 
+                    filter(!is.na(symbol)) %>% 
+                    select(-id) %>% 
+                    bind_rows(select(data, symbol, ensembl_gene_id, phenotypes), .) %>% 
+                    arrange_all()
+            }) %>% 
+            separate_rows(phenotypes, sep=';\\s+') %>% 
+            mutate(phenotype = str_extract(phenotypes, '^.*(?= \\([0-9]\\))') %>% 
+                       str_remove_all('[\\[\\]?{}]'),
+                   inheritance = str_extract(phenotypes, '(?<= \\([0-9]\\), ).*$')) %>%
+            select(-phenotypes)
+        
+        
+        options('cavalier.omim_table' = omim_table)
     }
-
-    pt_split <- strsplit(phenotypes, "; ")[[1]]
-    pt_split2 <- strsplit(pt_split, ")")
-    pt_pheno <- sapply(pt_split2, function(x){paste0(paste0(ifelse(length(x) == 1, x, x[-length(x)]), collapse=")"), ")")})
-    pt_pheno <- gsub("?", "", gsub("(2)", "", gsub("(3)", "", pt_pheno, fixed=TRUE), fixed=TRUE), fixed=TRUE)
-    pt_inher <- sapply(pt_split2, function(x){ifelse(length(x) > 1, x[length(x)], "NA")})
-    # *** BELOW IF STATEMENTS NEED TO BE TESTED MORE THOROUGHLY ***
-    if (length(pt_inher) > 0) {
-        pt_inher <- ifelse(startsWith(pt_inher, ", "), substr(pt_inher, 3, 999), pt_inher)
-    }
-    if (is.character(pt_inher)) {
-        pt_inher <- gsub(", ", "\n", pt_inher, fixed=TRUE)
-    }
-    OMIMtable <- data.frame(OMIM.phenotype=pt_pheno, OMIM.inheritance=pt_inher, stringsAsFactors=FALSE)
-    if (nrow(OMIMtable) == 0 | ncol(OMIMtable) == 0) {
-        return(NULL)
-    }
-    OMIMtable$OMIM.inheritance[OMIMtable$OMIM.inheritance == "NA"] <- ""
-    rownames(OMIMtable) <- NULL
-    colnames(OMIMtable) <- c("OMIM phenotype", "Inheritance")
-    if (wrap) {
-        if (all(OMIMtable$inheritance == "")) {
-            OMIMtable <- OMIMtable[, "OMIM phenotype", drop=FALSE]
-            OMIMtable[, "OMIM phenotype"] <- sapply(OMIMtable[, "OMIM phenotype"], function(x){paste0(strwrap(x, width=60), collapse="  \n")})
-        } else {
-            OMIMtable[, "OMIM phenotype"] <- sapply(OMIMtable[, "OMIM phenotype"], function(x){paste0(strwrap(x, width=42), collapse="  \n")})
-        }
-    }
-    return(OMIMtable)
+    
+    return(omim_table)
 }

@@ -11,4 +11,6 @@
 
 NULL
 
-
+options('cavalier.cache_dir' = '~/.cavalier')
+options('cavalier.hgnc_complete_uri' = 'http://ftp.ebi.ac.uk/pub/databases/genenames/hgnc/archive/monthly/tsv/hgnc_complete_set_2021-08-01.txt')
+options('cavalier.gtex_gene_median_tpm_uri' = 'https://storage.googleapis.com/gtex_analysis_v8/rna_seq_data/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz')

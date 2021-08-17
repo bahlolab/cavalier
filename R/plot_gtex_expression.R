@@ -1,25 +1,42 @@
+
+#' @importFrom readr read_delim cols
+#' @importFrom dplyr "%>%" mutate rename
+get_gtex_expression <- function(gtex_gene_median_tpm_uri = getOption('cavalier.gtex_gene_median_tpm_uri'))
+{
+    gtex_gene_median_tpm <- getOption('cavalier.gtex_gene_median_tpm')
+    
+    if (is.null(gtex_gene_median_tpm)) {
+        
+        gtex_gene_median_tpm <- 
+            read_delim(gtex_gene_median_tpm_uri,
+                       delim = "\t",
+                       skip = 2,
+                       col_types = cols()) %>% 
+            rename(ensembl_gene_id = Name,
+                   symbol = Description) %>% 
+            mutate(symbol = hgnc_name_replace(symbol),
+                   ensembl_gene_id = str_remove(ensembl_gene_id, '\\.[0-9]+$'))
+        
+        options('cavalier.gtex_gene_median_tpm' = gtex_gene_median_tpm)
+    }
+    
+    return(gtex_gene_median_tpm)
+}
+
 #' Plot GTEx tissue median RPKM expression for given gene symbol
 #' 
 #' @param gene gene symbol
-#' @param GTEx_median_rpkm location of GTEx_Analysis_v6p_RNA-seq_RNA-SeQCv1.1.8_gene_median_rpkm.gct.gz file downloaded from GTEx Portal (see https://gtexportal.org/home/datasets)
+#' @param gtex_gene_median_tpm location of GTEx_Analysis_v6p_RNA-seq_RNA-SeQCv1.1.8_gene_median_rpkm.gct.gz file downloaded from GTEx Portal (see https://gtexportal.org/home/datasets)
 #' @param small_font TRUE or FALSE to use smaller font size (for PDF output instead of HTML)
 #' @param tissues optionally specify list of tissues to plot
 #' @return ggplot2 plot of median RPKM expression for gene
 # #' @examples
 # #' ***TODO***
-
-plot_gtex_expression <- function(gene, GTEx_median_rpkm=NULL, small_font=FALSE, tissues=NULL)
+plot_gtex_expression <- function(gene, gtex_gene_median_tpm,
+                                 small_font = FALSE,
+                                 tissues = NULL)
 {
-    if ((is.null(GTEx_median_rpkm) | !file.exists(GTEx_median_rpkm)) & !("GTEx_median_rpkm" %in% ls())) {
-        print("Warning: no GTEx median tissue RPKM table found.")
-        print("Download GTEx_Analysis_v6p_RNA-seq_RNA-SeQCv1.1.8_gene_median_rpkm.gct.gz")
-        print("from https://gtexportal.org/home/datasets or specify location of file.")
-        return(NULL)
-    } else if (!("GTEx_median_rpkm_table" %in% ls(envir = .GlobalEnv))) {
-        GTEx_median_rpkm_table <- readr::read_delim(GTEx_median_rpkm, delim="\t", skip=2, col_types = cols())
-        assign("GTEx_median_rpkm_table", GTEx_median_rpkm_table, envir=.GlobalEnv)
-    }
-    
+
     # Select tissue types to use
     if (is.null(tissues)) {
         # Specify list of default tissues to use
@@ -58,7 +75,7 @@ plot_gtex_expression <- function(gene, GTEx_median_rpkm=NULL, small_font=FALSE, 
     }
 
     # Match gene
-    expression <- GTEx_median_rpkm_table[GTEx_median_rpkm_table$Description == gene, tissues]
+    expression <- gtex_gene_median_tpm_table[gtex_gene_median_tpm_table$Description == gene, tissues]
     if (nrow(expression) == 0) {
         print(paste("Warning: zero rows found for gene:", gene))
         print("No plot returned")

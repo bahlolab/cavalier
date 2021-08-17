@@ -7,7 +7,6 @@
 #' @param hide_missing_igv hide variants that are missing IGV snapshot (default: FALSE)
 #' @param pubmed_keywords optional variable of keywords to add to gene symbol for automatically generated pubmed search links
 #' @param layout slide layout choice: "individual" or "multiple" designed for a single or multiple individuals (default: "individual")
-#' @param GTEx_median_rpkm location of GTEx_Analysis_v6p_RNA-seq_RNA-SeQCv1.1.8_gene_median_rpkm.gct.gz file downloaded from GTEx Portal (see https://gtexportal.org/home/datasets)
 #' @param GTEx_tissues optionally specify list of tissues to plot GTEx expression data
 #' @param genemap2 location of genemap2.txt file downloaded from OMIM (see https://omim.org/downloads/)
 #' @export
@@ -19,7 +18,6 @@ create_cavalier_output <- function(candidates, output_dir, sampleID, output_cols
                                    pubmed_keywords="",
                                    layout="individual",
                                    genemap2=NULL,
-                                   GTEx_median_rpkm=NULL,
                                    GTEx_tissues=NULL,
                                    add_data_col = NULL,
                                    title_col = NULL,
@@ -48,7 +46,7 @@ create_cavalier_output <- function(candidates, output_dir, sampleID, output_cols
             system(paste0("cp -r ", output_dir, "data/igv_output/ ", output_dir, "html_files/candidate_variants/igv_output/"))
         }
         create_candidate_table_html(candidates, output_dir, sampleID, output_cols, hide_missing_igv=hide_missing_igv, 
-                                    pubmed_keywords=pubmed_keywords, GTEx_median_rpkm=GTEx_median_rpkm, GTEx_tissues=GTEx_tissues)
+                                    pubmed_keywords=pubmed_keywords, GTEx_tissues=GTEx_tissues)
     }
         
     # create pdf output
@@ -58,14 +56,14 @@ create_cavalier_output <- function(candidates, output_dir, sampleID, output_cols
         }
         create_candidate_table_pdf(candidates, output_dir, output_cols, hide_missing_igv=hide_missing_igv)
         create_candidate_slides_pdf(candidates, output_dir, output_cols, hide_missing_igv=hide_missing_igv, 
-                                    GTEx_median_rpkm=GTEx_median_rpkm, GTEx_tissues=GTEx_tissues, genemap2=genemap2, layout=layout,
+                                    GTEx_tissues=GTEx_tissues, genemap2=genemap2, layout=layout,
                                     add_data_col = add_data_col, title_col = title_col)
     }
     
     # create ppt output
     if ('ppt' %in% output) {
         create_candidate_slides_ppt(candidates, output_dir, output_cols,
-                                    GTEx_median_rpkm=GTEx_median_rpkm, GTEx_tissues=GTEx_tissues, genemap2=genemap2,
+                                    GTEx_tissues=GTEx_tissues, genemap2=genemap2,
                                     add_data_col = add_data_col, title_col = title_col)
     }
     
