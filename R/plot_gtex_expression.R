@@ -1,17 +1,24 @@
 
 #' @importFrom readr read_delim cols
 #' @importFrom dplyr "%>%" mutate rename
-get_gtex_expression <- function(gtex_gene_median_tpm_uri = getOption('cavalier.gtex_gene_median_tpm_uri'))
+get_gtex_expression <- function()
 {
     gtex_gene_median_tpm <- getOption('cavalier.gtex_gene_median_tpm')
     
     if (is.null(gtex_gene_median_tpm)) {
         
+        gtex_gene_median_tpm_uri <- getOption('cavalier.gtex_gene_median_tpm_uri')
+        fn <- basename(gtex_gene_median_tpm_uri) %>% 
+            str_remove('.txt$') %>% 
+            str_c('.rds') %>% 
+            file.path(cache_dir, .)
+        
         gtex_gene_median_tpm <- 
-            read_delim(gtex_gene_median_tpm_uri,
-                       delim = "\t",
-                       skip = 2,
-                       col_types = cols()) %>% 
+            (function() read_delim(gtex_gene_median_tpm_uri,
+                                   delim = "\t",
+                                   skip = 2,
+                                   col_types = cols())) %>% 
+            cache(fn) %>% 
             rename(ensembl_gene_id = Name,
                    symbol = Description) %>% 
             mutate(symbol = hgnc_name_replace(symbol),
