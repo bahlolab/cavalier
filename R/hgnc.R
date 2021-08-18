@@ -3,7 +3,6 @@
 #' @importFrom dplyr "%>%" mutate rename
 #' @importFrom stringr str_remove
 #' @importFrom rlang is_scalar_character
-#' @export
 get_hgnc_complete <- function()
 {
     hgnc_complete <- getOption('cavalier.hgnc_complete')
@@ -32,7 +31,6 @@ get_hgnc_complete <- function()
 #' @importFrom tidyr replace_na separate_rows
 #' @importFrom stringr str_c
 #' @importFrom dplyr "%>%" mutate rename select if_else add_count filter case_when
-#' @export
 get_hgnc_alias <- function() 
 {
     hgnc_alias <- getOption('cavalier.hgnc_alias')
@@ -63,7 +61,6 @@ get_hgnc_alias <- function()
 }
 
 #' @importFrom dplyr "%>%" select
-#' @export
 get_hgnc_ensembl <- function() 
 {
     hgnc_ensembl <- getOption('cavalier.hgnc_ensembl')
@@ -82,7 +79,6 @@ get_hgnc_ensembl <- function()
 }
 
 #' @importFrom dplyr "%>%" select
-#' @export
 get_hgnc_entrez <- function() 
 {
     hgnc_entrez <- getOption('cavalier.hgnc_entrez')

@@ -1,41 +1,20 @@
-#' Load variants from VCF file (ANN field from VEP, ExAC counts by vcfanno)
-#' 
-#' @param vcf_filename VEP annotated VCF filename
-#' @param sampleID list of IDs and names for samples of interest
+
 #' @importFrom stringr str_c str_extract str_split
-#' @importFrom magrittr '%>%' set_colnames
-#' @importFrom dplyr bind_cols
+#' @importFrom magrittr set_colnames
+#' @importFrom dplyr '%>%' bind_cols left_join
 #' @importFrom tidyr unnest chop
 #' @export
-# #' @examples
-# #' ***TODO***
-
-# assume vcf does not contain multiallelic variants
-# require PICK column annotation by VEP
-load_vep_vcf <- function(vcf_filename, sampleID, field = 'CSQ') {
+load_vep_vcf <- function(vcf_filename, 
+                         samples = NULL,
+                         info_columns = c('AF', 'AC', 'QD'),
+                         vep_field = 'CSQ') {
     
-    vcf <- vcfR::read.vcfR(vcf_filename)
-    vcf_tidy <- vcfR::vcfR2tidy(vcf)
+    load_vcf(vcf_filename,
+             samples = samples, 
+             info_columns = info_columns) %>% 
+        left_join(get_vep_ann(gds, vep_field = vep_field),
+                  by = 'variant_id')
     
-    # Get ANN format column names
-    ANN_columns <- strsplit(strsplit(vcf_tidy$meta$Description[vcf_tidy$meta$ID == field], "Format: ")[[1]][2], "|", fixed=TRUE)[[1]]
-    
-    # get vep annotation, index corresponds variant record index
-    # filter for VEP picked annotation (i.e. CANONICAL)
-    ANN <-
-        tibble(index = seq_along(vcf_tidy$fix[[field]]),
-               data = str_split(vcf_tidy$fix[[field]], ',')) %>% 
-        unnest(data) %>% 
-        (function(x) {
-            x <- str_split(x$data, '\\|', simplify = TRUE) %>% 
-                set_colnames(ANN_columns) %>% 
-                as_tibble() %>% 
-                type_convert(col_types = vep_col_spec) %>% 
-                { bind_cols(select(x, index), .)}
-        }) %>% 
-        { `if`('PICK' %in% names(.), filter(., PICK ==1), .)} %>% 
-        rename(MAF_1000G = AF)
-
     # Combine and clean VCF data
     vars <-
         vcf_tidy$fix %>% 
@@ -89,8 +68,33 @@ load_vep_vcf <- function(vcf_filename, sampleID, field = 'CSQ') {
                    !!paste(sID_name, "GT quality") := vcf_tidy_gt_sID$gt_GQ[index],
                    !!paste(sID_name, "depth (R,A)") := vcf_tidy_gt_sID$gt_AD[index])
     }
-
+    
     return(distinct(vars))
+}
+
+get_vep_ann <- function(gds,
+                        vep_field = 'CSQ') {
+    
+    vep_ann_names <- 
+        SeqArray::header(gds)$INFO %>%
+        as.data.frame() %>% 
+        tibble::rownames_to_column() %>% 
+        as_tibble() %>%
+        filter(str_detect(rowname, vep_field),
+               str_detect(Description, 'Ensembl VEP'))%>%
+        pull(Description) %>%
+        str_remove('.+Format: ') %>% 
+        str_split('\\|', simplify = T) %>% 
+        c()
+    
+    vep_ann <- seqGetData(gds, str_c('annotation/info/', vep_field))
+    
+    tibble(variant_id = seqGetData(gds, 'variant.id') %>% 
+               rep(times = vep_ann$length),
+           VEP = str_split_fixed(vep_ann$data, '\\|', length(vep_ann_names)) %>%
+               set_colnames(vep_ann_names) %>% 
+               as_tibble() %>% 
+               readr::type_convert(col_types = vep_col_spec))
 }
 
 #' @importFrom readr cols col_character col_double col_integer
@@ -119,7 +123,7 @@ vep_col_spec <- cols(
     FLAGS = col_character(),
     VARIANT_CLASS = col_character(),
     SYMBOL_SOURCE = col_character(),
-    HGNC_ID = col_double(),
+    HGNC_ID = col_character(),
     CANONICAL = col_character(),
     MANE_SELECT = col_character(),
     MANE_PLUS_CLINICAL = col_character(),
@@ -167,4 +171,3 @@ vep_col_spec <- cols(
     TRANSCRIPTION_FACTORS = col_character(),
     PICK = col_integer()
 )
-
