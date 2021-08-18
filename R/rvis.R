@@ -20,9 +20,7 @@ get_rvis_table <- function()
       cache(fn) %>% 
       select(1,4) %>% 
       setNames(c('symbol', 'RVIS_percentile')) %>%
-      mutate(symbol = if_else(symbol %in% hgnc_alias$symbol,
-                              symbol,
-                              hgnc_alias$symbol[match(symbol, hgnc_alias$alias)])) %>% 
+      mutate(symbol = hgnc_sym2sym(symbol)) %>% 
       filter(!is.na(symbol))
     
     options('cavalier.rvis_table' = rvis_table)

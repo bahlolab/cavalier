@@ -21,7 +21,8 @@ get_hgnc_complete <- function()
             suppressWarnings(
                 (function() read_tsv(hgnc_complete_uri, col_types = cols())) %>% 
                     cache(fn)) %>% 
-            select(symbol, name, location, ensembl_gene_id, alias_symbol, prev_symbol)
+            select(symbol, name, location, ensembl_gene_id, entrez_id, alias_symbol, prev_symbol) %>% 
+            mutate(entrez_id = as.integer(entrez_id))
         
         options('cavalier.hgnc_complete' = hgnc_complete)
     }
@@ -38,26 +39,22 @@ get_hgnc_alias <- function()
     
     if (is.null(hgnc_alias)) {
         
-        hgnc_complete <- 
-            get_hgnc_complete()
-        
         hgnc_alias <-
-            hgnc_complete %>% 
-            # filter(!(is.na(alias_symbol) & is.na(prev_symbol))) %>% 
+            get_hgnc_complete() %>% 
+            filter(!(is.na(alias_symbol) & is.na(prev_symbol))) %>%
             mutate(alias = case_when(
                 !is.na(alias_symbol) & !is.na(prev_symbol) ~ str_c(alias_symbol, '|', prev_symbol),
                 !is.na(alias_symbol)                       ~ alias_symbol,
                 !is.na(prev_symbol)                        ~ prev_symbol)) %>% 
-            select(symbol, ensembl_gene_id,  alias) %>% 
+            select(symbol,  alias) %>% 
             separate_rows(alias, sep = '\\|') %>% 
-            mutate(alias = if_else(alias %in% symbol, NA_character_, alias)) %>% 
+            filter(! alias %in% symbol) %>% # remove ambiguities
             add_count(alias) %>%
-            mutate(alias = if_else(n != 1, NA_character_, alias)) %>% 
+            filter(n == 1) %>% # remove ambiguities
             select(-n) %>% 
             distinct() %>% 
-            add_count(symbol) %>% 
-            filter(!(is.na(alias) & n > 1)) %>% 
-            select(-n)
+            na.omit() %>% 
+            arrange_all()
         
         options('cavalier.hgnc_alias' = hgnc_alias)
     }
@@ -65,10 +62,78 @@ get_hgnc_alias <- function()
     return(hgnc_alias)
 }
 
-# replace gene symbols alias with HGNC approved symbol
+#' @importFrom dplyr "%>%" select
 #' @export
-hgnc_name_replace <- function(genes) {
+get_hgnc_ensembl <- function() 
+{
+    hgnc_ensembl <- getOption('cavalier.hgnc_ensembl')
+    
+    if (is.null(hgnc_ensembl)) {
+        
+        hgnc_ensembl <-
+            get_hgnc_complete() %>% 
+            select(symbol, ensembl_gene_id) %>% 
+            na.omit()
+        
+        options('cavalier.hgnc_ensembl' = hgnc_ensembl)
+    }
+    
+    return(hgnc_ensembl)
+}
+
+#' @importFrom dplyr "%>%" select
+#' @export
+get_hgnc_entrez <- function() 
+{
+    hgnc_entrez <- getOption('cavalier.hgnc_entrez')
+    
+    if (is.null(hgnc_entrez)) {
+        
+        hgnc_entrez <-
+            get_hgnc_complete() %>% 
+            select(symbol, entrez_id) %>% 
+            na.omit()
+        
+        options('cavalier.hgnc_entrez' = hgnc_entrez)
+    }
+    
+    return(hgnc_entrez)
+}
+
+# replace gene symbols with HGNC approved symbol
+#' @export
+hgnc_sym2sym <- function(symbols, remove_unknown = FALSE) {
     hgnc_alias <- get_hgnc_alias()
-    at <- which(genes %in% hgnc_alias$alias)
-    replace(genes, at, hgnc_alias$symbol[match(genes[at], hgnc_alias$alias)])
+    at <- which(symbols %in% hgnc_alias$alias)
+    ret <- replace(symbols, at, hgnc_alias$symbol[match(symbols[at], hgnc_alias$alias)])
+    if (remove_unknown) { 
+        ret[! ret %in% { get_hgnc_complete() %>% dplyr::pull(symbol) } ] <- NA_character_
+    }
+    return(ret)
+}
+
+#' @export
+hgnc_sym2ensembl <- function(symbols) {
+    symbols <- hgnc_sym2sym(symbols)
+    hgnc_ensembl <- get_hgnc_ensembl()
+    hgnc_ensembl$ensembl_gene_id[match(symbols, hgnc_ensembl$symbol)]
+}
+
+#' @export
+hgnc_ensembl2sym <- function(ensembl_gene_id) {
+    hgnc_ensembl <- get_hgnc_ensembl()
+    hgnc_ensembl$symbol[match(ensembl_gene_id, hgnc_ensembl$ensembl_gene_id)]
+}
+
+#' @export
+hgnc_sym2entrez <- function(symbols) {
+    symbols <- hgnc_sym2sym(symbols)
+    hgnc_entrez <- get_hgnc_entrez()
+    hgnc_entrez$entrez_id[match(symbols, hgnc_entrez$symbol)]
+}
+
+#' @export
+hgnc_entrez2sym <- function(entrez_id) {
+    hgnc_entrez <- get_hgnc_entrez()
+    hgnc_entrez$symbol[match(entrez_id, hgnc_entrez$entrez_id)]
 }

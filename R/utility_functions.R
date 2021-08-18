@@ -94,3 +94,39 @@ remove_child_dirs <- function(dirs) {
         { dirs[-.] }
 }
 
+#' @importFrom purrr walk map
+#' @export
+clear_cache <- function(disk = TRUE, mem = TRUE)
+{
+    if (disk) {
+        cache_dir <- getOption('cavalier.cache_dir')
+        if (dir.exists(cache_dir)) {
+            file.remove(list.files(cache_dir, full.names = TRUE))
+        }
+    }
+    if (mem) {
+        c('cavalier.hgnc_alias', 'cavalier.hgnc_complete', 'cavalier.hgnc_ensembl',
+          'cavalier.hgnc_entrez', 'cavalier.rvis_table', 'cavalier.gtex_gene_median_tpm') %>% 
+            intersect(names(options())) %>% 
+            setNames(., .) %>%
+            map( ~ NULL) %>%
+            do.call(options, .)
+    }
+}
+
+# execute a function and save to disk as filename unless filename exists, then load from file
+# useful to cache downloaded files
+cache <- function(fun, filename) 
+{
+    if (file.exists(filename)) {
+        readRDS(filename)
+    } else {
+        res <- fun()
+        tmp_fn <- tempfile(pattern = basename(filename) %>% str_c('.'),
+                           tmpdir = dirname(filename))
+        saveRDS(res, tmp_fn)
+        file.rename(tmp_fn, filename)
+        res
+    }
+}
+

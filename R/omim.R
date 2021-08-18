@@ -1,7 +1,7 @@
 
 #' @importFrom tidyr replace_na separate_rows
-#' @importFrom stringr str_c str_remove str_extract
-#' @importFrom dplyr "%>%" mutate rename select if_else summarise group_by bind_rows arrange_all
+#' @importFrom stringr str_c str_remove str_remove_all str_extract
+#' @importFrom dplyr "%>%" mutate rename select if_else summarise group_by bind_rows arrange_all pull first
 #' @export
 get_omim_table <- function(genemap2)
 {
@@ -20,35 +20,31 @@ get_omim_table <- function(genemap2)
             'approved_gene_symbol', 'entrez_gene_id', 'ensembl_gene_id', 'comments', 
             'phenotypes', 'mouse_gene_symbol_id')
         
-        hgnc_alias <- get_hgnc_alias()
-        hgnc_ensembl <-
-            hgnc_alias %>% 
-            select(symbol, ensembl_gene_id) %>% 
-            na.omit() %>% 
-            distinct()
+        hgnc_sym <- get_hgnc_complete() %>% pull(symbol)
         
         omim_table <- 
             read_tsv(genemap2, col_names = col_names, comment = '#', col_types = cols()) %>% 
-            select(gene_symbols, ensembl_gene_id, phenotypes) %>% 
+            select(gene_symbols, ensembl_gene_id, entrez_gene_id, phenotypes) %>% 
+            mutate(entrez_gene_id = as.integer(entrez_gene_id)) %>% 
             filter(!is.na(phenotypes)) %>% 
-            # match symbol with ensemble_gene_id first
-            mutate(symbol = hgnc_ensembl$symbol[match(ensembl_gene_id, hgnc_ensembl$ensembl_gene_id)]) %>% 
+            # match symbol with ensemble_gene_id and entrez_gene_id first
+            mutate(symbol = hgnc_ensembl2sym(ensembl_gene_id),
+                   symbol = if_else(is.na(symbol), hgnc_entrez2sym(entrez_gene_id), symbol)) %>% 
             # next try hgnc_symbol
             (function(data) {
                 filter(data, is.na(symbol)) %>% 
                     mutate(id = seq_along(gene_symbols)) %>% 
                     separate_rows(gene_symbols, sep = ',\\s+') %>% 
-                    mutate(symbol_1 = if_else(gene_symbols %in% hgnc_alias$symbol, gene_symbols, NA_character_),
-                           symbol_2 = hgnc_alias$symbol[match(gene_symbols,hgnc_alias$alias)]) %>% 
+                    mutate(symbol_1 = if_else(gene_symbols %in% hgnc_sym, gene_symbols, NA_character_),
+                           symbol_2 = hgnc_sym2sym(gene_symbols, remove_unknown = TRUE)) %>% 
                     group_by(id, phenotypes) %>% 
                     summarise(symbol = if_else(any(!is.na(symbol_1)),
                                                na.omit(symbol_1) %>% first(),
-                                               na.omit(symbol_2) %>% first()
-                    ),
+                                               na.omit(symbol_2) %>% first()),
                     .groups = 'drop') %>% 
                     filter(!is.na(symbol)) %>% 
                     select(-id) %>% 
-                    bind_rows(select(data, symbol, ensembl_gene_id, phenotypes), .) %>% 
+                    bind_rows(select(data, symbol, ensembl_gene_id, entrez_gene_id, phenotypes), .) %>% 
                     arrange_all()
             }) %>% 
             separate_rows(phenotypes, sep=';\\s+') %>% 

@@ -21,9 +21,12 @@ get_gtex_expression <- function()
             cache(fn) %>% 
             rename(ensembl_gene_id = Name,
                    symbol = Description) %>% 
-            mutate(symbol = hgnc_name_replace(symbol),
-                   ensembl_gene_id = str_remove(ensembl_gene_id, '\\.[0-9]+$'))
-        
+            mutate(ensembl_gene_id = str_remove(ensembl_gene_id, '\\.[0-9]+$'),
+                   symbol = {
+                       s1 <- hgnc_ensembl2sym(ensembl_gene_id)
+                       at <- is.na(s1)
+                       replace(s1, at, hgnc_sym2sym(symbol[at], remove_unknown = TRUE))})
+
         options('cavalier.gtex_gene_median_tpm' = gtex_gene_median_tpm)
     }
     

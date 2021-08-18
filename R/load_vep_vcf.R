@@ -73,7 +73,7 @@ load_vep_vcf <- function(vcf_filename, sampleID, field = 'CSQ') {
                          {.[str_starts(., 'rs')]} %>%
                          str_c(collapse = ';'))
                }),
-               gene = hgnc_name_replace(gene),
+               gene = hgnc_sym2sym(gene),
                RVIS = rvis_exac_percentile(gene),
                GeVIR = gevir_percentile(gene),
                Grantham =(grantham_score(annotation))) %>%  
