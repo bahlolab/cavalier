@@ -1,79 +1,8 @@
-
-#' @importFrom stringr str_c str_extract str_split
-#' @importFrom magrittr set_colnames
-#' @importFrom dplyr '%>%' bind_cols left_join
-#' @importFrom tidyr unnest chop
-#' @export
-load_vep_vcf <- function(vcf_filename, 
-                         samples = NULL,
-                         info_columns = c('AF', 'AC', 'QD'),
-                         vep_field = 'CSQ') {
-    
-    load_vcf(vcf_filename,
-             samples = samples, 
-             info_columns = info_columns) %>% 
-        left_join(get_vep_ann(gds, vep_field = vep_field),
-                  by = 'variant_id')
-    
-    # Combine and clean VCF data
-    vars <-
-        vcf_tidy$fix %>% 
-        select(c("CHROM", "POS", "REF", "ALT", "QUAL", "FILTER", "DP", "QD", "MQ", "FS", "SOR", "MQRankSum", "ReadPosRankSum", "InbreedingCoeff", "AC", "AF")) %>%
-        mutate(AC = as.integer(AC),
-               AF = as.numeric(AF)) %>% 
-        (function(x) { bind_cols(x[ANN$index, ], ANN) }) %>% 
-        rename(chromosome = CHROM,
-               position = POS,
-               reference = REF,
-               alternate = ALT,
-               change = Consequence,
-               gene = SYMBOL,
-               dbSNP = Existing_variation,
-               Polyphen2 = PolyPhen,
-               MAF_gnomAD = gnomAD_AF) %>% 
-        mutate(MAF_1000G = replace_na(MAF_1000G, 0),
-               MAF_gnomAD = replace_na(MAF_gnomAD, 0),
-               SIFT_score = str_extract(SIFT, '(?<=\\()[0-9\\.]+(?=\\)$)') %>% as.numeric(),
-               SIFT = str_extract(SIFT, '^.+(?=\\([0-9\\.]+\\)$)') %>% str_remove('_low_confidence'),
-               Polyphen2_score = str_extract(Polyphen2, '(?<=\\()[0-9\\.]+(?=\\)$)') %>% as.numeric(),
-               Polyphen2 = str_extract(Polyphen2, '^.+(?=\\([0-9\\.]+\\)$)'),
-               chromosome = if_else(str_starts(chromosome, "chr"),
-                                    chromosome,
-                                    paste0("chr", chromosome)),
-               end = { 
-                   len_ref <- nchar(reference)
-                   len_alt <- nchar(alternate)
-                   if_else(len_ref <= len_alt, position, as.integer(position + len_ref - len_alt - 1))},
-               change = str_replace_all(change, '&', ';'),
-               annotation = str_c('p.', str_extract(Amino_acids, '[^/]+(?=/)'), 
-                                  Protein_position, str_extract(Amino_acids, '(?<=/)[^/]+')),
-               dbSNP = map_chr(dbSNP, function(x) {
-                   c(str_split(x, '&', simplify = T) %>% 
-                         {.[str_starts(., 'rs')]} %>%
-                         str_c(collapse = ';'))
-               }),
-               gene = hgnc_sym2sym(gene),
-               RVIS = rvis_exac_percentile(gene),
-               GeVIR = gevir_percentile(gene),
-               Grantham =(grantham_score(annotation))) %>%  
-        select(., chromosome, position, reference, alternate, gene,
-               starts_with('MAF'), starts_with('SIFT'), starts_with('Polyphen2'), everything())
-    
-    for (sID in names(sampleID)) {
-        vcf_tidy_gt_sID <- vcf_tidy$gt[vcf_tidy$gt$Indiv == sID, ]
-        sID_name <- sampleID[[sID]]
-        vars <-
-            vars %>% 
-            mutate(!!paste(sID_name, "genotype") := vcf_tidy_gt_sID$gt_GT[index],
-                   !!paste(sID_name, "GT quality") := vcf_tidy_gt_sID$gt_GQ[index],
-                   !!paste(sID_name, "depth (R,A)") := vcf_tidy_gt_sID$gt_AD[index])
-    }
-    
-    return(distinct(vars))
-}
-
-get_vep_ann <- function(gds,
-                        vep_field = 'CSQ') {
+#' @importFrom stringr str_c str_extract str_split_fixed str_detect
+#' @importFrom magrittr '%>%' set_colnames
+#' @importFrom dplyr transmute coalesce
+get_vep_ann <- function(gds, vep_field,
+                        add_annot = character()) {
     
     vep_ann_names <- 
         SeqArray::header(gds)$INFO %>%
@@ -88,13 +17,58 @@ get_vep_ann <- function(gds,
         c()
     
     vep_ann <- seqGetData(gds, str_c('annotation/info/', vep_field))
+    vid <- tibble(variant_id = rep(seqGetData(gds, 'variant.id'), times = vep_ann$length))
     
-    tibble(variant_id = seqGetData(gds, 'variant.id') %>% 
-               rep(times = vep_ann$length),
-           VEP = str_split_fixed(vep_ann$data, '\\|', length(vep_ann_names)) %>%
-               set_colnames(vep_ann_names) %>% 
-               as_tibble() %>% 
-               readr::type_convert(col_types = vep_col_spec))
+    vep_raw <-
+        str_split_fixed(vep_ann$data, '\\|', length(vep_ann_names)) %>%
+        set_colnames(vep_ann_names) %>% 
+        as_tibble() %>% 
+        readr::type_convert(col_types = vep_col_spec)
+    
+    vep_clean <-
+        vep_raw %>% 
+        transmute(gene = coalesce(hgnc_ensembl2sym(Gene),
+                                  hgnc_id2sym(HGNC_ID),
+                                  hgnc_sym2sym(SYMBOL)),
+                  hgnc_id = HGNC_ID,
+                  ensembl_gene = Gene,
+                  ensembl_transcript = str_extract(Feature, '^ENST.+'),
+                  ensembl_protein = str_extract(ENSP, '^ENSP.+'),
+                  consequence = Consequence,
+                  impact = ordered(IMPACT, c('MODIFIER', 'LOW', 'MODERATE', 'HIGH')),
+                  hgvs_genomic = HGVSg,
+                  hgvs_coding = str_extract(HGVSc, '(?<=:).+$'),
+                  hgvs_protein = str_extract(HGVSp, '(?<=:).+$') %>% str_replace('%3D', '='),
+                  db_snp = str_extract(Existing_variation, 'rs[0-9]+'),
+                  af_gnomad = gnomAD_AF,
+                  af_1000G = AF,
+                  af_popmax = MAX_AF,
+                  sift = str_extract(SIFT, '^.+(?=\\([0-9\\.]+\\)$)') %>% str_remove('_low_confidence'),
+                  sift_score = str_extract(SIFT, '(?<=\\()[0-9\\.]+(?=\\)$)') %>% as.numeric(),
+                  polyphen = str_extract(PolyPhen, '^.+(?=\\([0-9\\.]+\\)$)'),
+                  polyphen_score = str_extract(PolyPhen, '(?<=\\()[0-9\\.]+(?=\\)$)') %>% as.numeric()) %T>% 
+        with(assert_that(all(sift %in% c(NA, 'tolerated', 'deleterious'))),
+             assert_that(all(polyphen %in% c(NA, 'benign', 'possibly_damaging', 'probably_damaging', 'unknown')))) %>% 
+        mutate(sift = ordered(sift,  c('tolerated', 'deleterious')),
+               polyphen = ordered(polyphen, c('benign', 'possibly_damaging', 'probably_damaging'))) %>% 
+        # add rvis_percentile
+        (function(data) `if`('rvis_percentile' %in% add_annot,
+                             mutate(data, rvis_percentile = sym2rvis(gene)),
+                             data)) %>% 
+        # add gevir_percentile
+        (function(data) `if`('gevir_percentile' %in% add_annot,
+                             mutate(data, gevir_percentile = coalesce(sym2gevir(gene), ensembl2gevir(ensembl_gene))),
+                             data)) %>% 
+        # add loeuf_percentile
+        (function(data) `if`('loeuf_percentile' %in% add_annot,
+                             mutate(data, loeuf_percentile = coalesce(sym2loeuf(gene), ensembl2loeuf(ensembl_gene))),
+                             data)) %>% 
+        # add grantham_score
+        (function(data) `if`('grantham_score' %in% add_annot,
+                             mutate(data, grantham_score = grantham_score(hgvs_protein)),
+                             data))
+    
+    return( bind_cols(vid, vep_clean) ) 
 }
 
 #' @importFrom readr cols col_character col_double col_integer

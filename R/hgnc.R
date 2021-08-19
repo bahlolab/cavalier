@@ -20,7 +20,7 @@ get_hgnc_complete <- function()
             suppressWarnings(
                 (function() read_tsv(hgnc_complete_uri, col_types = cols())) %>% 
                     cache(fn)) %>% 
-            select(symbol, name, location, ensembl_gene_id, entrez_id, alias_symbol, prev_symbol) %>% 
+            select(hgnc_id, symbol, name, location, ensembl_gene_id, entrez_id, alias_symbol, prev_symbol) %>% 
             mutate(entrez_id = as.integer(entrez_id))
         
         options('cavalier.hgnc_complete' = hgnc_complete)
@@ -58,6 +58,24 @@ get_hgnc_alias <- function()
     }
     
     return(hgnc_alias)
+}
+
+#' @importFrom dplyr "%>%" select
+get_hgnc_id <- function() 
+{
+    hgnc_id <- getOption('cavalier.hgnc_id')
+    
+    if (is.null(hgnc_id)) {
+        
+        hgnc_id <-
+            get_hgnc_complete() %>% 
+            select(symbol, hgnc_id) %>% 
+            na.omit()
+        
+        options('cavalier.hgnc_id' = hgnc_id)
+    }
+    
+    return(hgnc_id)
 }
 
 #' @importFrom dplyr "%>%" select
@@ -119,6 +137,12 @@ hgnc_sym2ensembl <- function(symbols) {
 hgnc_ensembl2sym <- function(ensembl_gene_id) {
     hgnc_ensembl <- get_hgnc_ensembl()
     hgnc_ensembl$symbol[match(ensembl_gene_id, hgnc_ensembl$ensembl_gene_id)]
+}
+
+#' @export
+hgnc_id2sym <- function(ids) {
+    hgnc_id <- get_hgnc_id()
+    hgnc_id$symbol[match(ids, hgnc_id$hgnc_id)]
 }
 
 #' @export

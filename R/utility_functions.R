@@ -96,7 +96,7 @@ remove_child_dirs <- function(dirs) {
 
 #' @importFrom purrr walk map
 #' @export
-clear_cache <- function(disk = TRUE, mem = TRUE)
+clear_cache <- function(mem = TRUE, disk = FALSE)
 {
     if (disk) {
         cache_dir <- getOption('cavalier.cache_dir')

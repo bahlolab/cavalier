@@ -1,16 +1,33 @@
 
 #' @importFrom stringr str_c str_extract str_split
 #' @importFrom magrittr '%>%' set_colnames
-#' @importFrom dplyr bind_cols
+#' @importFrom dplyr bind_cols left_join
 #' @importFrom tidyr unnest chop
 #' @importFrom tidyr unnest chop
 #' @importFrom SeqArray seqSetFilter
-load_vcf <- function(vcf_filename, 
+#' @importFrom rlang is_bool is_scalar_character
+#' @export
+load_vcf <- function(input, 
                      samples = NULL,
-                     info_columns = c('AF', 'AC', 'DP', 'QD', 'MQ', 'FS', 'SOR', 'MQRankSum', 'ReadPosRankSum', 'InbreedingCoeff')) 
+                     info_columns = c('AF', 'AC','QD'),
+                     chrom_prefix = 'chr',
+                     annot_source = 'VEP',
+                     annot_source_field = 'CSQ',
+                     add_annot = default_annotations(),
+                     include_chrom_prefix = TRUE) 
 {
-  gds <- vcf_to_gds(vcf_filename)
+  # check args
+  assert_that(is_gds(input) | (is_scalar_character(input) && file.exists(input)),
+              is.null(samples) | is.character(samples),
+              is.null(info_columns) | is.character(info_columns),
+              is.null(annot_source) | is_scalar_character(annot_source),
+              is.null(annot_source) | is_scalar_character(annot_source_field),
+              is.character(add_annot) & all(add_annot %in% all_annotations()),
+              is_bool(include_chrom_prefix) | is.null(include_chrom_prefix),
+              is.null(chrom_prefix) | is_scalar_character(chrom_prefix))
   
+  gds <- `if`(is_gds(input), input, vcf_to_gds(input))
+
   # restrict to biallelic variants
   num_allele <- SeqArray::seqNumAllele(gds)
   if (!all(num_allele == 2L)) {
@@ -20,14 +37,41 @@ load_vcf <- function(vcf_filename,
     seqSetFilter(gds, num_allele == 2)
   }
   
-  vcf_data <-
+  if (!is.null(samples)) {
+    seqSetFilter(gds, sample.id = samples)
+  }
+  
+  variants <-
     bind_cols(get_vcf_fixed(gds),
               get_vcf_info(gds, info_columns) %>% select(-variant_id)) %>% 
-    mutate(genotype = get_vcf_genotypes(gds, samples)) %>% 
-    bind_cols(get_vcf_sample_AD(gds, samples)) %>% 
-    mutate(GQ = get_vcf_sample_GQ(gds, samples))
+    mutate(genotype = get_vcf_genotypes(gds)) %>% 
+    bind_cols(get_vcf_sample_AD(gds)) %>% 
+    mutate(GQ = get_vcf_sample_GQ(gds)) %>% 
+    mutate(chrom = case_when(
+      is.null(include_chrom_prefix) ~ chrom,
+      include_chrom_prefix          ~ str_c(chrom_prefix, str_remove(chrom, str_c('^', chrom_prefix))),
+      TRUE                          ~ str_remove(chrom, str_c('^', chrom_prefix)))) %>% 
+    (function(data) {
+      if (annot_source == 'VEP') {
+        data %>% 
+          left_join(get_vep_ann(gds, annot_source_field, add_annot = add_annot),
+                    by = 'variant_id')
+      }  else {
+        data
+      }
+    })
   
-  return(vcf_data)
+  return(variants)
+}
+
+#' @export
+default_annotations <- function() {
+  c('rvis_percentile', 'gevir_percentile', 'grantham_score')
+}
+
+#' @export
+all_annotations <- function() {
+  c('rvis_percentile', 'gevir_percentile', 'loeuf_percentile', 'grantham_score')
 }
 
 #' @importFrom SeqArray seqOpen seqVCF2GDS
@@ -44,6 +88,10 @@ vcf_to_gds <- function(vcf_fn) {
     seqVCF2GDS(vcf.fn = vcf_fn, out.fn = gds_fn, storage.option = 'ZIP_RA', ignore.chr.prefix = '')
   }
   seqOpen(gds_fn, allow.duplicate = T)
+}
+
+is_gds <- function(object) {
+  inherits(object, 'SeqVarGDSClass')
 }
 
 #' @importFrom dplyr tibble mutate
@@ -63,6 +111,8 @@ get_vcf_fixed <- function(gds) {
 
 #' @importFrom dplyr tibble mutate as_tibble
 #' @importFrom SeqArray seqGetData
+#' @importFrom purrr map_dfc
+
 get_vcf_info <- function(gds, info_columns) {
   tibble(
     variant_id = seqGetData(gds, 'variant.id')) %>% 
@@ -77,11 +127,7 @@ get_vcf_info <- function(gds, info_columns) {
 
 #' @importFrom dplyr everything
 #' @importFrom magrittr set_colnames set_rownames
-get_vcf_genotypes <- function(gds, samples) {
-  
-  if (!is.null(samples)) {
-    seqSetFilter(gds, sample.id = samples)
-  }
+get_vcf_genotypes <- function(gds) {
   
   genotypes <- seqGetData(gds, 'genotype')
   str_c(pmin(genotypes[1, ,], genotypes[2, ,]),
@@ -95,11 +141,7 @@ get_vcf_genotypes <- function(gds, samples) {
 
 #' @importFrom dplyr as_tibble
 #' @importFrom magrittr set_colnames set_rownames
-get_vcf_sample_AD <- function(gds, samples) {
-  
-  if (!is.null(samples)) {
-    seqSetFilter(gds, sample.id = samples)
-  }
+get_vcf_sample_AD <- function(gds) {
   
   AD <- seqGetData(gds, 'annotation/format/AD')
   assert_that(all(AD$length == 2))
@@ -107,7 +149,7 @@ get_vcf_sample_AD <- function(gds, samples) {
   
   setNames(1:2, c('depth_ref', 'depth_alt')) %>% 
     map(function(i) {
-      (AD$data[, seq.int(from = i, by = 2, length.out = nvar)]) %>% 
+      (AD$data[, seq.int(from = i, by = 2, length.out = nvar), drop = FALSE]) %>% 
         t() %>% 
         set_colnames(seqGetData(gds, 'sample.id')) %>%
         as_tibble()
@@ -118,10 +160,6 @@ get_vcf_sample_AD <- function(gds, samples) {
 #' @importFrom dplyr as_tibble
 #' @importFrom magrittr set_colnames set_rownames
 get_vcf_sample_GQ <- function(gds, samples) {
-  
-  if (!is.null(samples)) {
-    seqSetFilter(gds, sample.id = samples)
-  }
   
   GQ <- seqGetData(gds, 'annotation/format/GQ')
   assert_that(all(GQ$length == 1))
