@@ -10,12 +10,58 @@
 
 NULL
 
-options('cavalier.cache_dir' = '~/.cavalier')
-options('cavalier.hgnc_complete_uri' = 'http://ftp.ebi.ac.uk/pub/databases/genenames/hgnc/archive/monthly/tsv/hgnc_complete_set_2021-08-01.txt')
-options('cavalier.gtex_gene_median_tpm_uri' = 'https://storage.googleapis.com/gtex_analysis_v8/rna_seq_data/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz')
-options('cavalier.rvis_uri' = 'http://genic-intolerance.org/data/RVIS_Unpublished_ExACv2_March2017.txt')
-options('cavalier.gevir_uri' = 'http://www.gevirank.org/static/files/gene_ranking.csv')
+# environment to store cached tables, e.g. gtex expression, omim genemap etc
+cavalier_cache <- new.env()
 
+# environment to store default options, user settable with function cavalier_options()
+cavalier_opts <- new.env()
+# set default options
+cavalier_opts$cache_dir <- '~/.cavalier'
+cavalier_opts$hgnc_complete_uri <- 'http://ftp.ebi.ac.uk/pub/databases/genenames/hgnc/archive/monthly/tsv/hgnc_complete_set_2021-08-01.txt'
+cavalier_opts$rvis_uri <- 'http://genic-intolerance.org/data/RVIS_Unpublished_ExACv2_March2017.txt'
+cavalier_opts$gevir_uri <- 'http://www.gevirank.org/static/files/gene_ranking.csv'
+cavalier_opts$gtex_gene_median_tpm_uri <- 'https://storage.googleapis.com/gtex_analysis_v8/rna_seq_data/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz'
+cavalier_opts$gtex_tissues <-
+  c("Brain - Amygdala",
+    "Brain - Anterior cingulate cortex (BA24)",
+    "Brain - Caudate (basal ganglia)",
+    "Brain - Cerebellar Hemisphere",
+    "Brain - Cerebellum",
+    "Brain - Cortex",
+    "Brain - Frontal Cortex (BA9)",
+    "Brain - Hippocampus",
+    "Brain - Hypothalamus",
+    "Brain - Nucleus accumbens (basal ganglia)",
+    "Brain - Putamen (basal ganglia)",
+    "Brain - Spinal cord (cervical c-1)",
+    "Brain - Substantia nigra",
+    "Adipose - Subcutaneous",
+    "Artery - Tibial",
+    "Breast - Mammary Tissue",
+    "Esophagus - Mucosa",
+    "Lung",
+    "Muscle - Skeletal",
+    "Nerve - Tibial",
+    "Skin - Not Sun Exposed (Suprapubic)",
+    "Skin - Sun Exposed (Lower leg)",
+    "Thyroid", 
+    "Whole Blood")
 
+#' @export
+get_cavalier_opt <- function(name = NULL) {
+  if (is.null(name)) {
+    return(as.list(cavalier_opts))
+  }
+  cavalier_opts[[name]]
+}
+ 
+#' @export
+set_cavalier_opt <- function(...) {
+  dots <- dots_list(...)
+  assert_that(is_named(dots))
+  walk2(names(dots), dots, function(n, v) {
+    assign(n, v, envir = cavalier_opts)
+  })
+} 
 
 

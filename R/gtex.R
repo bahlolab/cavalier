@@ -3,11 +3,12 @@
 #' @importFrom dplyr "%>%" mutate rename
 get_gtex_expression <- function()
 {
-    gtex_gene_median_tpm <- getOption('cavalier.gtex_gene_median_tpm')
+    gtex_gene_median_tpm <- cavalier_cache$gtex_gene_median_tpm
     
     if (is.null(gtex_gene_median_tpm)) {
         
-        gtex_gene_median_tpm_uri <- getOption('cavalier.gtex_gene_median_tpm_uri')
+        gtex_gene_median_tpm_uri <- get_cavalier_opt('gtex_gene_median_tpm_uri')
+        cache_dir <- get_cavalier_opt('cache_dir')
         fn <- basename(gtex_gene_median_tpm_uri) %>% 
             str_remove('.txt$') %>% 
             str_c('.rds') %>% 
@@ -27,10 +28,18 @@ get_gtex_expression <- function()
                        at <- is.na(s1)
                        replace(s1, at, hgnc_sym2sym(symbol[at], remove_unknown = TRUE))})
 
-        options('cavalier.gtex_gene_median_tpm' = gtex_gene_median_tpm)
+        cavalier_cache$gtex_gene_median_tpm <- gtex_gene_median_tpm
     }
     
     return(gtex_gene_median_tpm)
+}
+
+#' @export
+get_gtex_tissues <- function()
+{
+    get_gtex_expression() %>% 
+        select(-(1:2)) %>% 
+        colnames()
 }
 
 #' Plot GTEx tissue median RPKM expression for given gene symbol

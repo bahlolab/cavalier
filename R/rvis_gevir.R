@@ -2,12 +2,12 @@
 #' @importFrom dplyr "%>%" mutate rename
 get_rvis_table <- function()
 {
-  rvis_table <- getOption('cavalier.rvis_table')
+  rvis_table <- cavalier_cache$rvis_table
   
   if (is.null(rvis_table)) {
     
-    cache_dir <- getOption('cavalier.cache_dir')
-    rvis_uri <- getOption('cavalier.rvis_uri')
+    cache_dir <- get_cavalier_opt('cache_dir')
+    rvis_uri <- get_cavalier_opt('rvis_uri')
     fn <- basename(rvis_uri) %>% 
       str_remove('.txt$') %>% 
       str_c('.rds') %>% 
@@ -22,7 +22,7 @@ get_rvis_table <- function()
       setNames(c('symbol', 'rvis_percentile')) %>%
       mutate(symbol = hgnc_sym2sym(symbol))
     
-    options('cavalier.rvis_table' = rvis_table)
+    cavalier_cache$rvis_table <- rvis_table
   }
   
   return(rvis_table)
@@ -50,12 +50,12 @@ entrez2rvis <- function(entrez)
 #' @importFrom dplyr "%>%" mutate rename select
 get_gevir_table <- function()
 {
-  gevir_table <- getOption('cavalier.gevir_table')
+  gevir_table <- cavalier_cache$gevir_table
   
   if (is.null(gevir_table)) {
     
-    cache_dir <- getOption('cavalier.cache_dir')
-    gevir_uri <- getOption('cavalier.gevir_uri')
+    cache_dir <- get_cavalier_opt('cache_dir')
+    gevir_uri <- get_cavalier_opt('gevir_uri')
     fn <- basename(gevir_uri) %>% 
       str_remove('.txt$') %>% 
       str_c('.rds') %>% 
@@ -68,7 +68,7 @@ get_gevir_table <- function()
              symbol = if_else(is.na(symbol), gene_name, symbol)) %>% 
       select(symbol, ensembl_gene_id = gene_id, gevir_percentile, loeuf_percentile)
     
-    options('cavalier.gevir_table' = gevir_table)
+    cavalier_cache$gevir_table <- gevir_table
   }
   
   return(gevir_table)

@@ -99,18 +99,13 @@ remove_child_dirs <- function(dirs) {
 clear_cache <- function(mem = TRUE, disk = FALSE)
 {
     if (disk) {
-        cache_dir <- getOption('cavalier.cache_dir')
+        cache_dir <- get_cavalier_opt('cache_dir')
         if (dir.exists(cache_dir)) {
             file.remove(list.files(cache_dir, full.names = TRUE))
         }
     }
     if (mem) {
-        c('cavalier.hgnc_alias', 'cavalier.hgnc_complete', 'cavalier.hgnc_ensembl',
-          'cavalier.hgnc_entrez', 'cavalier.rvis_table', 'cavalier.gtex_gene_median_tpm') %>% 
-            intersect(names(options())) %>% 
-            setNames(., .) %>%
-            map( ~ NULL) %>%
-            do.call(options, .)
+        rm(list = ls(envir = cavalier_cache), envir = cavalier_cache)
     }
 }
 

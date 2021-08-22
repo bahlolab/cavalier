@@ -5,12 +5,12 @@
 #' @importFrom rlang is_scalar_character
 get_hgnc_complete <- function()
 {
-    hgnc_complete <- getOption('cavalier.hgnc_complete')
+    hgnc_complete <- cavalier_cache$hgnc_complete
     
     if (is.null(hgnc_complete)) {
         
-        cache_dir <- getOption('cavalier.cache_dir')
-        hgnc_complete_uri <- getOption('cavalier.hgnc_complete_uri')
+        cache_dir <- get_cavalier_opt('cache_dir')
+        hgnc_complete_uri <- get_cavalier_opt('hgnc_complete_uri')
         fn <- basename(hgnc_complete_uri) %>% 
             str_remove('.txt$') %>% 
             str_c('.rds') %>% 
@@ -23,7 +23,7 @@ get_hgnc_complete <- function()
             select(hgnc_id, symbol, name, location, ensembl_gene_id, entrez_id, alias_symbol, prev_symbol) %>% 
             mutate(entrez_id = as.integer(entrez_id))
         
-        options('cavalier.hgnc_complete' = hgnc_complete)
+        cavalier_cache$hgnc_complete <- hgnc_complete
     }
     return(hgnc_complete)
 }
@@ -33,7 +33,7 @@ get_hgnc_complete <- function()
 #' @importFrom dplyr "%>%" mutate rename select if_else add_count filter case_when
 get_hgnc_alias <- function() 
 {
-    hgnc_alias <- getOption('cavalier.hgnc_alias')
+    hgnc_alias <- cavalier_cache$hgnc_alias
     
     if (is.null(hgnc_alias)) {
         
@@ -54,7 +54,7 @@ get_hgnc_alias <- function()
             na.omit() %>% 
             arrange_all()
         
-        options('cavalier.hgnc_alias' = hgnc_alias)
+        cavalier_cache$hgnc_alias <- hgnc_alias
     }
     
     return(hgnc_alias)
@@ -63,7 +63,7 @@ get_hgnc_alias <- function()
 #' @importFrom dplyr "%>%" select
 get_hgnc_id <- function() 
 {
-    hgnc_id <- getOption('cavalier.hgnc_id')
+    hgnc_id <- 
     
     if (is.null(hgnc_id)) {
         
@@ -72,7 +72,7 @@ get_hgnc_id <- function()
             select(symbol, hgnc_id) %>% 
             na.omit()
         
-        options('cavalier.hgnc_id' = hgnc_id)
+        cavalier_cache$hgnc_id <- hgnc_id
     }
     
     return(hgnc_id)
@@ -81,7 +81,7 @@ get_hgnc_id <- function()
 #' @importFrom dplyr "%>%" select
 get_hgnc_ensembl <- function() 
 {
-    hgnc_ensembl <- getOption('cavalier.hgnc_ensembl')
+    hgnc_ensembl <- cavalier_cache$hgnc_ensembl
     
     if (is.null(hgnc_ensembl)) {
         
@@ -90,7 +90,7 @@ get_hgnc_ensembl <- function()
             select(symbol, ensembl_gene_id) %>% 
             na.omit()
         
-        options('cavalier.hgnc_ensembl' = hgnc_ensembl)
+        cavalier_cache$hgnc_ensembl <- hgnc_ensembl
     }
     
     return(hgnc_ensembl)
@@ -99,7 +99,7 @@ get_hgnc_ensembl <- function()
 #' @importFrom dplyr "%>%" select
 get_hgnc_entrez <- function() 
 {
-    hgnc_entrez <- getOption('cavalier.hgnc_entrez')
+    hgnc_entrez <- cavalier_cache$hgnc_entrez
     
     if (is.null(hgnc_entrez)) {
         
@@ -108,7 +108,7 @@ get_hgnc_entrez <- function()
             select(symbol, entrez_id) %>% 
             na.omit()
         
-        options('cavalier.hgnc_entrez' = hgnc_entrez)
+        cavalier_cache$hgnc_entrez <- hgnc_entrez
     }
     
     return(hgnc_entrez)
