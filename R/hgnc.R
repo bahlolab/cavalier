@@ -11,15 +11,11 @@ get_hgnc_complete <- function()
         
         cache_dir <- get_cavalier_opt('cache_dir')
         hgnc_complete_uri <- get_cavalier_opt('hgnc_complete_uri')
-        fn <- basename(hgnc_complete_uri) %>% 
-            str_remove('.txt$') %>% 
-            str_c('.rds') %>% 
-            file.path(cache_dir, .)
-        
+
         hgnc_complete <- 
             suppressWarnings(
                 (function() read_tsv(hgnc_complete_uri, col_types = cols())) %>% 
-                    cache(fn)) %>% 
+                    cache(basename(hgnc_complete_uri))) %>% 
             select(hgnc_id, symbol, name, location, ensembl_gene_id, entrez_id, alias_symbol, prev_symbol) %>% 
             mutate(entrez_id = as.integer(entrez_id))
         
@@ -63,7 +59,7 @@ get_hgnc_alias <- function()
 #' @importFrom dplyr "%>%" select
 get_hgnc_id <- function() 
 {
-    hgnc_id <- 
+    hgnc_id <- cavalier_cache$hgnc_id
     
     if (is.null(hgnc_id)) {
         

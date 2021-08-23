@@ -1,5 +1,34 @@
-#' Create cavalier output
-#' 
+#' @export
+
+create_cavalier_output <- function(candidates,
+                                   affected = NULL,
+                                   unaffected = NULL,
+                                   pedigree = NULL,
+                                   output_types = c('txt', 'pptx'),
+                                   output_dir = 'output',
+                                   slide_layout = NULL,
+                                   var_info = var_info(),
+                                   title_col = 'title',
+                                   genemap2 = NULL) 
+    
+{
+    
+}
+
+
+var_info <- function() {
+    c(Gene = 'gene', Consequence = 'consequence', dbSNP = 'db_snp',
+      HGVSg = 'hgvs_genomic', HGVSc = 'hgvs_coding', HGVSp = 'hgvs_protein',
+      Grantham = 'grantham_score', SIFT = 'sift', PolyPhen = 'polyphen',
+      RVIS = 'rvis_percentile')    
+}
+
+
+
+    
+
+
+#' #' Create cavalier output
 #' @param candidates candidate variants data.frame
 #' @param output_dir cavalier output directory
 #' @param sampleID list of IDs and names for samples of interest
@@ -9,11 +38,10 @@
 #' @param layout slide layout choice: "individual" or "multiple" designed for a single or multiple individuals (default: "individual")
 #' @param GTEx_tissues optionally specify list of tissues to plot GTEx expression data
 #' @param genemap2 location of genemap2.txt file downloaded from OMIM (see https://omim.org/downloads/)
-#' @export
 # #' @examples
 # #' ***TODO***
 
-create_cavalier_output <- function(candidates, output_dir, sampleID, output_cols,
+create_cavalier_output_old <- function(candidates, output_dir, sampleID, output_cols,
                                    hide_missing_igv=FALSE,
                                    pubmed_keywords="",
                                    layout="individual",

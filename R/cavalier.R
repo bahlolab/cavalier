@@ -17,10 +17,17 @@ cavalier_cache <- new.env()
 cavalier_opts <- new.env()
 # set default options
 cavalier_opts$cache_dir <- '~/.cavalier'
+cavalier_opts$igv_snapshot_dir <- '.igv_snapshots'
+cavalier_opts$ref_genome <- 'hg38'
+cavalier_opts$xvfb_run_cmd <- 'xvfb-run'
+cavalier_opts$igv_cmd <- 'igv.sh'
+cavalier_opts$singularity_cmd <- 'singularity'
 cavalier_opts$hgnc_complete_uri <- 'http://ftp.ebi.ac.uk/pub/databases/genenames/hgnc/archive/monthly/tsv/hgnc_complete_set_2021-08-01.txt'
 cavalier_opts$rvis_uri <- 'http://genic-intolerance.org/data/RVIS_Unpublished_ExACv2_March2017.txt'
 cavalier_opts$gevir_uri <- 'http://www.gevirank.org/static/files/gene_ranking.csv'
 cavalier_opts$gtex_gene_median_tpm_uri <- 'https://storage.googleapis.com/gtex_analysis_v8/rna_seq_data/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz'
+cavalier_opts$igv_hg38_uri <- 'https://s3.amazonaws.com/igv.org.genomes/hg38/hg38.genome'
+cavalier_opts$igv_hg19_uri <- 'https://s3.amazonaws.com/igv.org.genomes/hg19/hg19.genome'
 cavalier_opts$gtex_tissues <-
   c("Brain - Amygdala",
     "Brain - Anterior cingulate cortex (BA24)",

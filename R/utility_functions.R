@@ -19,6 +19,10 @@ newline_every_n_chars <- function(x, n)
     }
 }
 
+#' @importFrom rlang is_double is_integer
+is_number <- function(x) { (is_double(x) | is_integer(x)) & !any(is.na(x)) }
+
+
 # Convert to numeric replacing NA with zero
 as_numeric_na_zero <- function(x) {
     y <- as.numeric(x)
@@ -62,23 +66,6 @@ flextable_fit <- function(ft, width, height,
         height_all(height)
 }
 
-
-
-#' @importFrom png readPNG writePNG
-#' @importFrom stringr str_c str_remove
-crop_png <- function(filename,
-                     overwrite = FALSE,
-                     output = str_c(str_remove(filename, 'png$'), 'cropped.png'),
-                     left = 0, 
-                     right = 0) {
-    png <- readPNG(filename)
-    if (overwrite) { 
-        output <- filename 
-    }
-    writePNG(png[,seq.int(left+1, dim(png)[2] - right),],
-             target = output)
-}
-
 # read png with png::readPNG to get dimensions
 # create external_image with officer
 #' @importFrom officer external_img
@@ -113,15 +100,34 @@ clear_cache <- function(mem = TRUE, disk = FALSE)
 # useful to cache downloaded files
 cache <- function(fun, filename) 
 {
-    if (file.exists(filename)) {
-        readRDS(filename)
+    cache_dir <- get_cavalier_opt('cache_dir')
+    cache_file <- file.path(cache_dir, filename)
+    if (!str_ends(cache_file, '.rds')) {
+        cache_file <- str_c(cache_file, '.rds')
+    }
+    
+    if (file.exists(cache_file)) {
+        readRDS(cache_file)
     } else {
         res <- fun()
-        tmp_fn <- tempfile(pattern = basename(filename) %>% str_c('.'),
-                           tmpdir = dirname(filename))
+        tmp_fn <- tempfile(pattern = basename(cache_file) %>% str_c('.'),
+                           tmpdir = cache_dir)
         saveRDS(res, tmp_fn)
-        file.rename(tmp_fn, filename)
+        file.rename(tmp_fn, cache_file)
         res
+    }
+}
+# predicates for checking arguments
+
+is_null_or_file <- function(x) { is.null(x) | (is_scalar_character(x) && file.exists(x)) }
+
+is_null_or_files <- function(x, named = FALSE) { 
+    is.null(x) | (is_character(x) && all(file.exists(x))) && (!named | is_named(x))
+}
+
+assert_create_dir <- function(dirname, recursive = TRUE) {
+    if (!dir.exists(dirname)) {
+        assert_that(dir.create(dirname, recursive = recursive))
     }
 }
 

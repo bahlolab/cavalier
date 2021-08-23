@@ -9,12 +9,12 @@
 #' @export
 load_vcf <- function(input, 
                      samples = NULL,
-                     info_columns = c('AF', 'AC','QD'),
-                     chrom_prefix = 'chr',
+                     info_columns = c('AF', 'AC', 'QD'),
                      annot_source = 'VEP',
                      annot_source_field = 'CSQ',
                      add_annot = default_annotations(),
-                     include_chrom_prefix = TRUE) 
+                     remove_chrom_prefix = NULL,
+                     add_chrom_prefix = NULL) 
 {
   # check args
   assert_that(is_gds(input) | (is_scalar_character(input) && file.exists(input)),
@@ -23,8 +23,9 @@ load_vcf <- function(input,
               is.null(annot_source) | is_scalar_character(annot_source),
               is.null(annot_source) | is_scalar_character(annot_source_field),
               is.character(add_annot) & all(add_annot %in% all_annotations()),
-              is_bool(include_chrom_prefix) | is.null(include_chrom_prefix),
-              is.null(chrom_prefix) | is_scalar_character(chrom_prefix))
+              is.null(remove_chrom_prefix) | is_scalar_character(remove_chrom_prefix),
+              is.null(add_chrom_prefix) | is_scalar_character(add_chrom_prefix),
+              is.null(remove_chrom_prefix) | is.null(add_chrom_prefix))
   
   gds <- `if`(is_gds(input), input, vcf_to_gds(input))
 
@@ -48,17 +49,15 @@ load_vcf <- function(input,
     bind_cols(get_vcf_sample_AD(gds)) %>% 
     mutate(GQ = get_vcf_sample_GQ(gds)) %>% 
     mutate(chrom = case_when(
-      is.null(include_chrom_prefix) ~ chrom,
-      include_chrom_prefix          ~ str_c(chrom_prefix, str_remove(chrom, str_c('^', chrom_prefix))),
-      TRUE                          ~ str_remove(chrom, str_c('^', chrom_prefix)))) %>% 
+      !is.null(add_chrom_prefix)    ~ str_c(add_chrom_prefix, str_remove(chrom, str_c('^', add_chrom_prefix))),
+      !is.null(remove_chrom_prefix) ~ str_remove(chrom, str_c('^', remove_chrom_prefix)),
+      TRUE                          ~ chrom)) %>% 
     (function(data) {
-      if (annot_source == 'VEP') {
-        data %>% 
-          left_join(get_vep_ann(gds, annot_source_field, add_annot = add_annot),
-                    by = 'variant_id')
-      }  else {
-        data
-      }
+      `if`(annot_source == 'VEP',
+           data %>% 
+             left_join(get_vep_ann(gds, annot_source_field, add_annot = add_annot),
+                       by = 'variant_id'),
+           data)
     })
   
   return(variants)
@@ -81,13 +80,13 @@ all_annotations <- function() {
 vcf_to_gds <- function(vcf_fn) {
   
   assert_that(is_scalar_character(vcf_fn), 
-             file.exists(vcf_fn))
+              file.exists(vcf_fn))
   
   gds_fn <- str_replace(vcf_fn, '.vcf.gz', '.gds')
   if (! file.exists(gds_fn)) {
     seqVCF2GDS(vcf.fn = vcf_fn, out.fn = gds_fn, storage.option = 'ZIP_RA', ignore.chr.prefix = '')
   }
-  seqOpen(gds_fn, allow.duplicate = T)
+  seqOpen(gds_fn, allow.duplicate = TRUE)
 }
 
 is_gds <- function(object) {

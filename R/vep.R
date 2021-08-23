@@ -2,7 +2,8 @@
 #' @importFrom magrittr '%>%' set_colnames
 #' @importFrom dplyr transmute coalesce
 get_vep_ann <- function(gds, vep_field,
-                        add_annot = character()) {
+                        add_annot = character()) 
+{
     
     vep_ann_names <- 
         SeqArray::header(gds)$INFO %>%

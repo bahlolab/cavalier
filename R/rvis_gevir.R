@@ -8,16 +8,12 @@ get_rvis_table <- function()
     
     cache_dir <- get_cavalier_opt('cache_dir')
     rvis_uri <- get_cavalier_opt('rvis_uri')
-    fn <- basename(rvis_uri) %>% 
-      str_remove('.txt$') %>% 
-      str_c('.rds') %>% 
-      file.path(cache_dir, .)
     
     hgnc_alias <- get_hgnc_alias()
     
     rvis_table <- 
       (function() read_tsv(rvis_uri, col_types = cols())) %>% 
-      cache(fn) %>% 
+      cache(basename(rvis_uri)) %>% 
       select(1,4) %>% 
       setNames(c('symbol', 'rvis_percentile')) %>%
       mutate(symbol = hgnc_sym2sym(symbol))
@@ -56,14 +52,10 @@ get_gevir_table <- function()
     
     cache_dir <- get_cavalier_opt('cache_dir')
     gevir_uri <- get_cavalier_opt('gevir_uri')
-    fn <- basename(gevir_uri) %>% 
-      str_remove('.txt$') %>% 
-      str_c('.rds') %>% 
-      file.path(cache_dir, .)
     
     gevir_table <- 
       (function() read_csv(gevir_uri, col_types = cols())) %>% 
-      cache(fn) %>% 
+      cache(basename(gevir_uri)) %>% 
       mutate(symbol = hgnc_ensembl2sym(gene_id),
              symbol = if_else(is.na(symbol), gene_name, symbol)) %>% 
       select(symbol, ensembl_gene_id = gene_id, gevir_percentile, loeuf_percentile)
