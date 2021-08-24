@@ -29,29 +29,26 @@ cavalier_opts$gtex_gene_median_tpm_uri <- 'https://storage.googleapis.com/gtex_a
 cavalier_opts$igv_hg38_uri <- 'https://s3.amazonaws.com/igv.org.genomes/hg38/hg38.genome'
 cavalier_opts$igv_hg19_uri <- 'https://s3.amazonaws.com/igv.org.genomes/hg19/hg19.genome'
 cavalier_opts$gtex_tissues <-
-  c("Brain - Amygdala",
-    "Brain - Anterior cingulate cortex (BA24)",
-    "Brain - Caudate (basal ganglia)",
-    "Brain - Cerebellar Hemisphere",
-    "Brain - Cerebellum",
-    "Brain - Cortex",
-    "Brain - Frontal Cortex (BA9)",
-    "Brain - Hippocampus",
-    "Brain - Hypothalamus",
-    "Brain - Nucleus accumbens (basal ganglia)",
-    "Brain - Putamen (basal ganglia)",
-    "Brain - Spinal cord (cervical c-1)",
-    "Brain - Substantia nigra",
+  c(
     "Adipose - Subcutaneous",
     "Artery - Tibial",
+    "Bladder",
     "Breast - Mammary Tissue",
+    "Brain - Cerebellum",
+    "Brain - Cortex",
+    "Brain - Hippocampus",
+    "Colon - Sigmoid",
     "Esophagus - Mucosa",
+    "Heart - Left Ventricle",
+    "Kidney - Cortex",
     "Lung",
     "Muscle - Skeletal",
     "Nerve - Tibial",
-    "Skin - Not Sun Exposed (Suprapubic)",
+    "Ovary",
+    "Stomach",
     "Skin - Sun Exposed (Lower leg)",
-    "Thyroid", 
+    "Testis",
+    "Thyroid",
     "Whole Blood")
 
 #' @export

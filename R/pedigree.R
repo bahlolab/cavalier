@@ -49,9 +49,10 @@ get_unaffected <- function(ped_df)
   filter(ped_df, phe == 1) %>% pull(iid)
 }
 
+#' @importFrom cowplot as_grob
+#' @importFrom ggplotify as.ggplot
 #' @export
 plot_ped <- function(ped_df,
-                     draw = TRUE,
                      cex = 1.3,
                      col = 'darkred',
                      mar = c(0,2,1,2)) 
@@ -67,14 +68,7 @@ plot_ped <- function(ped_df,
                               col = col,
                               cex = cex)
   )
-  
-  if (draw) {
-    grid::grid.newpage()
-    grid::grid.draw(grob)
-    invisible(grob)
-  } else {
-    grob
-  }
+  as.ggplot(grob)
 }
 
 # note: assumes single family as plotting seems broken with multiple families

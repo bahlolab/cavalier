@@ -59,7 +59,7 @@ create_igv_snapshots <- function(variants, bam_files,
     genome_file <- get_igv_genome(ref_genome)
     genome_link <- file.path(genome_dir, basename(genome_file))
     if (!file.exists(genome_link)) {
-      file.symlink(normalizePath(genome_file), genome_dir)
+      file.copy(normalizePath(genome_file), genome_dir, overwrite = TRUE)
     }
     
     # write prefs.properties to set IGV dimensions
@@ -116,7 +116,7 @@ create_igv_snapshots <- function(variants, bam_files,
               str_c('-s \'-screen 0 ', width, 'x', height, 'x8\''),
               igv_cmd,
               '--igvDirectory', user_dir,
-              '-b', batchfile,
+              '-b', batch_file,
               sep = ' ')
       
       # wrap singularity is using
@@ -124,7 +124,7 @@ create_igv_snapshots <- function(variants, bam_files,
         bind_dirs <- 
           c(getwd(),
             igv_snapshot_dir,
-            normalizePath(c(vcf_file, bam)) %>% dirname()) %>% 
+            normalizePath(c(vcf_file, bam_files)) %>% dirname()) %>% 
           normalizePath() %>% 
           unique() %>% 
           remove_child_dirs()
@@ -139,7 +139,6 @@ create_igv_snapshots <- function(variants, bam_files,
       # execute command
       message('executing: ', cmd)
       assert_that(system(cmd) == 0)
-      
     }
     
     # crop images
@@ -152,9 +151,7 @@ create_igv_snapshots <- function(variants, bam_files,
     }
     
     snapshot_tbl %>% 
-      pivot_wider(names_from = sample, values_from = filename) %>% 
-      arrange(id) %>% 
-      select(-id)
+      select(id, sample, filename)
 }
 
 # download IGV genome file
@@ -176,6 +173,26 @@ get_igv_genome <- function(ref_genome) {
   
   assert_that(file.exists(genome_file))
   genome_file
+}
+#' @importFrom png readPNG 
+#' @importFrom grid rasterGrob 
+#' @importFrom cowplot plot_grid 
+arrange_igv_snapshots <- function(sample_pngs,
+                                  label = TRUE,
+                                  max_cols = 5L) {
+  # input df of sample, filename
+  p <-
+    sample_pngs %>% 
+    mutate(plots = map2(sample, filename, function(sm, fn) {
+      g <- rasterGrob(readPNG(fn), interpolate=TRUE, just = 'top')
+      `if`(label,
+           plot_grid(ggdraw() + draw_text(sm), g,
+                     ncol = 1, rel_heights = c(1,9)),
+           g)
+    })) %>% 
+    with(plot_grid(plotlist = plots,
+                   ncol = min(max_cols, length(plots))))
+  return(p)
 }
 
 

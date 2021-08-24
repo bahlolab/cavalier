@@ -17,15 +17,11 @@ create_cavalier_output <- function(candidates,
 
 
 var_info <- function() {
-    c(Gene = 'gene', Consequence = 'consequence', dbSNP = 'db_snp',
-      HGVSg = 'hgvs_genomic', HGVSc = 'hgvs_coding', HGVSp = 'hgvs_protein',
-      Grantham = 'grantham_score', SIFT = 'sift', PolyPhen = 'polyphen',
-      RVIS = 'rvis_percentile')    
+    c(Gene = 'gene', Inheritance = 'inheritance', Consequence = 'consequence',
+      dbSNP = 'db_snp', HGVSg = 'hgvs_genomic', HGVSc = 'hgvs_coding', HGVSp = 'hgvs_protein',
+      Grantham = 'grantham_score', SIFT = 'sift', PolyPhen = 'polyphen', RVIS = 'rvis_percentile',
+      )    
 }
-
-
-
-    
 
 
 #' #' Create cavalier output
