@@ -11,8 +11,8 @@ create_slides <- function(variants,
                           genemap2_file = NULL,
                           layout = layout_single(),
                           title_col = 'title',
-                          slide_template = slide_template(),
-                          var_info = var_info())
+                          slide_template = get_slide_template(),
+                          var_info = get_var_info())
 {
     # check args
     assert_that(
@@ -51,7 +51,9 @@ create_slides <- function(variants,
     if ('igv' %in% layout$element) {
         
         slide_data$igv <-
-            create_igv_snapshots(variants, bam_files) %>% 
+            create_igv_snapshots(variants, bam_files,
+                                 width = 500,
+                                 height = 800) %>% 
             nest(data = -id) %>% 
             mutate(data = map2(id, data, function(id, data) {
                 variants$genotype[id, ] %>% 
@@ -99,18 +101,33 @@ create_slides <- function(variants,
     
     if ('omim' %in% layout$element) {
         
-        slide_data$omim <- 
+        slide_data$omim <-
             variants %>% 
             select(gene) %>%
             mutate(id = slide_data$id) %>% 
             left_join(get_omim_genemap2(genemap2_file) %>% 
                           select(gene = symbol,
-                                 OMIM_Phenotype = phenotype, 
+                                 # mim_number,
+                                 OMIM_Phenotype = phenotype,
                                  OMIM_Inheritance = inheritance),
                       by = 'gene') %>% 
             select(-gene) %>% 
+            # mutate(url = str_c('https://omim.org/entry/', mim_number)) %>% 
             nest(omim = -id) %>% 
-            with(map(omim, flextable_reg))
+            pull(omim)
+            # with(map(omim, function(omim) {
+            #     omim %>% 
+            #         flextable_reg(col_keys = c('OMIM_Phenotype',
+            #                                    'OMIM_Inheritance')) %>% 
+            #         compose(j = 'OMIM_Phenotype',
+            #                 value = as_paragraph(
+            #                     hyperlink_text(x = OMIM_Phenotype, 
+            #                                    url = url,
+            #                                    props = officer::fp_text(
+            #                                        color = 'blue',
+            #                                        underlined = TRUE
+            #                                    ))))
+            # }))
     }
     
     custom <- layout$element[str_starts(layout$element, 'custom_')]
@@ -118,16 +135,17 @@ create_slides <- function(variants,
         
         sel <- setNames(str_remove(custom, '^custom_'), custom)
         custom_data <-
-            select(variants, all_of(sel)) %T>%
-            # check correct data types
-            (function(data) {
-                assert_that(
-                    all(map_lgl(data, is.list)),
-                    all(map_lgl(data, ~ all(map_lgl(., ~ {
-                        is.data.frame(.) || is (., 'gg') | is(., 'flextable')
-                    }))))
-                )
-            })
+            select(variants, all_of(sel))
+        # %T>%
+            # # check correct data types
+            # (function(data) {
+            #     assert_that(
+            #         all(map_lgl(data, is.list)),
+            #         all(map_lgl(data, ~ all(map_lgl(., ~ {
+            #             is.data.frame(.) || is (., 'gg') | is(., 'flextable')
+            #         }))))
+            #     )
+            # })
         slide_data <- bind_cols(slide_data, custom_data)
     }
     
@@ -162,8 +180,8 @@ add_slides <- function(slides, layout, data)
             ph_with(value = title[i],
                     location = ph_location_type(type = "title"))
         
-        layout %>% 
-            filter(slide_num == i) %>% 
+        layout %>%
+            filter(slide_num == i) %>%
             pwalk(function(element, x_left, width, y_top, height, transpose, ...) {
                 
                 value <- data[[element]]
@@ -175,14 +193,16 @@ add_slides <- function(slides, layout, data)
                     value <- flextable_fit(value, width = width, height = height)
                 }
                 # add item to slides
-                slides <-
-                    slides %>% 
-                    ph_with(value = value,
-                            location = ph_location_template(
-                                left = x_left,
-                                top = y_top,
-                                width = width,
-                                height = height))
+                if (!is.null(value)) {
+                    slides <-
+                        slides %>% 
+                        ph_with(value = value,
+                                location = ph_location_template(
+                                    left = x_left,
+                                    top = y_top,
+                                    width = width,
+                                    height = height))
+                }
             })
     })
     
@@ -190,7 +210,7 @@ add_slides <- function(slides, layout, data)
 }
 
 #' @export
-slide_template <- function() {
+get_slide_template <- function() {
     system.file("ppt", "template.pptx", package = "cavalier")
 }
 

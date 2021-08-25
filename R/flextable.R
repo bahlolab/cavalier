@@ -1,6 +1,7 @@
-#' @importFrom flextable flextable delete_part theme_zebra italic bold colformat_char 
-#' @importFrom flextable align autofit fit_to_width add_header_lines
+#' @importFrom flextable flextable delete_part theme_zebra italic bold colformat_char fit_to_width
+#' @importFrom flextable align autofit add_header_lines border_inner fp_border_default
 flextable_reg <- function(table_data,
+                          col_keys = names(table_data),
                           title = NULL,
                           digits = 3) {
   
@@ -8,11 +9,14 @@ flextable_reg <- function(table_data,
     mutate(across(where(is.double), ~ as.character(round(., digits))),
            across(everything(), as.character),
            across(everything(), ~replace_na(., 'NA'))) %>% 
-    flextable() %>% 
+    flextable(col_keys = col_keys) %>% 
     add_header_lines(title) %>% 
     theme_zebra(even_header = 'white', even_body = 'white') %>% 
-    align(i =1, part = 'header', align = 'center')
-  
+    { `if` (!is.null(title),
+            align(., i =1, part = 'header', align = 'center'),
+            .)
+    } %>% 
+    border_inner(border = fp_border_default(color = 'gray60'))
 }
 
 #' @importFrom flextable flextable delete_part theme_zebra italic bold colformat_char align autofit fit_to_width
@@ -35,9 +39,9 @@ flextable_trans <- function(table_data,
 
 #' @importFrom flextable fontsize autofit dim_pretty width height_all fit_to_width
 flextable_fit <- function(ft, width, height,
-                          start_size = 11,
+                          start_size = 12,
                           min_size = 5,
-                          max_size = 16,
+                          max_size = 14,
                           max_row_height = 0.33) {
   # goal is to shrink until both width and height are less than dim_pretty
   curr_size <- start_size

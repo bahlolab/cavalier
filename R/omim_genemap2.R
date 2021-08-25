@@ -55,6 +55,8 @@ get_omim_genemap2 <- function(genemap2_file)
             separate_rows(phenotypes, sep=';\\s+') %>% 
             mutate(phenotype = str_extract(phenotypes, '^.*(?= \\([0-9]\\))') %>% 
                        str_remove_all('[\\[\\]?{}]'),
+                   mim_number = str_extract(phenotype, '(?<=, )\\d+$'),
+                   phenotype = str_remove(phenotype, ', \\d+$'),
                    inheritance = str_extract(phenotypes, '(?<= \\([0-9]\\), ).*$')) %>%
             select(-phenotypes)
         

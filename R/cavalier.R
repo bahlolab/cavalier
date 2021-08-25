@@ -17,7 +17,7 @@ cavalier_cache <- new.env()
 cavalier_opts <- new.env()
 # set default options
 cavalier_opts$cache_dir <- '~/.cavalier'
-cavalier_opts$igv_snapshot_dir <- '.igv_snapshots'
+cavalier_opts$snapshot_dir <- '.igv_snapshots'
 cavalier_opts$ref_genome <- 'hg38'
 cavalier_opts$xvfb_run_cmd <- 'xvfb-run'
 cavalier_opts$igv_cmd <- 'igv.sh'
