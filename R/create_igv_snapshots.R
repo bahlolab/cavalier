@@ -20,7 +20,7 @@ create_igv_snapshots <- function(variants, bam_files,
                                  name_panel_width = 10,
                                  prefs = character()) {
   
-  # TODO - store IGV genome files in cache_dir, pre-download from broad link before running IGV
+  # TODO - check bam files have indexes, as IGV just hangs if they don't
   # check args
   assert_that(
     is.data.frame(variants),

@@ -3,6 +3,7 @@
 #' @importFrom dplyr arrange select mutate
 #' @importFrom tibble rownames_to_column
 #' @importFrom purrr walk map
+#' @export
 create_slides <- function(variants,
                           output = 'cavalier_slides.pptx',
                           bam_files = NULL,
@@ -61,7 +62,7 @@ create_slides <- function(variants,
                                  names_to = 'sample',
                                  values_to = 'gt') %>% 
                     right_join(data, by = 'sample') %>% 
-                    mutate(sample = str_c(sample, '\n', gt))
+                    mutate(sample = str_c(sample, ': ', gt))
             })) %>% 
             with(map(data, arrange_igv_snapshots))
     }
@@ -155,7 +156,16 @@ create_slides <- function(variants,
         pwalk(function(...) {
             # data <<- dots_list(...)
             slides <- add_slides(slides, layout, dots_list(...))
-        }) 
+        })
+    
+    if (nrow(slide_data) == 0) {
+        # add slide stating no results
+        slides <-
+            slides %>% 
+            add_slide(layout = "Title and Content") %>% 
+            ph_with(value = 'No Variants Found',
+                    location = ph_location_type(type = "title"))
+    }
     
     print(slides, target = output)
     
@@ -341,5 +351,15 @@ is_valid_row <- function(x) {
     (is_character(x) & all(is_valid_slide_element(x))) | 
         ( is_number(x) && is_named(x) && all(is_valid_slide_element(names(x))))
 }
+
+#' @export
+get_var_info <- function() {
+    c(Gene = 'gene', Inheritance = 'inheritance', Consequence = 'consequence',
+      dbSNP = 'db_snp', HGVSg = 'hgvs_genomic', HGVSc = 'hgvs_coding', HGVSp = 'hgvs_protein',
+      Grantham = 'grantham_score', SIFT = 'sift', PolyPhen = 'polyphen', RVIS = 'rvis_percentile',
+      gnomAD_AF = 'af_gnomad'
+    )    
+}
+
 
 
