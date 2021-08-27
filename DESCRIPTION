@@ -12,7 +12,6 @@ Imports:
     ggplot2,
     grid,
     gridExtra,
-    org.Hs.eg.db,
     png,
     RColorBrewer,
     vcfR,
@@ -24,7 +23,11 @@ Imports:
     officer,
     flextable,
     kinship2,
-    cowplot
+    cowplot,
+    SeqArray,
+    abind,
+    magrittr,
+    rlang
 License: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
 URL: https://github.com/bahlolab/cavalier
 BugReports: https://github.com/bahlolab/cavalier/issues
