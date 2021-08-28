@@ -161,9 +161,14 @@ get_vcf_sample_AD <- function(gds) {
 get_vcf_sample_GQ <- function(gds, samples) {
   
   GQ <- seqGetData(gds, 'annotation/format/GQ')
-  assert_that(all(GQ$length == 1))
-
-  t(GQ$data) %>% 
+  
+  # depending on SeqArray version, sometimes get a list and sometimes a matrix
+  if (is.list(GQ)) {
+    assert_that(all(GQ$length == 1))
+    GQ <- GQ$data
+  }
+  
+  t(GQ) %>% 
     set_colnames(seqGetData(gds, 'sample.id')) %>% 
     as_tibble()
 }
