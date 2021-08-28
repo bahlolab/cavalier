@@ -15,175 +15,194 @@ create_slides <- function(variants,
                           slide_template = get_slide_template(),
                           var_info = get_var_info())
 {
-    # check args
-    assert_that(
-        is.data.frame(variants),
-        is_null_or_files(bam_files, named = TRUE),
-        is_null_or_file(ped_file),
-        is_null_or_file(vcf_file),
-        is_null_or_file(genemap2_file),
-        is_scalar_character(output),
-        is_scalar_character(slide_template) && file.exists(slide_template),
-        is_character(var_info))
+  # check args
+  assert_that(
+    is.data.frame(variants),
+    is_null_or_files(bam_files, named = TRUE),
+    is_null_or_file(ped_file),
+    is_null_or_file(vcf_file),
+    is_null_or_file(genemap2_file),
+    is_scalar_character(output),
+    is_scalar_character(slide_template) && file.exists(slide_template),
+    is_character(var_info))
+  
+  # check we have required data for plot elements
+  assert_that(
+    ! 'igv' %in% layout$element | !is.null(bam_files),
+    ! 'omim' %in% layout$element | !is.null(genemap2_file),
+    ! 'pedigree' %in% layout$element | !is.null(ped_file))
+  
+  slide_data <- tibble(id = seq_len(nrow(variants)),
+                       title = variants[[title_col]])
+  
+  if ('var_info' %in% layout$element) {
     
-    # check we have required data for plot elements
-    assert_that(
-        ! 'igv' %in% layout$element | !is.null(bam_files),
-        ! 'omim' %in% layout$element | !is.null(genemap2_file),
-        ! 'pedigree' %in% layout$element | !is.null(ped_file))
+    names(var_info) <- 
+      `if`(is.null(names(var_info)),
+           var_info,
+           if_else(names(var_info) == '', 
+                   var_info, names(var_info)))
     
-    slide_data <- tibble(id = seq_len(nrow(variants)),
-                         title = variants[[title_col]])
+    slide_data$var_info <-
+      select(variants, all_of(var_info)) %>% 
+      (function(x) {
+        # add in gnomad link
+        `if`('af_gnomad' %in% var_info,
+             names(var_info)[which(var_info == 'af_gnomad')] %>% 
+               str_c( '_url') %>% 
+               { mutate(x, !!. := gnomad_link(variants)) },
+             x)
+      }) %>% 
+      (function(x) {
+        # add in dbsnp link
+        `if`('db_snp' %in% var_info,
+             names(var_info)[which(var_info == 'db_snp')] %>% 
+               str_c( '_url') %>% 
+               { mutate(x, !!. := dbsnp_link(variants$db_snp)) },
+             x)
+      }) %>% 
+      (function(x) {
+        # add in genecards
+        `if`('gene' %in% var_info,
+             names(var_info)[which(var_info == 'gene')] %>% 
+               str_c( '_url') %>% 
+               { mutate(x, !!. := genecards_link(variants$gene)) },
+             x)
+      }) %>% 
+      (function(x) {
+        # add in genecards
+        `if`('ensembl_gene' %in% var_info,
+             names(var_info)[which(var_info == 'ensembl_gene')] %>% 
+               str_c( '_url') %>% 
+               { mutate(x, !!. := ensembl_gene_link(variants$ensembl_gene)) },
+             x)
+      }) %>% 
+      mutate(id = slide_data$id) %>% 
+      nest(var_info = -id) %>% 
+      with(map(var_info, flex_table, transpose = TRUE))
+  }
+  
+  if ('igv' %in% layout$element) {
     
-    if ('var_info' %in% layout$element) {
-        
-        names(var_info) <- 
-            `if`(is.null(names(var_info)),
-                 var_info,
-                 if_else(names(var_info) == '', var_info, names(var_info)))
-        
-        slide_data$var_info <-
-            select(variants, all_of(var_info)) %>% 
-            mutate(id = slide_data$id) %>% 
-            nest(var_info = -id) %>% 
-            with(map(var_info, flextable_trans))
-    }
+    slide_data$igv <-
+      create_igv_snapshots(variants, bam_files,
+                           width = 500,
+                           height = 700) %>% 
+      nest(data = -id) %>% 
+      mutate(data = map2(id, data, function(id, data) {
+        variants$genotype[id, ] %>% 
+          pivot_longer(everything(),
+                       names_to = 'sample',
+                       values_to = 'gt') %>% 
+          right_join(data, by = 'sample') %>% 
+          mutate(sample = str_c(sample, ': ', gt))
+      })) %>% 
+      with(map(data, arrange_igv_snapshots))
+  }
+  
+  if ('pedigree' %in% layout$element) {
     
-    if ('igv' %in% layout$element) {
-        
-        slide_data$igv <-
-            create_igv_snapshots(variants, bam_files,
-                                 width = 500,
-                                 height = 800) %>% 
-            nest(data = -id) %>% 
-            mutate(data = map2(id, data, function(id, data) {
-                variants$genotype[id, ] %>% 
-                    pivot_longer(everything(),
-                                 names_to = 'sample',
-                                 values_to = 'gt') %>% 
-                    right_join(data, by = 'sample') %>% 
-                    mutate(sample = str_c(sample, ': ', gt))
-            })) %>% 
-            with(map(data, arrange_igv_snapshots))
-    }
+    ped_df <- read_ped(ped_file)
+    slide_data$pedigree <-
+      seq_len(nrow(variants)) %>% 
+      map(function(i) {
+        variants$genotype[i, ] %>% 
+          pivot_longer(everything(),
+                       names_to = 'iid',
+                       values_to = 'gt') %>% 
+          right_join(ped_df, by = 'iid') %>% 
+          mutate(gt = replace_na(gt, 'ND'),
+                 label = str_c(iid, gt, sep = '\n')) %>% 
+          plot_ped()
+      })
+  }
+  
+  if ('gtex' %in% layout$element) {
     
-    if ('pedigree' %in% layout$element) {
-        
-        ped_df <- read_ped(ped_file)
-        slide_data$pedigree <-
-            seq_len(nrow(variants)) %>% 
-            map(function(i) {
-                variants$genotype[i, ] %>% 
-                    pivot_longer(everything(),
-                                 names_to = 'iid',
-                                 values_to = 'gt') %>% 
-                    right_join(ped_df, by = 'iid') %>% 
-                    mutate(gt = replace_na(gt, 'ND'),
-                           label = str_c(iid, gt, sep = '\n')) %>% 
-                    plot_ped()
-            })
-    }
+    slide_data$gtex <-
+      variants %>% 
+      select(ensembl_gene, gene) %>% 
+      pmap(function(ensembl_gene, gene) {
+        if (!is.na(ensembl_gene)) {
+          plot_gtex_expression(gene, ensembl_id = ensembl_gene)
+        } else if(!is.na(gene)) {
+          plot_gtex_expression(gene,)
+        } else {
+          ggdraw()
+        }
+      })
+  }
+  
+  if ('omim' %in% layout$element) {
     
-    if ('gtex' %in% layout$element) {
-        
-        slide_data$gtex <-
-            variants %>% 
-            select(ensembl_gene, gene) %>% 
-            pmap(function(ensembl_gene, gene) {
-                if (!is.na(ensembl_gene)) {
-                    plot_gtex_expression(gene, ensembl_id = ensembl_gene)
-                } else if(!is.na(gene)) {
-                    plot_gtex_expression(gene,)
-                } else {
-                    ggdraw()
-                }
-            })
-    }
+    slide_data$omim <-
+      variants %>% 
+      select(gene) %>%
+      mutate(id = slide_data$id) %>% 
+      left_join(get_omim_genemap2(genemap2_file) %>% 
+                  select(gene = symbol,
+                         mim_number,
+                         OMIM_Phenotype = phenotype,
+                         OMIM_Inheritance = inheritance),
+                by = 'gene') %>% 
+      mutate(OMIM_Phenotype_url = str_c('https://omim.org/entry/', mim_number)) %>% 
+      select(-gene, -mim_number) %>% 
+      nest(omim = -id) %>% 
+      with(map(omim, flex_table))
+  }
+  
+  custom <- layout$element[str_starts(layout$element, 'custom_')]
+  if (length(custom)) {
     
-    if ('omim' %in% layout$element) {
-        
-        slide_data$omim <-
-            variants %>% 
-            select(gene) %>%
-            mutate(id = slide_data$id) %>% 
-            left_join(get_omim_genemap2(genemap2_file) %>% 
-                          select(gene = symbol,
-                                 # mim_number,
-                                 OMIM_Phenotype = phenotype,
-                                 OMIM_Inheritance = inheritance),
-                      by = 'gene') %>% 
-            select(-gene) %>% 
-            # mutate(url = str_c('https://omim.org/entry/', mim_number)) %>% 
-            nest(omim = -id) %>% 
-            pull(omim)
-            # with(map(omim, function(omim) {
-            #     omim %>% 
-            #         flextable_reg(col_keys = c('OMIM_Phenotype',
-            #                                    'OMIM_Inheritance')) %>% 
-            #         compose(j = 'OMIM_Phenotype',
-            #                 value = as_paragraph(
-            #                     hyperlink_text(x = OMIM_Phenotype, 
-            #                                    url = url,
-            #                                    props = officer::fp_text(
-            #                                        color = 'blue',
-            #                                        underlined = TRUE
-            #                                    ))))
-            # }))
-    }
-    
-    custom <- layout$element[str_starts(layout$element, 'custom_')]
-    if (length(custom)) {
-        
-        sel <- setNames(str_remove(custom, '^custom_'), custom)
-        custom_data <-
-            select(variants, all_of(sel))
-        # %T>%
-            # # check correct data types
-            # (function(data) {
-            #     assert_that(
-            #         all(map_lgl(data, is.list)),
-            #         all(map_lgl(data, ~ all(map_lgl(., ~ {
-            #             is.data.frame(.) || is (., 'gg') | is(., 'flextable')
-            #         }))))
-            #     )
-            # })
-        slide_data <- bind_cols(slide_data, custom_data)
-    }
-    
-    slides <- read_pptx(slide_template)
-    
-    slide_data %>% 
-        pwalk(function(...) {
-            # data <<- dots_list(...)
-            slides <- add_slides(slides, layout, dots_list(...))
-        })
-    
-    if (nrow(slide_data) == 0) {
-        # add slide stating no results
-        slides <-
-            slides %>% 
-            add_slide(layout = "Title and Content") %>% 
-            ph_with(value = 'No Variants Found',
-                    location = ph_location_type(type = "title"))
-    }
-    
-    print(slides, target = output)
-    
-    return(invisible(variants))
+    sel <- setNames(str_remove(custom, '^custom_'), custom)
+    custom_data <-
+      select(variants, all_of(sel))
+    # %T>%
+    # # check correct data types
+    # (function(data) {
+    #     assert_that(
+    #         all(map_lgl(data, is.list)),
+    #         all(map_lgl(data, ~ all(map_lgl(., ~ {
+    #             is.data.frame(.) || is (., 'gg') | is(., 'flextable')
+    #         }))))
+    #     )
+    # })
+    slide_data <- bind_cols(slide_data, custom_data)
+  }
+  
+  slides <- read_pptx(slide_template)
+  
+  slide_data %>% 
+    pwalk(function(...) {
+      slides <- add_slides(slides, layout, dots_list(...))
+    })
+  
+  if (nrow(slide_data) == 0) {
+    # add slide stating no results
+    slides <-
+      slides %>% 
+      add_slide(layout = "Title and Content") %>% 
+      ph_with(value = 'No Variants Found',
+              location = ph_location_type(type = "title"))
+  }
+  
+  print(slides, target = output)
+  
+  return(invisible(variants))
 }
 
 # add slides using layout
 add_slides <- function(slides, layout, data)
 {
-    n_slides <- n_distinct(layout$slide_num)
-    
-    title <- 
-        `if`(n_slides  == 1,
-             data$title,
-             str_c(data$title, ' (', seq_len(n_slides), '/', n_slides, ')'))
-    
-    walk(seq_len(n_slides),  function(i) {
-        # add title
+  n_slides <- n_distinct(layout$slide_num)
+  
+  title <- 
+    `if`(n_slides  == 1,
+         data$title,
+         str_c(data$title, ' (', seq_len(n_slides), '/', n_slides, ')'))
+  
+  walk(seq_len(n_slides),  function(i) {
+    # add title
         slides <-
             slides %>% 
             add_slide(layout = "Title and Content") %>% 
@@ -197,10 +216,10 @@ add_slides <- function(slides, layout, data)
                 value <- data[[element]]
                 
                 if (is.data.frame(value)) {
-                    value <- flextable_reg(value)
+                    value <- flex_table(value)
                 }
                 if (is(value, 'flextable')) {
-                    value <- flextable_fit(value, width = width, height = height)
+                    value <- fit_flex_table(value, width = width, height = height)
                 }
                 # add item to slides
                 if (!is.null(value)) {
@@ -354,12 +373,16 @@ is_valid_row <- function(x) {
 
 #' @export
 get_var_info <- function() {
-    c(Gene = 'gene', Inheritance = 'inheritance', Consequence = 'consequence',
-      dbSNP = 'db_snp', HGVSg = 'hgvs_genomic', HGVSc = 'hgvs_coding', HGVSp = 'hgvs_protein',
-      Grantham = 'grantham_score', SIFT = 'sift', PolyPhen = 'polyphen', RVIS = 'rvis_percentile',
-      gnomAD_AF = 'af_gnomad'
+    c(`Gene Symbol` = 'gene',
+      `Ensembl Gene` = 'ensembl_gene',
+      Inheritance = 'inheritance',
+      Consequence = 'consequence',
+      dbSNP = 'db_snp',
+      HGVSg = 'hgvs_genomic', 
+      HGVSc = 'hgvs_coding',
+      HGVSp = 'hgvs_protein',
+      SIFT = 'sift',
+      PolyPhen = 'polyphen',
+      `gnomAD AF` = 'af_gnomad'
     )    
 }
-
-
-
