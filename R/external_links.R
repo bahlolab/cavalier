@@ -11,14 +11,11 @@ gnomad_link <- function(variants,
                    is.character(ref),
                    is.character(alt)))
   
-  if (ref_genome == 'hg38') {
-    pmap_chr(variants, function(chrom, pos, ref, alt, ...) {
-      str_c('https://gnomad.broadinstitute.org/variant/',
-            str_c(str_remove(chrom, 'chr'), pos, ref, alt, sep = '-'),
-            '?dataset=gnomad_',
-            if_else(ref_genome == 'hg38', 'r3', 'r2_1'))
-    })
-  } 
+  with(variants,
+       str_c('https://gnomad.broadinstitute.org/variant/',
+             str_c(str_remove(chrom, 'chr'), pos, ref, alt, sep = '-'),
+             '?dataset=gnomad_',
+             if_else(ref_genome == 'hg38', 'r3', 'r2_1')))
 }
 
 dbsnp_link <- function(rsid) 
