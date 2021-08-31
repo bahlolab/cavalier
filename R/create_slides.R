@@ -187,6 +187,7 @@ create_slides <- function(variants,
   }
   
   print(slides, target = output)
+  re_encode_pptx_hlinks(output)
   
   return(invisible(variants))
 }
@@ -387,3 +388,49 @@ get_var_info <- function() {
       `gnomAD AF` = 'af_gnomad'
     )    
 }
+
+re_encode_pptx_hlinks <- function(target) 
+{
+  hlink_type <- "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink"
+  tmp_dir <- tempfile(pattern = '.', tmpdir = '.')
+  zip::unzip(target, exdir = tmp_dir)
+  
+  changed <- FALSE
+  
+  list.files(file.path(tmp_dir, 'ppt/slides/_rels'),
+             full.names = TRUE) %>% 
+    walk(function(file) {
+      content <- 
+        xml2::read_xml(file) %>% 
+        xml2::as_list()
+      
+      rep_rel <-
+        map(content$Relationships, function(item) {
+          atrib <- attributes(item)
+          if (atrib$Type == hlink_type) {
+            if (str_detect(atrib$Target, '%')) {
+              atrib$Target <- 
+                utils::URLdecode(atrib$Target) %>% 
+                utils::URLencode()
+              changed <<- TRUE
+            }
+          }
+          attributes(item) <- atrib
+          item
+        })
+      
+      attributes(rep_rel) <- attributes(content$Relationships)
+      content$Relationships <- rep_rel
+      
+      if (changed) {
+        xml2::write_xml(xml2::as_xml_document(content), file)
+      }
+    })
+  
+  if (changed) {
+    officer::pack_folder(tmp_dir, target)
+  }
+  
+  invisible(NULL)
+}
+  
