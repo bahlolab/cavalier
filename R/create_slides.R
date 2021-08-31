@@ -219,7 +219,8 @@ add_slides <- function(slides, layout, data)
                     value <- flex_table(value)
                 }
                 if (is(value, 'flextable')) {
-                    value <- fit_flex_table(value, width = width, height = height)
+                    value <- fit_flex_table(value, width = width, height = height,
+                                              expand_rows = element == 'var_info')
                 }
                 # add item to slides
                 if (!is.null(value)) {
