@@ -65,6 +65,10 @@ clear_cache <- function(mem = TRUE, disk = FALSE)
 cache <- function(fun, filename) 
 {
     cache_dir <- get_cavalier_opt('cache_dir')
+    if (!dir.exists(cache_dir)) {
+        dir.create(cache_dir, recursive = TRUE)
+    }
+    
     cache_file <- file.path(cache_dir, filename)
     if (!str_ends(cache_file, '.rds')) {
         cache_file <- str_c(cache_file, '.rds')
