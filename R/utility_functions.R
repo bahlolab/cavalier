@@ -62,6 +62,7 @@ clear_cache <- function(mem = TRUE, disk = FALSE)
 
 # execute a function and save to disk as filename unless filename exists, then load from file
 # useful to cache downloaded files
+#' @importFrom stringr str_ends str_c
 cache <- function(fun, filename) 
 {
     cache_dir <- get_cavalier_opt('cache_dir')
