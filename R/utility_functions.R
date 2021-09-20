@@ -19,6 +19,22 @@ newline_every_n_chars <- function(x, n)
     }
 }
 
+#' @importFrom stringr str_sub
+#' @importFrom purrr pmap_chr
+#' @importFrom digest digest
+digest_df <- function(x, nchar = 12) 
+{
+    x %>% 
+        pmap_chr(function(...) {
+            dots <- dots_list(...)
+            unlist(dots[sort(names(dots))]) %>% 
+                digest::digest() 
+        }) %>% 
+        sort() %>% 
+        digest::digest() %>% 
+        str_sub(1, nchar)
+}
+
 #' @importFrom rlang is_double is_integer
 is_number <- function(x) { (is_double(x) | is_integer(x)) & !any(is.na(x)) }
 
@@ -98,5 +114,21 @@ assert_create_dir <- function(dirname, recursive = TRUE) {
     if (!dir.exists(dirname)) {
         assert_that(dir.create(dirname, recursive = recursive))
     }
+}
+
+pad_df <- function(df, n) {
+    full_join(
+        mutate(df, .id = row_number()),
+        tibble(.id = seq_len(n)),
+        by = '.id') %>% 
+        select(-.id)
+}
+
+#' @importFrom purrr map_df
+#' @importFrom progress progress_bar
+map_df_prog <- function(.x, .f, ...) {
+    pb <- progress_bar$new(total = length(.x))
+    f2 <- function(...) { pb$tick(); .f(...) }
+    map_df(.x, f2, ...)
 }
 

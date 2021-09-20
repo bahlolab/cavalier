@@ -97,7 +97,7 @@ create_slides <- function(variants,
           right_join(data, by = 'sample') %>% 
           mutate(sample = str_c(sample, ': ', gt))
       })) %>% 
-      with(map(data, arrange_igv_snapshots))
+      with(map(data, plot_igv_snapshots, width = 500, height = 700))
   }
   
   if ('pedigree' %in% layout$element) {
@@ -430,6 +430,7 @@ re_encode_pptx_hlinks <- function(target)
   if (changed) {
     officer::pack_folder(tmp_dir, target)
   }
+  unlink(tmp_dir, recursive = TRUE)
   
   invisible(NULL)
 }

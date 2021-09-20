@@ -51,7 +51,7 @@ flex_table <- function(data,
 
 #' @importFrom flextable flextable delete_part theme_zebra italic bold colformat_char 
 #' @importFrom flextable align autofit fit_to_width
-flex_table_trans <- function(data, url_df = NULL)
+flex_table_trans <- function(data, url_df = NULL, ncol = 1L)
 {
   assert_that(is.data.frame(data),
               nrow(data) <= 1,
@@ -71,22 +71,37 @@ flex_table_trans <- function(data, url_df = NULL)
              left_join(x, ., by = 'name'),
            x)
     }) %>% 
-    flextable(col_keys = c('name', 'value')) %>% 
+    (function(x) {
+      split <- parallel::splitIndices(nrow(x), ncol)
+      nr <- max(lengths(split))
+      map2(split, seq_along(split), function(ix, i) {
+        pad_df(x[ix, ], nr) %>% rename_with(~ str_c(.,'.', i)) 
+      }) %>% do.call(bind_cols, .)
+    }) %>% 
+    flextable(col_keys = flatten_chr(
+      map(seq_len(ncol), ~ str_c(c('name', 'value'), '.', .)))) %>% 
     (function(x) {
       `if`(has_url,
-           compose(x, j = 2,
-                   value = as_paragraph(
-                     hyperlink_text(x = value,
-                                    url = url
-                     ))),
+           seq_len(ncol) %>% 
+             reduce(function(ft, i) {
+               url_col <- str_c('url.', i)
+               text_col <- str_c('value.', i)
+               compose(ft, j = text_col,
+                       value = as_paragraph(
+                         hyperlink_text(x = !!sym(text_col),
+                                        url = !!sym(url_col)
+                         )))
+             },
+             .init = x),
            x)
     }) %>% 
     delete_part(part = "header") %>% 
     theme_zebra(even_header = 'white', even_body = 'white') %>% 
-    italic(j = 1) %>% 
-    bold(j = 1) %>% 
-    colformat_char(j = 1, suffix = ':') %>% 
-    align(j = 1, align = 'right', part = 'all')
+    italic(j = (seq_len(ncol) * 2) - 1) %>% 
+    bold(j = (seq_len(ncol) * 2) - 1) %>% 
+    colformat_char(j = (seq_len(ncol) * 2) - 1, suffix = ':') %>% 
+    # align(j = (seq_len(ncol) * 2) - 1, align = 'center', part = 'all')  %>%
+    flextable::vline(j = seq_len(ncol-1) * 2, border = fp_border_default(color = '#CFCFCF'))
 }
 
 #' @importFrom flextable fontsize autofit dim_pretty width height_all fit_to_width
