@@ -133,6 +133,7 @@ get_inheritance_terms <- function()
 {
   
   inheritance_terms <- cavalier_cache$inheritance_terms
+  terms_exclude <- 'HP:0001425'
   
   if (is.null(inheritance_terms)) {
     groups <- inheritance_groups
@@ -165,6 +166,7 @@ get_inheritance_terms <- function()
          bind_rows(x, .)
       ) %>% 
       select(ontologyId, name, group) %>% 
+      # filter(!ontologyId %in% terms_exclude) %>% 
       arrange(ontologyId) %>% 
       mutate(name = str_remove(name, '\\sinheritance$'))
     
@@ -279,3 +281,38 @@ get_hpo_gene_list <- function(hpo_id) {
     select(list_id, list_name, everything())
 }
 
+#' @export
+#' @importFrom dplyr inner_join anti_join
+get_hpo_gene_list2 <- function(hpo_id) {
+  
+  assert_that(is_scalar_character(hpo_id),
+              !is.na(hpo_id),
+              str_detect(hpo_id, 'HP:\\d{7}'))
+  
+  term_name <- 
+    with(get_term_names(),
+         hpo_term_name[match(hpo_id, hpo_term_id)])
+  
+  get_phenotype_to_genes() %>% 
+    filter(hpo_term_id == hpo_id) %>% 
+    select(entrez_gene_id, entrez_gene_symbol, disease_id) %>%
+    (function(gd) {
+      gd %>% 
+        inner_join(get_genes_to_phenotype() %>% 
+                     select(hpo_term_id, entrez_gene_id, disease_id),
+                   by = c("entrez_gene_id", "disease_id")) %>% 
+        inner_join(get_inheritance_terms(), 
+                   by = c(hpo_term_id = 'ontologyId')) %>% 
+        mutate(inheritance = coalesce(group, name)) %>% 
+        group_by(entrez_gene_id, entrez_gene_symbol, disease_id) %>%
+        summarise(inheritance = str_c(inheritance, collapse = ' & '),
+                  .groups = 'drop') %>% 
+        complete(gd)
+    }) %>% 
+    select(gene = entrez_gene_symbol, disease_id, inheritance) %>% 
+    arrange(gene, disease_id) %>% 
+    mutate(., version = digest_df(.)) %>% 
+    mutate(list_id = hpo_id,
+           list_name = term_name) %>% 
+    select(list_id, list_name, everything())
+}
