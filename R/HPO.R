@@ -1,6 +1,4 @@
-hpo_jenkins_url <- 'https://ci.monarchinitiative.org/view/hpo/job/hpo.annotations/lastSuccessfulBuild'
-hpo_jenkins_g2p_url <- 'https://ci.monarchinitiative.org/view/hpo/job/hpo.annotations/lastSuccessfulBuild/artifact/rare-diseases/util/annotation/genes_to_phenotype.txt'
-hpo_jenkins_p2g_url <- 'https://ci.monarchinitiative.org/view/hpo/job/hpo.annotations/lastSuccessfulBuild/artifact/rare-diseases/util/annotation/phenotype_to_genes.txt'
+hpo_jenkins_base_url <- 'https://ci.monarchinitiative.org/view/hpo/job/hpo.annotations/'
 inheritance_term_id <- 'HP:0000005'
 
 ## TODO: move these to options in exported functions(e.g. secure = TRUE), use as httr::with_config
@@ -10,82 +8,82 @@ insecure <- function() httr::set_config(httr::config(ssl_verifypeer = 0L))
 secure <- function() httr::set_config(httr::config(ssl_verifypeer = 1L))
 
 
-get_latest_hpo_build_num <- function()
+latest_hpo_build_num <- function()
 {
-  content(GET(str_c(hpo_jenkins_url, '/buildNumber')))
+  (function() 
+    str_c(hpo_jenkins_base_url, 'lastSuccessfulBuild/buildNumber') %>% 
+     GET() %>% 
+     content()) %>% 
+    cache('latest_hpo_build_num')
 }
 
 # this contains childmost term for a phenotype heirachy
 # use for annotating genes
 get_genes_to_phenotype <- function() 
 {
-  genes_to_phenotype <- cavalier_cache$genes_to_phenotype
+  build_num <- latest_hpo_build_num()
+  url <- str_c(hpo_jenkins_base_url, build_num, '/artifact/rare-diseases/util/annotation/genes_to_phenotype.txt')
+  col_names <- 
+    c('entrez_gene_id', 'entrez_gene_symbol', 'hpo_term_id', 'hpo_term_name', 'frequency_raw', 
+      'frequency_hpo', 'additional_info', 'g_d_source', 'disease_id')
   
-  if (is.null(genes_to_phenotype)) {
-    
-    col_names <- 
-      c('entrez_gene_id', 'entrez_gene_symbol', 'hpo_term_id', 'hpo_term_name', 'frequency_raw', 
-        'frequency_hpo', 'additional_info', 'g_d_source', 'disease_id')
-    
-    build_num <- get_latest_hpo_build_num()
-    
-    genes_to_phenotype <- 
-      (function() read_tsv(hpo_jenkins_g2p_url,
-                           col_names = col_names,
-                           skip = 1,
-                           col_types = cols())) %>% 
-      cache(str_replace(basename(hpo_jenkins_g2p_url),
-                        '\\.txt', str_c('_v', build_num, '.txt')))
-    
-    cavalier_cache$genes_to_phenotype <- genes_to_phenotype
-  }
-  
-  return(genes_to_phenotype)  
+  (function()
+    read_tsv(url,
+             col_names = col_names,
+             skip = 1,
+             col_types = cols())) %>% 
+    cache(str_c('hpo.genes_to_phenotype.v', build_num),
+          disk = TRUE)
 }
 
 # this contains all hpo terms
 # use for creating gene lists from hpo terms
 get_phenotype_to_genes <- function() 
 {
-  phenotype_to_genes <- cavalier_cache$phenotype_to_genes
+  build_num <- latest_hpo_build_num()
+  url <- str_c(hpo_jenkins_base_url, build_num, '/artifact/rare-diseases/util/annotation/phenotype_to_genes.txt')
+  col_names <- 
+    c('hpo_term_id', 'hpo_term_name', 'entrez_gene_id', 'entrez_gene_symbol',
+      'additional_info', 'g_d_source', 'disease_id')
   
-  if (is.null(phenotype_to_genes)) {
-    
-    col_names <- 
-      c('hpo_term_id', 'hpo_term_name', 'entrez_gene_id', 'entrez_gene_symbol',
-        'additional_info', 'g_d_source', 'disease_id')
-    
-    build_num <- get_latest_hpo_build_num()
-    
-    phenotype_to_genes <- 
-      (function() read_tsv(hpo_jenkins_p2g_url,
-                           col_names = col_names,
-                           skip = 1,
-                           col_types = cols())) %>% 
-      cache(str_replace(basename(hpo_jenkins_p2g_url),
-                        '\\.txt', str_c('_v', build_num, '.txt')))
-    
-    cavalier_cache$phenotype_to_genes <- phenotype_to_genes
-  }
-  
-  return(phenotype_to_genes)  
+  (function()
+    read_tsv(url,
+             col_names = col_names,
+             skip = 1,
+             col_types = cols())) %>% 
+    cache(str_c('hpo.phenotype_to_genes.v', build_num),
+          disk = TRUE)
+}
+
+get_omim_gene_map <- function() 
+{
+  (function()
+    get_genes_to_phenotype() %>% 
+     select(entrez_gene_id, entrez_gene_symbol, disease_id, hpo_term_id) %>% 
+     filter(str_starts(disease_id, 'OMIM:')) %>% 
+     left_join(select(get_inheritance_terms(), hpo_term_id) %>% 
+                 mutate(is_inh = TRUE),
+               by = "hpo_term_id") %>% 
+     mutate(is_inh = replace_na(is_inh, FALSE)) %>% 
+     group_by(entrez_gene_id, entrez_gene_symbol, disease_id) %>% 
+     summarise(inheritance = list(hpo_term_id[is_inh]),
+               .groups = 'drop') %>% 
+     mutate(inheritance = simplify_inheritance(inheritance)) %>% 
+     mutate(hgnc_symbol = coalesce(hgnc_entrez2sym(entrez_gene_id),
+                                   hgnc_sym2sym(entrez_gene_symbol),
+                                   entrez_gene_symbol)) %>% 
+     select(symbol = hgnc_symbol, disease_id, inheritance)) %>% 
+    cache('omim_gene_map')
 }
 
 get_term_names <- function() 
 {
-  term_names <- cavalier_cache$term_names
-  
-  if (is.null(term_names)) {
-    
-    term_names <-
-      get_phenotype_to_genes() %>% 
-      select(hpo_term_id, hpo_term_name) %>% 
-      distinct()
-    
-    cavalier_cache$term_names <- term_names
-  }
-  
-  return(term_names)  
+  (function()
+    get_phenotype_to_genes() %>% 
+     select(hpo_term_id, hpo_term_name) %>% 
+     distinct() %>% 
+     arrange(hpo_term_id)) %>% 
+    cache('term_names')
 }
 
 #'@importFrom httr GET accept_json content
@@ -207,60 +205,6 @@ get_hpo_gene <- function(entrez_id)
   map_df(entrez_id, mapper)
 }
 
-inheritance_groups <- c(
-  'Autosomal dominant' = 'HP:0000006',
-  'Autosomal recessive' = 'HP:0000007',
-  'X-linked' = 'HP:0001417',
-  'Y-linked' = 'HP:0001450')
-
-get_inheritance_terms <- function() 
-{
-  
-  inheritance_terms <- cavalier_cache$inheritance_terms
-  terms_exclude <- 'HP:0001425'
-  
-  if (is.null(inheritance_terms)) {
-    groups <- inheritance_groups
-    
-    inheritance_terms <- 
-      get_hpo_term('HP:0000005') %>% 
-      select(children) %>% 
-      unnest(children) %>% 
-      mutate(group = names(groups)[match(ontologyId, groups)]) %>% 
-      (function(x) 
-        filter(x, childrenCount > 0) %>% 
-         select(group, ontologyId) %>%
-         mutate(children = map(ontologyId, get_hpo_term)) %>%
-         select(group, children) %>%
-         unnest(children) %>%
-         select(group, children) %>%
-         unnest(children) %>% 
-         mutate(group = coalesce(names(groups)[match(ontologyId, groups)],
-                                 group)) %>% 
-         (function(y)
-           filter(y, childrenCount > 0) %>%
-            select(group, ontologyId) %>%
-            mutate(children = map(ontologyId, get_hpo_term)) %>%
-            select(group, children) %>%
-            unnest(children) %>%
-            select(group, children) %>%
-            unnest(children) %>% 
-            bind_rows(y, .)
-         ) %>% 
-         bind_rows(x, .)
-      ) %>% 
-      select(ontologyId, name, group) %>% 
-      # filter(!ontologyId %in% terms_exclude) %>% 
-      arrange(ontologyId) %>% 
-      mutate(name = str_remove(name, '\\sinheritance$'))
-    
-    cavalier_cache$inheritance_terms <- inheritance_terms
-  }
-  
-  return(inheritance_terms)
-  
-}
-
 #'@importFrom purrr map_int
 get_term_descendants <- function(term_id) 
 {
@@ -291,6 +235,17 @@ get_term_descendants <- function(term_id)
     recursion()
 }
 
+get_inheritance_terms <- function() 
+{
+  (function()
+    get_term_descendants(inheritance_term_id) %>% 
+     select(hpo_term_id = ontologyId,
+            hpo_term_name = name,
+            parent_term_id = parentId,
+            num_children = childrenCount)) %>% 
+    cache('inheritance_terms')
+}
+
 #'@importFrom urltools url_encode
 #'@export
 get_hpo_disease <- function(disease_id)
@@ -319,13 +274,23 @@ get_hpo_disease <- function(disease_id)
             return(data)
           } 
         }
-        return(tibble(diseaseId = disease_id))
+        return(tibble(diseaseId = disease_id,
+                      diseaseName = NA_character_))
       })
     cavalier_cache$get_hpo_disease_mapper <- mapper
   }
   
   # map_df_prog(disease_id, mapper)
   map_df(disease_id, mapper)
+}
+
+disease_names <- function(disease_id)
+{
+  if (length(disease_id)) {
+    get_hpo_disease(disease_id)$diseaseName
+  } else {
+    character()
+  }
 }
 
 #' @export
@@ -348,17 +313,20 @@ get_hpo_gene_list <- function(hpo_id) {
         inner_join(get_genes_to_phenotype() %>% 
                      select(hpo_term_id, entrez_gene_id, disease_id),
                    by = c("entrez_gene_id", "disease_id")) %>% 
-        inner_join(get_term_descendants(inheritance_term_id) %>% 
-                     select(hpo_term_id = ontologyId),
+        inner_join(select(get_inheritance_terms(), hpo_term_id),
                    by = "hpo_term_id") %>% 
         rename(inheritance = hpo_term_id) %>% 
         chop(inheritance) %>% 
         complete(gd) %>% 
         mutate(inheritance = simplify_inheritance(inheritance))
     }) %>% 
-    select(gene = entrez_gene_symbol, entrez_gene_id, disease_id, inheritance) %>% 
+    mutate(gene = coalesce(hgnc_entrez2sym(entrez_gene_id),
+                           hgnc_sym2sym(entrez_gene_symbol),
+                           entrez_gene_symbol)) %>% 
+    # select(gene, entrez_gene_id, disease_id, inheritance) %>% 
+    select(gene, disease_id,  inheritance) %>%
     arrange(gene, disease_id) %>% 
-    mutate(., version = str_c('build_', get_latest_hpo_build_num())) %>% 
+    mutate(., version = str_c('build ', latest_hpo_build_num())) %>% 
     mutate(list_id = hpo_id,
            list_name = term_name) %>% 
     select(list_id, list_name, everything())

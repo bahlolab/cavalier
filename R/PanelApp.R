@@ -23,7 +23,8 @@ get_panelapp_panel <- function(id, min_confidence = 2L)
               !is.na(id),
               str_detect(id, '^PA[AE]:\\d+'))
   
-  url <- str_c( get_panelapp_url(str_extract(id, '^PA[AE]')), 
+  source <- str_extract(id, '^PA[AE]')
+  url <- str_c(get_panelapp_url(source), 
                 'api/v1/panels/', str_extract(id, '\\d+'), '/')
   
   GET(url, accept_json()) %>%
@@ -44,34 +45,42 @@ get_panelapp_panel <- function(id, min_confidence = 2L)
                         phenotypes = list(unlist(y$phenotypes)),
                         evidence = list(unlist(y$evidence))) %>% 
                  mutate(panel_id = y$panel$id,
-                        panel_name =y$panel$name,
+                        panel_name = y$panel$name,
                         panel_version = y$panel$version)
-             }))) %>% 
-        (function(x) {
-          if (!'panel_id' %in% names(x)) {
-            x$panel_id <- x$id
-          }
-          if (!'panel_name' %in% names(x)) {
-            x$panel_name <- x$names
-          }
-          if (!'panel_version' %in% names(x)) {
-            x$panel_version <- x$version
-          }
-          x
-        })
+             }))) 
     }) %>%
     unnest(gene_data) %>% 
+    (function(x) {
+      if (!'panel_id' %in% names(x)) {
+        x$panel_id <- x$id
+      }
+      if (!'panel_name' %in% names(x)) {
+        x$panel_name <- x$names
+      }
+      if (!'panel_version' %in% names(x)) {
+        x$panel_version <- x$version
+      }
+      x
+    }) %>% 
     filter(entity_type == 'gene',
            confidence_level >= min_confidence) %>% 
-    mutate(status = case_when(confidence_level == 3 ~ 'GREEN',
+    mutate(panel_id = str_c(source, ':', panel_id),
+           gene = coalesce(hgnc_sym2sym(hgnc_symbol),
+                           entity_name),
+           status = case_when(confidence_level == 3 ~ 'GREEN',
                               confidence_level == 2 ~ 'AMBER',
                               confidence_level == 1 ~ 'RED'),
            inheritance = str_extract(mode_of_inheritance, 
                                      '^(BIALLELIC)|(MONOALLELIC)|(BOTH)|(X-LINKED)')) %>% 
+    mutate(inheritance = case_when(
+      inheritance == 'BIALLELIC' ~ 'AR',
+      inheritance == 'MONOALLELIC' ~ 'AD',
+      inheritance == 'BOTH' ~ 'AR/AD',
+      inheritance == 'X-LINKED' ~ 'XL')) %>% 
     select(list_id = panel_id,
            list_name = panel_name,
            version = panel_version,
-           gene = entity_name,
+           gene,
            inheritance,
            status)
 }

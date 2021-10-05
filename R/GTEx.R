@@ -1,33 +1,23 @@
 
+gtex_gene_median_tpm_uri <-
+    "https://storage.googleapis.com/gtex_analysis_v8/rna_seq_data/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz"
+
 #' @importFrom readr read_delim cols
 #' @importFrom dplyr "%>%" mutate rename
 get_gtex_expression <- function()
 {
-    gtex_gene_median_tpm <- cavalier_cache$gtex_gene_median_tpm
-    
-    if (is.null(gtex_gene_median_tpm)) {
-        
-        gtex_gene_median_tpm_uri <- get_cavalier_opt('gtex_gene_median_tpm_uri')
-        cache_dir <- get_cavalier_opt('cache_dir')
-        
-        gtex_gene_median_tpm <- 
-            (function() read_delim(gtex_gene_median_tpm_uri,
-                                   delim = "\t",
-                                   skip = 2,
-                                   col_types = cols())) %>% 
-            cache(basename(gtex_gene_median_tpm_uri)) %>% 
-            rename(ensembl_gene_id = Name,
-                   symbol = Description) %>% 
-            mutate(ensembl_gene_id = str_remove(ensembl_gene_id, '\\.[0-9]+$'),
-                   symbol = {
-                       s1 <- hgnc_ensembl2sym(ensembl_gene_id)
-                       at <- is.na(s1)
-                       replace(s1, at, hgnc_sym2sym(symbol[at], remove_unknown = TRUE))})
-
-        cavalier_cache$gtex_gene_median_tpm <- gtex_gene_median_tpm
-    }
-    
-    return(gtex_gene_median_tpm)
+    (function() 
+        read_delim(gtex_gene_median_tpm_uri,
+                   delim = "\t",
+                   skip = 2,
+                   col_types = cols()) %>% 
+         rename(ensembl_gene_id = Name,
+                symbol = Description) %>% 
+         mutate(ensembl_gene_id = str_remove(ensembl_gene_id, '\\.[0-9]+$'),
+                symbol = coalesce(hgnc_ensembl2sym(ensembl_gene_id),
+                                  hgnc_sym2sym(symbol)))) %>% 
+        cache(str_remove(basename(gtex_gene_median_tpm_uri), '.gz$'),
+              disk = TRUE)
 }
 
 #' @export
@@ -108,6 +98,7 @@ plot_gtex_expression <- function(gene, ensembl_id = NULL)
     return(p)
 }
 
+# Note: WIP
 #' @importFrom cowplot ggdraw draw_text
 #' @importFrom ggplot2 ggplot aes geom_bar scale_fill_manual ggtitle ylab xlab theme_bw theme guides coord_flip
 #' @export

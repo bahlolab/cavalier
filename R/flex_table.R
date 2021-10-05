@@ -100,57 +100,23 @@ flex_table_trans <- function(data, url_df = NULL, ncol = 1L)
     italic(j = (seq_len(ncol) * 2) - 1) %>% 
     bold(j = (seq_len(ncol) * 2) - 1) %>% 
     colformat_char(j = (seq_len(ncol) * 2) - 1, suffix = ':') %>% 
-    # align(j = (seq_len(ncol) * 2) - 1, align = 'center', part = 'all')  %>%
+    align(j = (seq_len(ncol) * 2) - 1, align = 'right', part = 'all')  %>%
     flextable::vline(j = seq_len(ncol-1) * 2, border = fp_border_default(color = '#CFCFCF'))
 }
 
-#' @importFrom flextable fontsize autofit dim_pretty width height_all fit_to_width
-fit_flex_table <- function(ft, width, height,
-                           start_size = 12,
-                           min_size = 5,
-                           max_size = 14,
-                           max_row_height = 0.33) {
-  # goal is to shrink until both width and height are less than dim_pretty
-  curr_size <- start_size
-  ft <- 
-    fontsize(ft, size = curr_size, part = 'all') %>% 
-    autofit()    
-  dims <- dim_pretty(ft) %>% map(sum)
-  # too small 
-  while (curr_size < max_size & dims$heights < height & dims$widths < width) {
-    curr_size <- curr_size + 1L
-    ft <- 
-      fontsize(ft, size = curr_size, part = 'all') %>%
-      autofit()
-    dims <- dim_pretty(ft) %>% map(sum)
-  }
-  # too big 
-  while (curr_size > min_size & (dims$heights > height | dims$widths > width)) {
-    curr_size <- curr_size - 1L
-    ft <- 
-      fontsize(ft, size = curr_size, part = 'all') %>% 
-      autofit()
-    dims <- dim_pretty(ft) %>% map(sum)
-  }
-  dims <- dim_pretty(ft)
-  dims$widths <- (dims$widths / sum(dims$widths)) * width
-  height <- {height / length(dims$heights) } %>% min( max_row_height)
-  ft %>%
-    width(seq_along(dims$widths), dims$widths) %>% 
-    height_all(height)
-}
 
+#' @importFrom flextable fontsize autofit dim_pretty width height_all fit_to_width
 fit_flex_table <- function(ft, height, width,
-                             font_size = 12L,
-                             min_font_size = 6L,
-                             add_h = 0,
-                             add_w = -0.1,
-                             max_lines = 10L,
-                             expand_cols = TRUE,
-                             expand_rows = FALSE)
+                           font_size = 12L,
+                           min_font_size = 8L,
+                           add_h = -0.05,
+                           add_w = -0.1,
+                           max_lines = 10L,
+                           expand_cols = TRUE,
+                           expand_rows = FALSE)
 {
   while (font_size >= min_font_size) {
-
+    
     ft <- fontsize(ft, size = font_size, part = 'all') 
     cell_dim <- 
       cell_dims_wrapped(ft, max_lines = max_lines) %>% 
@@ -232,7 +198,7 @@ fit_flex_table <- function(ft, height, width,
           dims_f
         ))
     }
-  
+    
     # try all combinations of cells with multiple dims
     dimopts <-
       cell_dim %>% 
@@ -334,7 +300,7 @@ cell_dims_wrapped <- function(ft,
       bind_rows() %>% 
       pivot_longer(-row_id,
                    names_to = c('.value', 'col_id'),
-                   names_pattern = '(.+)\\.(.+)') %>% 
+                   names_pattern = '([^.]+)\\.(.+)') %>% 
       group_by(row_id, col_id) %>% 
       summarise(across(everything(), sum),
                 .groups = 'drop')

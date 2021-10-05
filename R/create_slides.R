@@ -24,6 +24,7 @@ create_slides <- function(variants,
     is_null_or_file(genemap2_file),
     is_scalar_character(output),
     is_scalar_character(slide_template) && file.exists(slide_template),
+    is_scalar_character(title_col),
     is_character(var_info))
   
   # check we have required data for plot elements
@@ -136,18 +137,15 @@ create_slides <- function(variants,
   if ('omim' %in% layout$element) {
     
     slide_data$omim <-
-      variants %>% 
+      variants %>%
       select(gene) %>%
-      mutate(id = slide_data$id) %>% 
-      left_join(get_omim_genemap2(genemap2_file) %>% 
-                  select(gene = symbol,
-                         mim_number,
-                         OMIM_Phenotype = phenotype,
-                         OMIM_Inheritance = inheritance),
-                by = 'gene') %>% 
-      mutate(OMIM_Phenotype_url = str_c('https://omim.org/entry/', mim_number)) %>% 
-      select(-gene, -mim_number) %>% 
-      nest(omim = -id) %>% 
+      mutate(id = slide_data$id) %>%
+      left_join(get_omim_gene_map(), by = c(gene = 'symbol')) %>% 
+      mutate(disease_name = disease_names(disease_id)) %>% 
+      mutate(disease_name_url = str_c('https://omim.org/entry/', str_extract(disease_id, '\\d+$')),
+             disease_id_url = disease_name_url) %>% 
+      select(id, disease_id, disease_name, inheritance, disease_id_url, disease_name_url) %>% 
+      nest(omim = -id) %>%
       with(map(omim, flex_table))
   }
   
@@ -174,6 +172,7 @@ create_slides <- function(variants,
   
   slide_data %>% 
     pwalk(function(...) {
+      # data <<- dots_list(...)
       slides <- add_slides(slides, layout, dots_list(...))
     })
   
@@ -204,69 +203,68 @@ add_slides <- function(slides, layout, data)
   
   walk(seq_len(n_slides),  function(i) {
     # add title
-        slides <-
-            slides %>% 
-            add_slide(layout = "Title and Content") %>% 
-            ph_with(value = title[i],
-                    location = ph_location_type(type = "title"))
-        
-        layout %>%
-            filter(slide_num == i) %>%
-            pwalk(function(element, x_left, width, y_top, height, transpose, ...) {
-                
-                value <- data[[element]]
-                
-                if (is.data.frame(value)) {
-                    value <- flex_table(value)
-                }
-                if (is(value, 'flextable')) {
-                    value <- fit_flex_table(value, width = width, height = height,
-                                              expand_rows = element == 'var_info')
-                }
-                # add item to slides
-                if (!is.null(value)) {
-                    slides <-
-                        slides %>% 
-                        ph_with(value = value,
-                                location = ph_location_template(
-                                    left = x_left,
-                                    top = y_top,
-                                    width = width,
-                                    height = height))
-                }
-            })
-    })
+    slides <-
+      slides %>% 
+      add_slide(layout = "Title and Content") %>% 
+      ph_with(value = title[i],
+              location = ph_location_type(type = "title"))
     
-    return(slides)
+    layout %>%
+      filter(slide_num == i) %>%
+      pwalk(function(element, x_left, width, y_top, height, transpose, ...) {
+        value <- data[[element]]
+        
+        if (is.data.frame(value)) {
+          value <- flex_table(value)
+        }
+        if (is(value, 'flextable')) {
+          value <- fit_flex_table(value, width = width, height = height,
+                                  expand_rows = element == 'var_info')
+        }
+        # add item to slides
+        if (!is.null(value)) {
+          slides <-
+            slides %>% 
+            ph_with(value = value,
+                    location = ph_location_template(
+                      left = x_left,
+                      top = y_top,
+                      width = width,
+                      height = height))
+        }
+      })
+  })
+  
+  return(slides)
 }
 
 #' @export
 get_slide_template <- function() {
-    system.file("ppt", "template.pptx", package = "cavalier")
+  system.file("ppt", "template.pptx", package = "cavalier")
 }
 
 #' @export
 layout_single <- function(...)
 {
-    slide_layout(
-        c('var_info', 'igv', 'gtex'),
-        c('omim'),
-        heights = c(2,1),
-        ...)
+  slide_layout(
+    c('var_info', 'igv', 'gtex'),
+    c('omim'),
+    heights = c(2,1),
+    ...)
 }
 
 #' @export
 layout_multiple <- function(pedigree = FALSE,
                             ...) 
 {
-    bind_rows(
-        slide_layout(c('var_info', `if`(pedigree, 'pedigree', NULL), 'gtex'),
-                     c('omim'),
-                     heights = c(2,1),
-                     ...),
-        slide_layout(c('igv'),
-                     slide_num = 2L,
-                     ...))
+  bind_rows(
+    slide_layout(c('var_info', `if`(pedigree, 'pedigree', NULL), 'gtex'),
+                 c('omim'),
+                 heights = c(2,1),
+                 ...),
+    slide_layout(c('igv'),
+                 slide_num = 2L,
+                 ...))
 }
 
 #' @importFrom rlang dots_list is_scalar_double
@@ -282,111 +280,111 @@ slide_layout <- function(...,
                          slide_num = 1L,
                          transpose = 'var_info')
 {
-    rows <- dots_list(...)
-    
-    assert_that(
-        is_scalar_double(title_height), title_height >= 0, title_height < 1,
-        is_scalar_double(slide_height),
-        is_scalar_double(slide_width),
-        is_scalar_double(pad), pad >= 0, pad < 1,
-        length(rows) > 0,
-        all(map_lgl(rows, is_valid_row)),
-        is.null(heights) | (is_number(heights) & length(heights) == length(rows)))
-    
-
-    # get coordinates for each element
-    layout_df <-
-        map_df(rows, function(row) {
-        `if`(is_named(row), 
-             tibble(element = names(row),
-                    width = row / sum(row)),
-             tibble(element = row,
-                    width = rep(1/length(row), length(row)))) %>% 
-            pad_x(pad = pad * slide_width, 
-                  slide_width = slide_width) %>% 
-            nest(data = everything())
-        }) %>% 
-        mutate(height = `if`(is.null(heights),
-                             rep(1/length(rows), length(rows)),
-                             heights / sum(heights))) %>% 
-        pad_y(pad = pad * slide_width, 
-              title_height = title_height * slide_height,
-              slide_height = slide_height) %>% 
-        unnest(data) %>% 
-        mutate(transpose = element %in% transpose,
-               slide_num = slide_num)
-    
-    return(layout_df)
+  rows <- dots_list(...)
+  
+  assert_that(
+    is_scalar_double(title_height), title_height >= 0, title_height < 1,
+    is_scalar_double(slide_height),
+    is_scalar_double(slide_width),
+    is_scalar_double(pad), pad >= 0, pad < 1,
+    length(rows) > 0,
+    all(map_lgl(rows, is_valid_row)),
+    is.null(heights) | (is_number(heights) & length(heights) == length(rows)))
+  
+  
+  # get coordinates for each element
+  layout_df <-
+    map_df(rows, function(row) {
+      `if`(is_named(row), 
+           tibble(element = names(row),
+                  width = row / sum(row)),
+           tibble(element = row,
+                  width = rep(1/length(row), length(row)))) %>% 
+        pad_x(pad = pad * slide_width, 
+              slide_width = slide_width) %>% 
+        nest(data = everything())
+    }) %>% 
+    mutate(height = `if`(is.null(heights),
+                         rep(1/length(rows), length(rows)),
+                         heights / sum(heights))) %>% 
+    pad_y(pad = pad * slide_width, 
+          title_height = title_height * slide_height,
+          slide_height = slide_height) %>% 
+    unnest(data) %>% 
+    mutate(transpose = element %in% transpose,
+           slide_num = slide_num)
+  
+  return(layout_df)
 }
 
 pad_x <- function(col_df, pad, slide_width) {
-    mutate(col_df, 
-           abs = FALSE,
-           row_num = row_number() * 2L) %>% 
-        bind_rows(tibble(element = 'pad',
-                         width = pad,
-                         abs = TRUE,
-                         row_num = seq.int(1, nrow(col_df) * 2 +1, by = 2))) %>% 
-        arrange(row_num) %>% 
-        mutate(width = if_else(abs, width, width * (slide_width - sum(width[abs]))),
-               x_right = cumsum(width),
-               x_left = x_right - width,
-               x_cen = (x_right + x_left) / 2) %>% 
-        select(element, width, x_left, x_cen, x_right) %>% 
-        filter(element != 'pad')
+  mutate(col_df, 
+         abs = FALSE,
+         row_num = row_number() * 2L) %>% 
+    bind_rows(tibble(element = 'pad',
+                     width = pad,
+                     abs = TRUE,
+                     row_num = seq.int(1, nrow(col_df) * 2 +1, by = 2))) %>% 
+    arrange(row_num) %>% 
+    mutate(width = if_else(abs, width, width * (slide_width - sum(width[abs]))),
+           x_right = cumsum(width),
+           x_left = x_right - width,
+           x_cen = (x_right + x_left) / 2) %>% 
+    select(element, width, x_left, x_cen, x_right) %>% 
+    filter(element != 'pad')
 }
 
 pad_y <- function(row_df, pad, title_height, slide_height) {
-    mutate(row_df, 
-           abs = FALSE,
-           row_num = row_number() * 2L) %>% 
-        bind_rows(tibble(data = list(NULL),
-                         height = pad,
-                         abs = TRUE,
-                         row_num = seq.int(1, nrow(row_df) * 2 +1, by = 2))) %>% 
-        add_row(row_num = 0L,
-                data = NULL, 
-                abs = TRUE,
-                height = title_height) %>% 
-        arrange(row_num) %>% 
-        mutate(height = if_else(abs, height, height * (slide_height - sum(height[abs]))),
-               y_bot = cumsum(height),
-               y_top = y_bot - height,
-               y_cen = (y_bot + y_top) / 2) %>%
-        select(data, height, y_bot, y_cen, y_top) %>%
-        filter(map_lgl(data, ~ ! is.null(.)))
+  mutate(row_df, 
+         abs = FALSE,
+         row_num = row_number() * 2L) %>% 
+    bind_rows(tibble(data = list(NULL),
+                     height = pad,
+                     abs = TRUE,
+                     row_num = seq.int(1, nrow(row_df) * 2 +1, by = 2))) %>% 
+    add_row(row_num = 0L,
+            data = NULL, 
+            abs = TRUE,
+            height = title_height) %>% 
+    arrange(row_num) %>% 
+    mutate(height = if_else(abs, height, height * (slide_height - sum(height[abs]))),
+           y_bot = cumsum(height),
+           y_top = y_bot - height,
+           y_cen = (y_bot + y_top) / 2) %>%
+    select(data, height, y_bot, y_cen, y_top) %>%
+    filter(map_lgl(data, ~ ! is.null(.)))
 }
 
 
 
 slide_elements <- function() {
-    c('igv', 'var_info', 'gtex', 'omim', 'pedigree') 
+  c('igv', 'var_info', 'gtex', 'omim', 'pedigree') 
 }
 
 is_valid_slide_element <- function(x) {
-    x %in% slide_elements() | str_starts(x, 'custom_')
+  x %in% slide_elements() | str_starts(x, 'custom_')
 }
 
 #' @importFrom rlang is_character is_double is_integer is_named
 is_valid_row <- function(x) {
-    (is_character(x) & all(is_valid_slide_element(x))) | 
-        ( is_number(x) && is_named(x) && all(is_valid_slide_element(names(x))))
+  (is_character(x) & all(is_valid_slide_element(x))) | 
+    ( is_number(x) && is_named(x) && all(is_valid_slide_element(names(x))))
 }
 
 #' @export
 get_var_info <- function() {
-    c(`Gene Symbol` = 'gene',
-      `Ensembl Gene` = 'ensembl_gene',
-      Inheritance = 'inheritance',
-      Consequence = 'consequence',
-      dbSNP = 'db_snp',
-      HGVSg = 'hgvs_genomic', 
-      HGVSc = 'hgvs_coding',
-      HGVSp = 'hgvs_protein',
-      SIFT = 'sift',
-      PolyPhen = 'polyphen',
-      `gnomAD AF` = 'af_gnomad'
-    )    
+  c(`Gene Symbol` = 'gene',
+    `Ensembl Gene` = 'ensembl_gene',
+    Inheritance = 'inheritance',
+    Consequence = 'consequence',
+    dbSNP = 'db_snp',
+    HGVSg = 'hgvs_genomic', 
+    HGVSc = 'hgvs_coding',
+    HGVSp = 'hgvs_protein',
+    SIFT = 'sift',
+    PolyPhen = 'polyphen',
+    `gnomAD AF` = 'af_gnomad'
+  )    
 }
 
 re_encode_pptx_hlinks <- function(target) 
@@ -434,4 +432,4 @@ re_encode_pptx_hlinks <- function(target)
   
   invisible(NULL)
 }
-  
+

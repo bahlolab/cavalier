@@ -61,47 +61,6 @@ remove_child_dirs <- function(dirs) {
         { dirs[-.] }
 }
 
-#' @importFrom purrr walk map
-#' @export
-clear_cache <- function(mem = TRUE, disk = FALSE)
-{
-    if (disk) {
-        cache_dir <- get_cavalier_opt('cache_dir')
-        if (dir.exists(cache_dir)) {
-            file.remove(list.files(cache_dir, full.names = TRUE))
-        }
-    }
-    if (mem) {
-        rm(list = ls(envir = cavalier_cache), envir = cavalier_cache)
-    }
-}
-
-# execute a function and save to disk as filename unless filename exists, then load from file
-# useful to cache downloaded files
-#' @importFrom stringr str_ends str_c
-cache <- function(fun, filename) 
-{
-    cache_dir <- get_cavalier_opt('cache_dir')
-    if (!dir.exists(cache_dir)) {
-        dir.create(cache_dir, recursive = TRUE)
-    }
-    
-    cache_file <- file.path(cache_dir, filename)
-    if (!str_ends(cache_file, '.rds')) {
-        cache_file <- str_c(cache_file, '.rds')
-    }
-    
-    if (file.exists(cache_file)) {
-        readRDS(cache_file)
-    } else {
-        res <- fun()
-        tmp_fn <- tempfile(pattern = basename(cache_file) %>% str_c('.'),
-                           tmpdir = cache_dir)
-        saveRDS(res, tmp_fn)
-        file.rename(tmp_fn, cache_file)
-        res
-    }
-}
 # predicates for checking arguments
 
 is_null_or_file <- function(x) { is.null(x) | (is_scalar_character(x) && file.exists(x)) }

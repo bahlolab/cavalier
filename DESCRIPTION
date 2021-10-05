@@ -31,7 +31,9 @@ Imports:
     ggplotify,
     xml2,
     ggimg,
-    progress
+    progress,
+    XML,
+    lubridate
 License: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
 URL: https://github.com/bahlolab/cavalier
 BugReports: https://github.com/bahlolab/cavalier/issues
