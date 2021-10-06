@@ -262,7 +262,7 @@ crop_pad_png <- function(input_png,
     if (!is.null(crop_height) && pad && dim(png)[1] < crop_height) {
      png <- 
        abind(png,
-             array(0, dim = c(crop_height - dim(png)[1], dim(png)[2], 4)),
+             array(1, dim = c(crop_height - dim(png)[1], dim(png)[2], dim(png)[3])),
              along = 1)
     }
     writePNG(png, target = output)

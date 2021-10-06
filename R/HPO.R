@@ -295,7 +295,7 @@ disease_names <- function(disease_id)
 
 #' @export
 #' @importFrom dplyr inner_join anti_join add_row
-get_hpo_gene_list <- function(hpo_id) {
+get_hpo_gene_list <- function(hpo_id, prefer_omim = TRUE) {
   
   assert_that(is_scalar_character(hpo_id),
               !is.na(hpo_id),
@@ -308,6 +308,9 @@ get_hpo_gene_list <- function(hpo_id) {
   get_phenotype_to_genes() %>% 
     filter(hpo_term_id == hpo_id) %>% 
     select(entrez_gene_id, entrez_gene_symbol, disease_id) %>%
+    group_by(entrez_gene_id) %>% 
+    filter(!prefer_omim | str_starts(disease_id, 'OMIM') | !any(str_starts(disease_id, 'OMIM'))) %>% 
+    ungroup() %>% 
     (function(gd) {
       gd %>% 
         inner_join(get_genes_to_phenotype() %>% 
@@ -323,7 +326,6 @@ get_hpo_gene_list <- function(hpo_id) {
     mutate(gene = coalesce(hgnc_entrez2sym(entrez_gene_id),
                            hgnc_sym2sym(entrez_gene_symbol),
                            entrez_gene_symbol)) %>% 
-    # select(gene, entrez_gene_id, disease_id, inheritance) %>% 
     select(gene, disease_id,  inheritance) %>%
     arrange(gene, disease_id) %>% 
     mutate(., version = str_c('build ', latest_hpo_build_num())) %>% 
