@@ -19,6 +19,22 @@ newline_every_n_chars <- function(x, n)
     }
 }
 
+#' @importFrom stringr str_sub
+#' @importFrom purrr pmap_chr
+#' @importFrom digest digest
+digest_df <- function(x, nchar = 12) 
+{
+    x %>% 
+        pmap_chr(function(...) {
+            dots <- dots_list(...)
+            unlist(dots[sort(names(dots))]) %>% 
+                digest::digest() 
+        }) %>% 
+        sort() %>% 
+        digest::digest() %>% 
+        str_sub(1, nchar)
+}
+
 #' @importFrom rlang is_double is_integer
 is_number <- function(x) { (is_double(x) | is_integer(x)) & !any(is.na(x)) }
 
@@ -45,46 +61,6 @@ remove_child_dirs <- function(dirs) {
         { dirs[-.] }
 }
 
-#' @importFrom purrr walk map
-#' @export
-clear_cache <- function(mem = TRUE, disk = FALSE)
-{
-    if (disk) {
-        cache_dir <- get_cavalier_opt('cache_dir')
-        if (dir.exists(cache_dir)) {
-            file.remove(list.files(cache_dir, full.names = TRUE))
-        }
-    }
-    if (mem) {
-        rm(list = ls(envir = cavalier_cache), envir = cavalier_cache)
-    }
-}
-
-# execute a function and save to disk as filename unless filename exists, then load from file
-# useful to cache downloaded files
-cache <- function(fun, filename) 
-{
-    cache_dir <- get_cavalier_opt('cache_dir')
-    if (!dir.exists(cache_dir)) {
-        dir.create(cache_dir, recursive = TRUE)
-    }
-    
-    cache_file <- file.path(cache_dir, filename)
-    if (!str_ends(cache_file, '.rds')) {
-        cache_file <- str_c(cache_file, '.rds')
-    }
-    
-    if (file.exists(cache_file)) {
-        readRDS(cache_file)
-    } else {
-        res <- fun()
-        tmp_fn <- tempfile(pattern = basename(cache_file) %>% str_c('.'),
-                           tmpdir = cache_dir)
-        saveRDS(res, tmp_fn)
-        file.rename(tmp_fn, cache_file)
-        res
-    }
-}
 # predicates for checking arguments
 
 is_null_or_file <- function(x) { is.null(x) | (is_scalar_character(x) && file.exists(x)) }
@@ -97,5 +73,21 @@ assert_create_dir <- function(dirname, recursive = TRUE) {
     if (!dir.exists(dirname)) {
         assert_that(dir.create(dirname, recursive = recursive))
     }
+}
+
+pad_df <- function(df, n) {
+    full_join(
+        mutate(df, .id = row_number()),
+        tibble(.id = seq_len(n)),
+        by = '.id') %>% 
+        select(-.id)
+}
+
+#' @importFrom purrr map_df
+#' @importFrom progress progress_bar
+map_df_prog <- function(.x, .f, ...) {
+    pb <- progress_bar$new(total = length(.x))
+    f2 <- function(...) { pb$tick(); .f(...) }
+    map_df(.x, f2, ...)
 }
 

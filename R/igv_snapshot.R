@@ -13,10 +13,11 @@ create_igv_snapshots <- function(variants, bam_files,
                                  vcf_file = NULL,
                                  overwrite = TRUE,
                                  slop = 20,
-                                 width = 720,
-                                 height = 620,
+                                 width = 500,
+                                 height = 700,
                                  crop_left = 19,
                                  crop_right = 17,
+                                 crop_top = 30,
                                  name_panel_width = 10,
                                  prefs = character()) {
   
@@ -32,6 +33,7 @@ create_igv_snapshots <- function(variants, bam_files,
     is_scalar_integerish(height),
     is_scalar_integerish(crop_left),
     is_scalar_integerish(crop_right),
+    is_scalar_integerish(crop_top),
     is_scalar_integerish(name_panel_width),
     is_character(prefs))
   
@@ -78,7 +80,7 @@ create_igv_snapshots <- function(variants, bam_files,
   if (nrow(to_snap)) {
     
     # create dummy HOME directory to ensure idempotence
-    home_dir <- tempfile(tmpdir = snapshot_dir, pattern = 'home_')
+    home_dir <- tempfile(tmpdir = snapshot_dir, pattern = 'igv_home_')
     # igv checks for genomes and settings in ~/igv on startup
     igv_dir <- file.path(home_dir, 'igv')
     genome_dir <- file.path(igv_dir, 'genomes')
@@ -91,8 +93,9 @@ create_igv_snapshots <- function(variants, bam_files,
       file.copy(normalizePath(genome_file), genome_dir, overwrite = TRUE)
     }
     
-    # width before cropping
+    # width and height before cropping
     tot_width <- width + crop_left + crop_right
+    tot_height <- height + crop_top
     
     # write prefs.properties to set IGV dimensions and other defaults
     c(str_c('NAME_PANEL_WIDTH=', name_panel_width),
@@ -171,11 +174,13 @@ create_igv_snapshots <- function(variants, bam_files,
   }
   
   # crop images and output
-  snapshot_tbl %>% 
+  sample_snaps <-
+    snapshot_tbl %>% 
     mutate(cropped = str_replace(filename, '.png', '.cropped.png')) %T>%
     with(crop_pad_png(filename, cropped,
                       crop_left = crop_left,
                       crop_right = crop_right,
+                      crop_top = 60,
                       crop_height = height)) %>% 
     select(id, sample, filename = cropped)
 }
@@ -201,28 +206,27 @@ get_igv_genome <- function(ref_genome) {
   genome_file
 }
 
-#' @importFrom png readPNG 
-#' @importFrom grid rasterGrob 
-#' @importFrom cowplot plot_grid 
-arrange_igv_snapshots <- function(sample_pngs,
-                                  label = TRUE,
-                                  max_cols = 5L) {
+#' @importFrom ggplot2 ggplot theme_void coord_fixed aes scale_x_continuous scale_y_continuous
+#' @importFrom ggimg geom_rect_img
+plot_igv_snapshots <- function(sample_snaps,
+                               max_cols = 5L,
+                               width = 500,
+                               height = 700,
+                               base_size = 14,
+                               strip.position = 'top') {
   # input df of sample, filename
   p <-
-    sample_pngs %>% 
-    mutate(plots = map2(sample, filename, function(sm, fn) {
-      g <- rasterGrob(readPNG(fn), interpolate=TRUE)
-      `if`(label,
-           plot_grid(ggdraw() + draw_text(sm), g,
-                     ncol = 1, rel_heights = c(1,9)),
-           g)
-    })) %>% 
-    with(plot_grid(plotlist = plots,
-                   ncol = min(max_cols, length(plots))))
-  # might have to pad pngs with whitepace
+    sample_snaps %>% 
+    ggplot() + 
+    geom_rect_img(aes(xmin = 0, xmax = width, ymin = 0, ymax = height, img = filename)) +
+    facet_wrap(~sample, strip.position = strip.position,
+               ncol = min(nrow(sample_snaps), max_cols)) + 
+    theme_void(base_size = base_size) + 
+    coord_fixed() +
+    scale_x_continuous(limits = c(0,width), expand = c(0.01, 0.01)) +
+    scale_y_continuous(limits = c(0,height), expand = c(0.01, 0.01)) 
   return(p)
 }
-
 
 
 #' @importFrom png readPNG writePNG
@@ -232,6 +236,7 @@ crop_pad_png <- function(input_png,
                          output_png,
                          crop_left = 0, 
                          crop_right = 0,
+                         crop_top = 0,
                          crop_height = NULL,
                          pad = TRUE) {
   assert_that(
@@ -241,12 +246,14 @@ crop_pad_png <- function(input_png,
     length(input_png) == length(output_png),
     is_scalar_integerish(crop_left),
     is_scalar_integerish(crop_right),
+    is_scalar_integerish(crop_top),
     is.null(crop_height) | is_scalar_integerish(crop_right))
   
   walk2(input_png, output_png, function(input, output) {
     png <- readPNG(input)
-    # crop left and right sides
-    png <- png[, seq.int(crop_left+1, dim(png)[2] - crop_right),]
+    # crop left, right and top
+    png <- png[seq.int(crop_top +1, dim(png)[1]),
+               seq.int(crop_left+1, dim(png)[2] - crop_right),]
     # crop bottom if too tall
     if (!is.null(crop_height) && dim(png)[1] > crop_height) {
       png <- png[1:crop_height, ,]
@@ -255,7 +262,7 @@ crop_pad_png <- function(input_png,
     if (!is.null(crop_height) && pad && dim(png)[1] < crop_height) {
      png <- 
        abind(png,
-             array(0, dim = c(crop_height - dim(png)[1], dim(png)[2], 4)),
+             array(1, dim = c(crop_height - dim(png)[1], dim(png)[2], dim(png)[3])),
              along = 1)
     }
     writePNG(png, target = output)
