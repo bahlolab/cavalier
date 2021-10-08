@@ -34,7 +34,7 @@ get_hgnc_complete <- function()
 
 #' @importFrom tidyr replace_na separate_rows
 #' @importFrom stringr str_c
-#' @importFrom dplyr "%>%" mutate rename select if_else add_count filter case_when
+#' @importFrom dplyr arrange_all "%>%" mutate rename select if_else add_count filter case_when
 get_hgnc_alias <- function() 
 {
     (function()

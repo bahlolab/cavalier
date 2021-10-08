@@ -3,7 +3,7 @@
 #' @importFrom rlang is_scalar_character is_scalar_double is_scalar_integerish
 #' @importFrom purrr reduce map_chr
 #' @importFrom magrittr and not
-#' @importFrom dplyr select mutate filter summarise_all across all_of
+#' @importFrom dplyr select mutate filter summarise_all across all_of summarise first
 #' @importFrom tidyr pivot_longer complete chop unchop
 #' @importFrom stringr str_c
 #' @export

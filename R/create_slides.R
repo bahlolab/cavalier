@@ -28,7 +28,6 @@ create_slides <- function(variants,
   # check we have required data for plot elements
   assert_that(
     ! 'igv' %in% layout$element | !is.null(bam_files),
-    ! 'omim' %in% layout$element | !is.null(genemap2_file),
     ! 'pedigree' %in% layout$element | !is.null(ped_file))
   
   slide_data <- tibble(id = seq_len(nrow(variants)),

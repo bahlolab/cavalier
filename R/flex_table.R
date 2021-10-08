@@ -251,12 +251,12 @@ fit_flex_table <- function(ft, height, width,
     break()
   }
   
-  if (expand_rows && opt_dim$tot_height < height) {
+  
+  if (expand_rows || opt_dim$tot_height > height) {
     opt_dim$heights[[1]] <-
       height * opt_dim$heights[[1]] / sum(opt_dim$heights[[1]])
   }
-  
-  if (expand_cols && opt_dim$tot_width < width) {
+  if (expand_cols || opt_dim$tot_width > width) {
     opt_dim$widths[[1]] <-
       width * opt_dim$widths[[1]] / sum(opt_dim$widths[[1]])
   }
