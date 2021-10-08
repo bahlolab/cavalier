@@ -102,7 +102,6 @@ hpo_api_get <- function(extension,
 }
 
 #'@importFrom dplyr tibble as_tibble bind_rows "%>%"
-#'@importFrom urltools url_encode
 #'@importFrom memoise memoise 
 #'@importFrom purrr map_df
 #'@export
@@ -117,7 +116,7 @@ get_hpo_term <- function(hpo_id)
     mapper <- memoise(
       function(hpo_id) {
         if (!is.na(hpo_id)) {
-          result <- hpo_api_get(str_c('term/', url_encode(hpo_id)))
+          result <- hpo_api_get(str_c('term/', hpo_id))
           if (!is.null(result)) {
             data <-
               result$details %>%
@@ -139,7 +138,6 @@ get_hpo_term <- function(hpo_id)
 }
 
 #'@importFrom rlang is_integerish 
-#'@importFrom urltools url_encode
 #'@export
 get_hpo_term_genes <- function(hpo_id)
 {
@@ -152,7 +150,7 @@ get_hpo_term_genes <- function(hpo_id)
     mapper <- memoise(
       function(hpo_id) {
         if (!is.na(hpo_id)) {
-          result <- hpo_api_get(str_c('term/', url_encode(hpo_id[[1]]), '/genes?max=-1'))
+          result <- hpo_api_get(str_c('term/', hpo_id, '/genes?max=-1'))
           if (!is.null(result)) {
             data <-
               tibble(ontologyId = hpo_id,
@@ -173,7 +171,6 @@ get_hpo_term_genes <- function(hpo_id)
   map_df(hpo_id, mapper)
 }
 
-#'@importFrom urltools url_encode
 #'@importFrom rlang is_integerish 
 #'@export
 get_hpo_gene <- function(entrez_id)
@@ -246,7 +243,6 @@ get_inheritance_terms <- function()
     cache('inheritance_terms')
 }
 
-#'@importFrom urltools url_encode
 #'@export
 get_hpo_disease <- function(disease_id)
 {
@@ -260,7 +256,7 @@ get_hpo_disease <- function(disease_id)
     mapper <- memoise(
       function(disease_id) {
         if (!is.na(disease_id)) {
-          result <- hpo_api_get(str_c('disease/', url_encode(disease_id)))
+          result <- hpo_api_get(str_c('disease/', disease_id))
           if (!is.null(result)) {
             data <-
               as_tibble(result$disease) %>% 
