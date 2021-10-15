@@ -91,3 +91,12 @@ map_df_prog <- function(.x, .f, ...) {
     map_df(.x, f2, ...)
 }
 
+#' @importFrom httr RETRY
+retry <- function(...) 
+{
+  RETRY(...,
+        pause_base = get_cavalier_opt('retry_pause_base'),
+        pause_min  = get_cavalier_opt('retry_pause_min'),
+        times = get_cavalier_opt('retry_times'))
+}
+

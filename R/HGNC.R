@@ -4,15 +4,19 @@ hgnc_complete_base_url <- 'http://ftp.ebi.ac.uk/pub/databases/genenames/hgnc/arc
 #' @importFrom dplyr slice pull mutate filter
 get_hgnc_latest_version <- function()
 {
-    (function()
-        tibble(filename = XML::getHTMLLinks(hgnc_complete_base_url)) %>% 
-         filter(str_starts(filename, 'hgnc_complete_set_')) %>% 
-         mutate(date = str_extract(filename, '(?<=hgnc_complete_set_)\\d{4}-\\d{2}-\\d{2}') %>% 
-                    lubridate::as_date()) %>% 
-         slice(which.max(date)) %>% 
-         pull(date) %>% 
-         as.character()) %>% 
-        cache('hgnc_latest_version')
+  (function()
+    retry('GET', hgnc_complete_base_url) %>% 
+     content(encoding = 'UTF-8') %>% 
+     rvest::html_nodes('a') %>%
+     rvest::html_attr("href") %>% 
+     tibble(filename = .) %>% 
+     filter(str_starts(filename, 'hgnc_complete_set_')) %>% 
+     mutate(date = str_extract(filename, '(?<=hgnc_complete_set_)\\d{4}-\\d{2}-\\d{2}') %>% 
+              lubridate::as_date()) %>% 
+     slice(which.max(date)) %>% 
+     pull(date) %>% 
+     as.character()) %>% 
+    cache('hgnc_latest_version')
 }
 
 #' @importFrom readr cols read_tsv
@@ -25,11 +29,14 @@ get_hgnc_complete <- function()
     uri <- str_c(hgnc_complete_base_url, 'hgnc_complete_set_', ver,'.txt')
     
     (function()
-        suppressWarnings(read_tsv(uri, col_types = cols())) %>% 
-            select(hgnc_id, symbol, name, location, ensembl_gene_id, entrez_id, alias_symbol, prev_symbol) %>% 
-            mutate(entrez_id = as.integer(entrez_id))) %>% 
-        cache(str_remove(basename(uri), '.txt$'),
-              disk = TRUE)
+      retry('GET', uri) %>% 
+        content(as = 'raw') %>% 
+        rawConnection() %>% 
+        { suppressWarnings(read_tsv(., col_types = cols())) } %>% 
+        select(hgnc_id, symbol, name, location, ensembl_gene_id, entrez_id, alias_symbol, prev_symbol) %>% 
+        mutate(entrez_id = as.integer(entrez_id))) %>% 
+      cache(str_remove(basename(uri), '.txt$'),
+            disk = TRUE)
 }
 
 #' @importFrom tidyr replace_na separate_rows

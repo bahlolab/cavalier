@@ -7,12 +7,12 @@ insecure <- function() httr::set_config(httr::config(ssl_verifypeer = 0L))
 #'@export
 secure <- function() httr::set_config(httr::config(ssl_verifypeer = 1L))
 
-
+#' @importFrom httr RETRY
 latest_hpo_build_num <- function()
 {
   (function() 
     str_c(hpo_jenkins_base_url, 'lastSuccessfulBuild/buildNumber') %>% 
-     GET() %>% 
+     retry(verb = 'GET') %>% 
      content()) %>% 
     cache('latest_hpo_build_num')
 }
@@ -28,10 +28,12 @@ get_genes_to_phenotype <- function()
       'frequency_hpo', 'additional_info', 'g_d_source', 'disease_id')
   
   (function()
-    read_tsv(url,
-             col_names = col_names,
-             skip = 1,
-             col_types = cols())) %>% 
+    retry('GET', url) %>% 
+      content(as = 'raw') %>% 
+      rawConnection() %>% 
+      read_tsv(col_names = col_names,
+               skip = 1,
+               col_types = cols())) %>% 
     cache(str_c('hpo.genes_to_phenotype.v', build_num),
           disk = TRUE)
 }
@@ -47,10 +49,12 @@ get_phenotype_to_genes <- function()
       'additional_info', 'g_d_source', 'disease_id')
   
   (function()
-    read_tsv(url,
-             col_names = col_names,
-             skip = 1,
-             col_types = cols())) %>% 
+    retry('GET', url) %>% 
+      content(as = 'raw') %>% 
+      rawConnection() %>% 
+      read_tsv(col_names = col_names,
+               skip = 1,
+               col_types = cols())) %>% 
     cache(str_c('hpo.phenotype_to_genes.v', build_num),
           disk = TRUE)
 }
@@ -93,7 +97,7 @@ hpo_api_get <- function(extension,
 {
   url <- str_c(base_url, extension)
   
-  response <- GET(url, accept_json())
+  response <- retry('GET', url, accept_json())
   
   if (response$status_code == 200) {
     return(content(response))

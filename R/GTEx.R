@@ -7,8 +7,9 @@ gtex_gene_median_tpm_uri <-
 get_gtex_expression <- function()
 {
     (function() 
-        read_delim(gtex_gene_median_tpm_uri,
-                   delim = "\t",
+      retry('GET', gtex_gene_median_tpm_uri) %>% 
+       content() %>% rawConnection() %>% gzcon() %>% 
+        read_delim(delim = "\t",
                    skip = 2,
                    col_types = cols()) %>% 
          rename(ensembl_gene_id = Name,

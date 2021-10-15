@@ -25,7 +25,7 @@ get_panelapp_panels <- function(source = c('PAA', 'PAE'))
   (function() {
     res <- tibble()
     while (TRUE) {
-      response <- GET(url, accept_json()) %>% content()
+      response <- retry('GET', url, accept_json()) %>% content()
       results <-
         response$results %>%
         map_df(function(x) {
@@ -59,7 +59,7 @@ get_panelapp_panels <- function(source = c('PAA', 'PAE'))
 
 #'@importFrom dplyr tibble as_tibble bind_rows mutate bind_cols
 #'@importFrom tidyr unnest
-#'@importFrom httr GET accept_json content
+#'@importFrom httr GET accept_json content RETRY
 #'@importFrom purrr map_df map
 #'@importFrom stringr str_c
 #'@importFrom rlang is_scalar_integerish
@@ -74,7 +74,7 @@ get_panelapp_gene_list <- function(id, min_confidence = 2L)
   url <- str_c(get_panelapp_url(source), 
                 'api/v1/panels/', str_extract(id, '\\d+'), '/')
   
-  GET(url, accept_json()) %>%
+  retry('GET', url, accept_json()) %>%
     content() %>%
     (function(x) {
       tibble(id = x$id,

@@ -6,7 +6,10 @@ rvis_uri <- "http://genic-intolerance.org/data/RVIS_Unpublished_ExACv2_March2017
 get_rvis_table <- function()
 {
   (function()
-    read_tsv(rvis_uri, col_types = cols()) %>% 
+    retry('GET', rvis_uri) %>% 
+     content(as = 'raw') %>% 
+     rawConnection() %>% 
+     read_tsv(col_types = cols()) %>% 
      select(1,4) %>% 
      setNames(c('symbol', 'rvis_percentile')) %>%
      mutate(symbol = hgnc_sym2sym(symbol))) %>% 
@@ -38,7 +41,10 @@ gevir_uri <- "http://www.gevirank.org/static/files/gene_ranking.csv"
 get_gevir_table <- function()
 {
   (function() 
-    read_csv(gevir_uri, col_types = cols()) %>% 
+    retry('GET', gevir_uri) %>% 
+     content(as = 'raw') %>% 
+     rawConnection() %>% 
+     read_csv(col_types = cols()) %>% 
      mutate(symbol = coalesce(hgnc_ensembl2sym(gene_id),
                               hgnc_sym2sym(gene_name))) %>% 
      select(symbol, ensembl_gene_id = gene_id, gevir_percentile, loeuf_percentile)) %>% 
