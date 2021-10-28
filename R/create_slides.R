@@ -374,6 +374,7 @@ get_var_info <- function() {
     `Ensembl Gene` = 'ensembl_gene',
     Inheritance = 'inheritance',
     Consequence = 'consequence',
+    `ClinVar Max` = 'clin_sig',
     dbSNP = 'db_snp',
     HGVSg = 'hgvs_genomic', 
     HGVSc = 'hgvs_coding',

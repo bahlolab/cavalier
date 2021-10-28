@@ -47,7 +47,9 @@ get_vep_ann <- function(gds, vep_field,
                   sift = str_extract(SIFT, '^.+(?=\\([0-9\\.]+\\)$)') %>% str_remove('_low_confidence'),
                   sift_score = str_extract(SIFT, '(?<=\\()[0-9\\.]+(?=\\)$)') %>% as.numeric(),
                   polyphen = str_extract(PolyPhen, '^.+(?=\\([0-9\\.]+\\)$)'),
-                  polyphen_score = str_extract(PolyPhen, '(?<=\\()[0-9\\.]+(?=\\)$)') %>% as.numeric()) %T>% 
+                  polyphen_score = str_extract(PolyPhen, '(?<=\\()[0-9\\.]+(?=\\)$)') %>% as.numeric(),
+                  clin_sig_raw = CLIN_SIG,
+                  clin_sig = clean_clin_sig(CLIN_SIG)) %T>% 
         with(assert_that(all(sift %in% c(NA, 'tolerated', 'deleterious'))),
              assert_that(all(polyphen %in% c(NA, 'benign', 'possibly_damaging', 'probably_damaging', 'unknown')))) %>% 
         mutate(sift = ordered(sift,  c('tolerated', 'deleterious')),
@@ -70,6 +72,30 @@ get_vep_ann <- function(gds, vep_field,
                              data))
     
     return( bind_cols(vid, vep_clean) ) 
+}
+
+clean_clin_sig <- function(x) {
+  # take "highest" clinical significance annotation for each variant
+  
+  clin_sig_levels <- 
+    c('benign',
+      'benign/likely_benign',
+      'likely_benign',
+      'likely_pathogenic',
+      'pathogenic/likely_pathogenic',
+      'pathogenic')
+  
+  tibble(x = x,
+         i = seq_along(x)) %>% 
+    separate_rows(x, sep = '&') %>% 
+    mutate(x = ordered(x, clin_sig_levels)) %>% 
+    distinct() %>% 
+    group_by(i) %>% 
+    slice(`if`(n()==1, 1, which.max(x))) %>% 
+    ungroup() %>% 
+    arrange(i) %>% 
+    pull(x)
+  
 }
 
 #' @importFrom readr cols col_character col_double col_integer
