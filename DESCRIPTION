@@ -8,13 +8,11 @@ Description: cavalier: Candidate Variant List Evaluation Report
     2) combine information from multiple sources useful for evaluating and prioritising variants
     3) create PDF output for visualing and communicating results
 Imports:
-    DT,
     ggplot2,
     grid,
     gridExtra,
     png,
     RColorBrewer,
-    vcfR,
     readr,
     dplyr,
     tidyr,
@@ -31,7 +29,6 @@ Imports:
     ggplotify,
     xml2,
     ggimg,
-    progress,
     lubridate,
     rvest
 License: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)

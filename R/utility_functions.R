@@ -83,14 +83,6 @@ pad_df <- function(df, n) {
         select(-.id)
 }
 
-#' @importFrom purrr map_df
-#' @importFrom progress progress_bar
-map_df_prog <- function(.x, .f, ...) {
-    pb <- progress_bar$new(total = length(.x))
-    f2 <- function(...) { pb$tick(); .f(...) }
-    map_df(.x, f2, ...)
-}
-
 #' @importFrom httr RETRY
 retry <- function(...) 
 {
