@@ -10,11 +10,25 @@ secure <- function() httr::set_config(httr::config(ssl_verifypeer = 1L))
 #' @importFrom httr RETRY
 latest_hpo_build_num <- function()
 {
-  (function() 
-    str_c(hpo_jenkins_base_url, 'lastSuccessfulBuild/buildNumber') %>% 
-     retry(verb = 'GET') %>% 
-     content()) %>% 
-    cache('latest_hpo_build_num')
+  (function() {
+    # attempt to get latest version, but otherwise use cached version in case server is down
+    tryCatch(
+      { str_c(hpo_jenkins_base_url, 'lastSuccessfulBuild/buildNumber') %>% 
+          retry(verb = 'GET') %>%
+          content() 
+      },
+      error = function(e) {
+        hpo_files <- list.files(get_cache_dir(), pattern = '^hpo\\..*\\v[0-9]+\\.rds$')
+        if (length(hpo_files)) {
+          str_extract(hpo_files, '(?<=.v)\\d+(?=\\.rds)') %>% 
+            as.integer() %>% 
+            max() %>% 
+            as.character()
+        } else {
+          stop('could not get hpo build number')
+        }
+      })
+  }) %>% cache('latest_hpo_build_num')
 }
 
 # this contains childmost term for a phenotype heirachy

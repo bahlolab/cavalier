@@ -15,7 +15,7 @@ cache <- function(fun, name,
   
   # attempt to return from disk
   if (disk) {
-    cache_dir <- get_cavalier_opt('cache_dir')
+    cache_dir <- get_cache_dir()
     cache_file <- file.path(cache_dir, str_c(name, ver, '.rds'))
     if (file.exists(cache_file)) { 
       value <- readRDS(cache_file)
@@ -46,7 +46,7 @@ cache <- function(fun, name,
 clear_cache <- function(mem = TRUE, disk = FALSE)
 {
   if (disk) {
-    cache_dir <- get_cavalier_opt('cache_dir')
+    cache_dir <- get_cache_dir()
     if (dir.exists(cache_dir)) {
       file.remove(list.files(cache_dir, full.names = TRUE))
     }
@@ -54,4 +54,8 @@ clear_cache <- function(mem = TRUE, disk = FALSE)
   if (mem) {
     rm(list = ls(envir = cavalier_cache), envir = cavalier_cache)
   }
+}
+
+get_cache_dir <- function() {
+  file.path(get_cavalier_opt('cache_dir'), packageVersion('cavalier'))
 }
