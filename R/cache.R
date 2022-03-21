@@ -29,13 +29,19 @@ cache <- function(fun, name,
   cavalier_cache[[name]] <- value
   
   # save to disk
-  if (disk) {
+  if (disk & !file.exists(cache_file)) {
     if (!dir.exists(cache_dir)) { dir.create(cache_dir, recursive = TRUE) }
     # save to tempfile to avoid possible race condition
     tmp_fn <- tempfile(pattern = basename(cache_file) %>% str_c('.'),
                        tmpdir = cache_dir)
     saveRDS(value, tmp_fn)
-    file.rename(tmp_fn, cache_file)
+    # attempt to avoid race conditions
+    if (file.exists(cache_file)) {
+      file.remove(tmp_fn)
+    } else {
+      file.rename(tmp_fn, cache_file)
+    }
+    
   }
   
   return(value)

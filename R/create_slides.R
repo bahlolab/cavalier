@@ -446,36 +446,3 @@ re_encode_pptx_hlinks <- function(target)
   invisible(NULL)
 }
 
-
-add_sections <- function(target) 
-{
-  tmp_dir <- tempfile(pattern = '.', tmpdir = '.')
-  zip::unzip(target, exdir = tmp_dir)
-  
-  content <- 
-    xml2::read_xml(file.path(tmp_dir, 'ppt', 'presentation.xml')) %>% 
-    { xml2::as_list(., ns = xml2::xml_ns(.)) }
-  
-  xml2::read_xml(file.path(tmp_dir, 'ppt', 'presentation.xml')) %>% 
-    xml2::write_xml('~/scratch/x3.xml')
-  
-  xml2::read_xml('~/scratch/x4.xml') %>% 
-    
-  
-  x <- xml2::read_xml('~/scratch/x4.xml')
-  ch <- xml2::xml_children(x)
-  cx <- 
-    xml2::read_xml(file.path(tmp_dir, 'ppt', 'presentation.xml'))
-  
-  
-  
-  slide_ids <- 
-    content$presentation$sldIdLst %>% 
-    unname() %>% 
-    map_chr( ~ attr(., 'id'))
-
-  officer::pack_folder(tmp_dir, target)
-  unlink(tmp_dir, recursive = TRUE)
-  
-  invisible(NULL)
-}
