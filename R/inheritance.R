@@ -79,7 +79,7 @@ add_inheritance <- function(variants,
   }
   
   
-  inh_df <- tibble(id = seq_len(nrow(variants)))
+  inh_df <- tibble(id = seq_len(nrow(variants)), pair_uid = NA_character_)
   # dominant
   if ('dominant' %in% models) {
     inh_df <- inh_df %>% 
@@ -160,7 +160,7 @@ add_inheritance <- function(variants,
                 .groups = 'drop')
     
     inh_df <-
-      left_join(inh_df, c_h_df, by = 'id') %>% 
+      left_join(inh_df, c_h_df, by = c('id', 'pair_uid')) %>% 
       mutate(compound_het = replace_na(compound_het, FALSE))
   }
   # de novo
@@ -190,7 +190,7 @@ add_inheritance <- function(variants,
            data)
     }) %>% 
     complete(id = seq_len(nrow(variants)),
-             fill = list(inheritance = list(NA_character_))) %>% 
+             fill = list(inheritance = vctrs::list_of(NA_character_))) %>% 
     mutate(inheritance = map_chr(inheritance, ~ str_c(., collapse = '&'))) %>% 
     arrange(id)
   
