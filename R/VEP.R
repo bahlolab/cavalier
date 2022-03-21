@@ -1,8 +1,10 @@
 #' @importFrom stringr str_c str_extract str_split_fixed str_detect
 #' @importFrom magrittr '%>%' set_colnames
-#' @importFrom dplyr transmute coalesce
-get_vep_ann <- function(gds, vep_field,
-                        add_annot = character()) 
+#' @importFrom dplyr transmute coalesce rename_with across starts_with
+get_vep_ann <- function(gds, 
+                        vep_field = 'CSQ',
+                        add_annot = character(),
+                        SVO = FALSE) 
 {
     
     vep_ann_names <- 
@@ -70,6 +72,23 @@ get_vep_ann <- function(gds, vep_field,
         (function(data) `if`('grantham_score' %in% add_annot,
                              mutate(data, grantham_score = grantham_score(hgvs_protein)),
                              data))
+    
+    if (SVO) {
+      vep_clean <-
+        select(vep_raw, starts_with('SVO_')) %>%
+        mutate(across(everything(), map, ~ c(str_split(.,  pattern = '&', simplify = T )))) %>% 
+        mutate(rn = row_number()) %>% 
+        unnest(starts_with('SVO_')) %>% 
+        mutate(across(c('SVO_AF', 'SVO_PC'), as.numeric)) %>% 
+        mutate(SVO_AF = replace_na(SVO_AF, -1)) %>% 
+        group_by(rn) %>% 
+        slice(which.max(SVO_AF)) %>% 
+        ungroup() %>% 
+        mutate(SVO_AF = if_else(SVO_AF == -1, NA_real_, SVO_AF)) %>% 
+        select(-rn) %>% 
+        rename_with(str_to_lower) %>% 
+        bind_cols(vep_clean, .)
+    }
     
     return( bind_cols(vid, vep_clean) ) 
 }

@@ -23,8 +23,8 @@ add_inheritance <- function(variants,
 {
   assert_that(is.data.frame(variants),
               is.data.frame(variants$genotype),
-              is.data.frame(variants$depth_ref),
-              is.data.frame(variants$depth_alt),
+              is.null(min_depth) || is.data.frame(variants$depth_ref),
+              is.null(min_depth) || is.data.frame(variants$depth_alt),
               is_scalar_character(af_column),
               all(c('variant_id', af_column) %in% colnames(variants)),
               is.character(affected) | is.null(affected),
@@ -32,7 +32,7 @@ add_inheritance <- function(variants,
               xor(is.null(ped_file), is.null(affected)),
               is.character(models) & length(models) > 0,
               is_scalar_character(ped_file) | is.null(ped_file),
-              is_scalar_integerish(min_depth),
+              is.null(min_depth) || is_scalar_integerish(min_depth),
               is_scalar_double(af_dominant),
               is_scalar_double(af_recessive),
               is_scalar_double(af_compound_het),
@@ -68,11 +68,16 @@ add_inheritance <- function(variants,
   
   sample_set <- c(affected, unaffected)
   
-  sample_min_depth <- 
-    (variants$depth_ref[,sample_set] + 
-       variants$depth_alt[,sample_set]) %>% 
-    apply(1, min)
-  gte_min_depth <- sample_min_depth >= min_depth
+  if (!is.null(min_depth)) {
+    sample_min_depth <- 
+      (variants$depth_ref[,sample_set] + 
+         variants$depth_alt[,sample_set]) %>% 
+      apply(1, min)
+    gte_min_depth <- sample_min_depth >= min_depth
+  } else {
+    gte_min_depth <- rep(TRUE, nrow(variants))
+  }
+  
   
   inh_df <- tibble(id = seq_len(nrow(variants)))
   # dominant

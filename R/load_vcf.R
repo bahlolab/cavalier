@@ -9,21 +9,25 @@
 #' @export
 load_vcf <- function(input, 
                      samples = NULL,
-                     info_columns = c('AF', 'AC', 'QD'),
-                     annot_source = 'VEP',
-                     annot_source_field = 'CSQ',
-                     add_annot = default_annotations(),
+                     caller = 'GATK',
+                     annotater = 'VEP',
+                     annotater_field = 'CSQ',
+                     info_columns = caller_info_columns(caller),
+                     format_columns = caller_format_columns(caller),
+                     additional_annotation = default_annotations(),
+                     SVO = FALSE,
                      remove_chrom_prefix = NULL,
                      add_chrom_prefix = NULL) 
 {
   # check args
   assert_that(is_gds(input) | (is_scalar_character(input) && file.exists(input)),
               is.null(samples) | is.character(samples),
-              is.null(info_columns) | is.character(info_columns),
-              is.null(annot_source) | is_scalar_character(annot_source),
-              is.null(annot_source) | is_scalar_character(annot_source_field),
-              is.character(add_annot) & all(add_annot %in% all_annotations()),
-              is.null(remove_chrom_prefix) | is_scalar_character(remove_chrom_prefix),
+              is_scalar_character(caller) && is_valid_caller(caller),
+              is.null(annotater) | is_scalar_character(annotater) && is_valid_annotater(annotater),
+              is_scalar_character(annotater_field),
+              is.character(info_columns),
+              is.character(format_columns),
+              is.character(additional_annotation),
               is.null(add_chrom_prefix) | is_scalar_character(add_chrom_prefix),
               is.null(remove_chrom_prefix) | is.null(add_chrom_prefix))
   
@@ -31,6 +35,7 @@ load_vcf <- function(input,
 
   # restrict to biallelic variants
   num_allele <- SeqArray::seqNumAllele(gds)
+  
   if (!all(num_allele == 2L)) {
     warning('Multiallelic sites present - these will be ignored. ',
             'Please first flatten VCF using "bcftools norm -m-any --do-not-normalize <VCF>" or equivalent. ',
@@ -43,24 +48,70 @@ load_vcf <- function(input,
   }
   
   variants <-
-    bind_cols(get_vcf_fixed(gds),
-              get_vcf_info(gds, info_columns) %>% select(-variant_id)) %>% 
-    mutate(genotype = get_vcf_genotypes(gds)) %>% 
-    bind_cols(get_vcf_sample_AD(gds)) %>% 
-    mutate(GQ = get_vcf_sample_GQ(gds)) %>% 
+    get_vcf_fixed(gds) %>% 
+    bind_cols(get_vcf_info(gds, info_columns) %>%
+                select(-variant_id)) %>% 
+    (function(x) {
+      `if`(length(seqGetData(gds, 'sample.id')),
+           mutate(x, genotype = get_vcf_genotypes(gds)),
+           x)
+    }) %>%  
+    (function(x) {
+      `if`('AD' %in% format_columns,
+           bind_cols(x, get_vcf_sample_AD(gds)),
+           x) 
+    }) %>% 
+    (function(x) {
+      `if`('GQ' %in% format_columns,
+           mutate(x, GQ = get_vcf_sample_GQ(gds)),
+           x) 
+    }) %>% 
     mutate(chrom = case_when(
       !is.null(add_chrom_prefix)    ~ str_c(add_chrom_prefix, str_remove(chrom, str_c('^', add_chrom_prefix))),
       !is.null(remove_chrom_prefix) ~ str_remove(chrom, str_c('^', remove_chrom_prefix)),
       TRUE                          ~ chrom)) %>% 
-    (function(data) {
-      `if`(annot_source == 'VEP',
-           data %>% 
-             left_join(get_vep_ann(gds, annot_source_field, add_annot = add_annot),
-                       by = 'variant_id'),
-           data)
+    (function(x) {
+      `if`(annotater == 'VEP',
+           left_join(x, get_vep_ann(gds, annotater_field, add_annot = additional_annotation, SVO = SVO),
+                     by = 'variant_id'),
+           x)
     })
   
   return(variants)
+}
+
+is_valid_caller <- function(x) { 
+  x %in% c('GATK', 'manta', 'manta-jasmine') 
+}
+
+is_valid_annotater <- function(x) { 
+  x %in% c('VEP', '') 
+}
+
+caller_info_columns <- function(caller) {
+  
+  assert_that(is_scalar_character(caller))
+  
+  if (caller == 'GATK') {
+    c('AF', 'AC', 'AN', 'QD')
+  } else if (caller == 'manta') {
+    c('AF', 'AC', 'AN', 'END', 'SVTYPE', 'SVLEN')
+  } else if (caller == 'manta-jasmine') {
+    c('AF', 'AC', 'AN', 'END', 'SVTYPE', 'SVLEN', 'AVG_LEN', 'AVG_START', 'AVG_END')
+  }
+}
+
+caller_format_columns <- function(caller) {
+  
+  assert_that(is_scalar_character(caller))
+  
+  if (caller == 'GATK') {
+    c('AD', 'GQ')
+  } else if (caller == 'manta') {
+    character()
+  } else if (caller == 'manta-jasmine') {
+    character()
+  }
 }
 
 #' @export
@@ -84,7 +135,11 @@ vcf_to_gds <- function(vcf_fn) {
   
   gds_fn <- str_replace(vcf_fn, '.vcf.gz', '.gds')
   if (! file.exists(gds_fn)) {
-    seqVCF2GDS(vcf.fn = vcf_fn, out.fn = gds_fn, storage.option = 'ZIP_RA', ignore.chr.prefix = '')
+    seqVCF2GDS(vcf.fn = vcf_fn,
+               out.fn = gds_fn,
+               storage.option = 'ZIP_RA',
+               ignore.chr.prefix = '',
+               verbose = FALSE)
   }
   seqOpen(gds_fn, allow.duplicate = TRUE)
 }
@@ -100,6 +155,7 @@ get_vcf_fixed <- function(gds) {
     variant_id = seqGetData(gds, 'variant.id'),
     chrom = seqGetData(gds, 'chromosome'),
     pos = seqGetData(gds, 'position'),
+    id = seqGetData(gds, 'annotation/id'),
     qual = SeqArray::qual(gds),
     filt = SeqArray::filt(gds)) %>% 
     bind_cols(seqGetData(gds, 'allele') %>% 
@@ -113,15 +169,49 @@ get_vcf_fixed <- function(gds) {
 #' @importFrom purrr map_dfc
 
 get_vcf_info <- function(gds, info_columns) {
-  tibble(
-    variant_id = seqGetData(gds, 'variant.id')) %>% 
-    bind_cols(str_c('annotation/info/', info_columns) %>% 
-                setNames(info_columns) %>% 
-                map_dfc(function(x) {
-                  seqGetData(gds, x) %>% 
-                    { `if`(is.list(.), .$data, .) }
-                })
-    )
+  
+  var_id <- seqGetData(gds, 'variant.id')
+  cols <- 
+    setNames(info_columns, info_columns) %>% 
+    map_dfc(function(icol) {
+      
+      x <- 
+        tryCatch(seqGetData(gds, str_c('annotation/info/', icol)),
+                 error = function(e) { NULL })
+      if (is.null(x)) {
+        warning('INFO/', icol, ' does not exists, returning NA')
+        return(NA)
+      }
+      
+      if (is.list(x)) {
+        if (all(x$length) == 1) {
+          val <- x$data
+        } else {
+          val <- vector(mode(x$data), length(x$length))
+          first <- setdiff(unique(cumsum(x$length)), 0)
+          val[x$length == 0] <- as(NA, mode(x$data))
+          val[x$length != 0] <- x$data[first]
+          if (any(x$length) > 1) {
+            warning('INFO/', icol, ' has entries with length > 1, using first value')
+          }
+        }
+      } else {
+        val <- x
+      }
+      if (length(val) != length(var_id)) {
+        warning('INFO/', icol, ' had length ', length(val), ' but expected ', length(var_id), ', returning NA') 
+        val <- NA
+      }
+      return(val)
+    })
+  
+  bind_cols(variant_id = var_id, cols) %>% 
+    (function(x) {
+      cols <- names(x) %>% intersect(c('AVG_LEN', 'AVG_START', 'AVG_END'))
+      `if`(length(cols),
+           mutate(x, across(all_of(cols), ~ as.integer(round(as.numeric(.))))),
+           x)
+    })
 }
 
 #' @importFrom dplyr everything

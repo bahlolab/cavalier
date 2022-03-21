@@ -1,4 +1,4 @@
-hpo_jenkins_base_url <- 'https://ci.monarchinitiative.org/view/hpo/job/hpo.annotations/'
+hpo_jenkins_base_url <- 'https://ci.monarchinitiative.org/job/hpo.annotations/'
 inheritance_term_id <- 'HP:0000005'
 
 ## TODO: move these to options in exported functions(e.g. secure = TRUE), use as httr::with_config
@@ -12,18 +12,20 @@ latest_hpo_build_num <- function()
 {
   (function() {
     # attempt to get latest version, but otherwise use cached version in case server is down
+    build_url <- str_c(hpo_jenkins_base_url, 'lastSuccessfulBuild/buildNumber')
     tryCatch(
-      { str_c(hpo_jenkins_base_url, 'lastSuccessfulBuild/buildNumber') %>% 
-          retry(verb = 'GET') %>%
-          content() 
-      },
+      content(retry(build_url, verb = 'GET')),
       error = function(e) {
         hpo_files <- list.files(get_cache_dir(), pattern = '^hpo\\..*\\v[0-9]+\\.rds$')
         if (length(hpo_files)) {
-          str_extract(hpo_files, '(?<=.v)\\d+(?=\\.rds)') %>% 
+          ver <- 
+            str_extract(hpo_files, '(?<=.v)\\d+(?=\\.rds)') %>% 
             as.integer() %>% 
             max() %>% 
             as.character()
+          warning("Coudn't access latest HPO build at: ", build_url, '. ',
+                  "Using cached version ", ver, '.')
+          ver
         } else {
           stop('could not get hpo build number')
         }

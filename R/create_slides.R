@@ -124,7 +124,7 @@ create_slides <- function(variants,
         if (!is.na(ensembl_gene)) {
           plot_gtex_expression(gene, ensembl_id = ensembl_gene)
         } else if(!is.na(gene)) {
-          plot_gtex_expression(gene,)
+          plot_gtex_expression(gene)
         } else {
           ggdraw()
         }
@@ -369,20 +369,35 @@ is_valid_row <- function(x) {
 }
 
 #' @export
-get_var_info <- function() {
-  c(`Gene Symbol` = 'gene',
-    `Ensembl Gene` = 'ensembl_gene',
-    Inheritance = 'inheritance',
-    Consequence = 'consequence',
-    `ClinVar Max` = 'clin_sig',
-    dbSNP = 'db_snp',
-    HGVSg = 'hgvs_genomic', 
-    HGVSc = 'hgvs_coding',
-    HGVSp = 'hgvs_protein',
-    SIFT = 'sift',
-    PolyPhen = 'polyphen',
-    `gnomAD AF` = 'af_gnomad'
-  )    
+get_var_info <- function(sv = FALSE) {
+  if (!sv) {
+    c(`Gene Symbol` = 'gene',
+      `Ensembl Gene` = 'ensembl_gene',
+      Inheritance = 'inheritance',
+      Consequence = 'consequence',
+      `ClinVar Max` = 'clin_sig',
+      dbSNP = 'db_snp',
+      HGVSg = 'hgvs_genomic', 
+      HGVSc = 'hgvs_coding',
+      HGVSp = 'hgvs_protein',
+      SIFT = 'sift',
+      PolyPhen = 'polyphen',
+      `gnomAD AF` = 'af_gnomad'
+    )
+  } else {
+    c(`Gene Symbol` = 'gene',
+      `Other Genes` = 'other_genes',
+      `Ensembl Gene` = 'ensembl_gene',
+      Inheritance = 'inheritance',
+      Consequence = 'consequence',
+      `SV type` = 'SVTYPE',
+      Chromosome = 'chrom',
+      Start = 'pos',
+      End = 'END',
+      Length = 'SVLEN',
+      `gnomAD AF` = 'af_gnomad'
+    )
+  }
 }
 
 re_encode_pptx_hlinks <- function(target) 
@@ -431,3 +446,36 @@ re_encode_pptx_hlinks <- function(target)
   invisible(NULL)
 }
 
+
+add_sections <- function(target) 
+{
+  tmp_dir <- tempfile(pattern = '.', tmpdir = '.')
+  zip::unzip(target, exdir = tmp_dir)
+  
+  content <- 
+    xml2::read_xml(file.path(tmp_dir, 'ppt', 'presentation.xml')) %>% 
+    { xml2::as_list(., ns = xml2::xml_ns(.)) }
+  
+  xml2::read_xml(file.path(tmp_dir, 'ppt', 'presentation.xml')) %>% 
+    xml2::write_xml('~/scratch/x3.xml')
+  
+  xml2::read_xml('~/scratch/x4.xml') %>% 
+    
+  
+  x <- xml2::read_xml('~/scratch/x4.xml')
+  ch <- xml2::xml_children(x)
+  cx <- 
+    xml2::read_xml(file.path(tmp_dir, 'ppt', 'presentation.xml'))
+  
+  
+  
+  slide_ids <- 
+    content$presentation$sldIdLst %>% 
+    unname() %>% 
+    map_chr( ~ attr(., 'id'))
+
+  officer::pack_folder(tmp_dir, target)
+  unlink(tmp_dir, recursive = TRUE)
+  
+  invisible(NULL)
+}

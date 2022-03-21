@@ -33,6 +33,7 @@ get_gtex_tissues <- function()
 #' 
 
 #' @importFrom cowplot ggdraw draw_text
+#' @importFrom dplyr n_distinct
 #' @importFrom ggplot2 ggplot aes geom_bar scale_fill_manual ggtitle ylab xlab theme_bw theme guides coord_flip
 #' @export
 plot_gtex_expression <- function(gene, ensembl_id = NULL)
@@ -45,6 +46,11 @@ plot_gtex_expression <- function(gene, ensembl_id = NULL)
                 all(tissues %in% get_gtex_tissues()))
     
     gtex_gene_median_tpm <- get_gtex_expression()
+    
+    if (!is.null(ensembl_id) && 
+        !ensembl_id %in% gtex_gene_median_tpm$ensembl_gene_id) {
+        ensembl_id <- NULL
+    }
     
     # if gene not found return plot stating as such
     if ((is.null(ensembl_id) && !gene %in% gtex_gene_median_tpm$symbol) | 

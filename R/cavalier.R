@@ -60,7 +60,7 @@ get_cavalier_opt <- function(name = NULL) {
 set_cavalier_opt <- function(...) {
   dots <- dots_list(...)
   assert_that(is_named(dots))
-  walk2(names(dots), dots, function(n, v) {
+  purrr::walk2(names(dots), dots, function(n, v) {
     assign(n, v, envir = cavalier_opts)
   })
 } 

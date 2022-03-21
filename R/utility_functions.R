@@ -83,12 +83,19 @@ pad_df <- function(df, n) {
         select(-.id)
 }
 
-#' @importFrom httr RETRY
+#' @importFrom httr RETRY http_error
 retry <- function(...) 
 {
-  RETRY(...,
-        pause_base = get_cavalier_opt('retry_pause_base'),
-        pause_min  = get_cavalier_opt('retry_pause_min'),
-        times = get_cavalier_opt('retry_times'))
+  result <- 
+    RETRY(...,
+          pause_base = get_cavalier_opt('retry_pause_base'),
+          pause_min  = get_cavalier_opt('retry_pause_min'),
+          times = get_cavalier_opt('retry_times'))
+  
+  if (!http_error(result)) {
+    return(result)
+  }
+  
+  stop(result$url, ' retured ', result$status_code)
 }
 
