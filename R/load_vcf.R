@@ -4,7 +4,7 @@
 #' @importFrom dplyr bind_cols left_join
 #' @importFrom tidyr unnest chop
 #' @importFrom tidyr unnest chop
-#' @importFrom SeqArray seqSetFilter
+#' @importFrom SeqArray seqSetFilter seqClose
 #' @importFrom rlang is_bool is_scalar_character
 #' @export
 load_vcf <- function(input, 
@@ -76,6 +76,8 @@ load_vcf <- function(input,
                      by = 'variant_id'),
            x)
     })
+  
+  seqClose(gds)
   
   return(variants)
 }
