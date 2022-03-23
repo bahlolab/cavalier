@@ -75,6 +75,36 @@ get_phenotype_to_genes <- function()
           disk = TRUE)
 }
 
+# this contains all hpo terms and disease identifiers & names
+get_phenotype_annotations <- function() 
+{
+  build_num <- latest_hpo_build_num()
+  url <- str_c(hpo_jenkins_base_url, build_num, '/artifact/rare-diseases/misc/phenotype_annotation.tab')
+  col_names <- 
+    c('disease_db', 'disease_identifier', 'disease_name', 'negation', 'hpo_term_id',
+      'reference', 'evidence_code', 'onset', 'frequency_hpo', 'modifier', 'sub_ontology',
+      'alt_names', 'curators', 'frequency_raw', 'sex')
+  
+  (function()
+    retry('GET', url) %>% 
+      content(as = 'raw') %>% 
+      rawConnection() %>% 
+      read_tsv(col_names = col_names,
+               skip = 1,
+               col_types = cols()) %>% 
+      tidyr::unite('disease_id', disease_db, disease_identifier, sep = ':')) %>% 
+    cache(str_c('hpo.phenotype_annotation.v', build_num),
+          disk = TRUE)
+}
+
+get_disease_names <- function() {
+  (function() 
+    get_phenotype_annotations() %>% 
+     select(disease_id, disease_name) %>% 
+     distinct()) %>% 
+    cache('disease_names')
+}
+
 get_omim_gene_map <- function() 
 {
   (function()
@@ -264,7 +294,7 @@ get_inheritance_terms <- function()
 }
 
 #'@export
-get_hpo_disease <- function(disease_id)
+get_hpo_api_disease <- function(disease_id)
 {
   assert_that(
     is.character(disease_id),
@@ -300,13 +330,9 @@ get_hpo_disease <- function(disease_id)
   map_df(disease_id, mapper)
 }
 
-disease_names <- function(disease_id)
+disease_names <- function(ids)
 {
-  if (length(disease_id)) {
-    get_hpo_disease(disease_id)$diseaseName
-  } else {
-    character()
-  }
+  with(get_disease_names(), disease_name[match(ids, disease_id)])
 }
 
 #' @export
