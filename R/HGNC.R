@@ -53,7 +53,7 @@ get_hgnc_alias <- function()
              !is.na(prev_symbol)                        ~ prev_symbol)) %>% 
          select(symbol,  alias) %>% 
          separate_rows(alias, sep = '\\|') %>% 
-         filter(! alias %in% symbol) %>% # remove ambiguities
+         filter(! alias %in% get_hgnc_complete()$symbol) %>% # remove ambiguities
          add_count(alias) %>%
          filter(n == 1) %>% # remove ambiguities
          select(-n) %>% 
@@ -97,11 +97,13 @@ get_hgnc_entrez <- function()
 #' @export
 hgnc_sym2sym <- function(symbols, remove_unknown = FALSE) 
 {
+    unknown <- which(!symbols %in% get_hgnc_complete()$symbol)
     hgnc_alias <- get_hgnc_alias()
-    at <- which(symbols %in% hgnc_alias$alias)
+    at <- unknown[symbols[unknown] %in% hgnc_alias$alias]
     ret <- replace(symbols, at, hgnc_alias$symbol[match(symbols[at], hgnc_alias$alias)])
     if (remove_unknown) { 
-        ret[! ret %in% { get_hgnc_complete() %>% dplyr::pull(symbol) } ] <- NA_character_
+        at <- setdiff(unknown, at)
+        ret[at] <- NA_character_
     }
     return(ret)
 }
