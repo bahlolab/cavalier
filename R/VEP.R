@@ -20,6 +20,10 @@ get_vep_ann <- function(gds,
         c()
     
     vep_ann <- seqGetData(gds, str_c('annotation/info/', vep_field))
+    if (!is.list(vep_ann)) {
+      vep_ann <- list(length = rep(1, length(vep_ann)),
+                      data = vep_ann)
+    }
     vid <- tibble(variant_id = rep(seqGetData(gds, 'variant.id'), times = vep_ann$length))
     
     vep_raw <-

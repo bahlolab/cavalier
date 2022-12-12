@@ -83,7 +83,7 @@ load_vcf <- function(input,
 }
 
 is_valid_caller <- function(x) { 
-  x %in% c('GATK', 'manta', 'manta-jasmine') 
+  x %in% c('GATK', 'Mutect2', 'manta', 'manta-jasmine') 
 }
 
 is_valid_annotater <- function(x) { 
@@ -96,6 +96,8 @@ caller_info_columns <- function(caller) {
   
   if (caller == 'GATK') {
     c('AF', 'AC', 'AN', 'QD')
+  } else if (caller == 'Mutect2') {
+    c('AF', 'AC', 'AN')
   } else if (caller == 'manta') {
     c('AF', 'AC', 'AN', 'END', 'SVTYPE', 'SVLEN')
   } else if (caller == 'manta-jasmine') {
@@ -109,6 +111,8 @@ caller_format_columns <- function(caller) {
   
   if (caller == 'GATK') {
     c('AD', 'GQ')
+  } else if (caller == 'Mutect2') {
+    c('AD')
   } else if (caller == 'manta') {
     character()
   } else if (caller == 'manta-jasmine') {
