@@ -106,11 +106,11 @@ create_slides <- function(variants,
       map(function(i) {
         variants$genotype[i, ] %>% 
           pivot_longer(everything(),
-                       names_to = 'iid',
+                       names_to = 'id',
                        values_to = 'gt') %>% 
-          right_join(ped_df, by = 'iid') %>% 
+          right_join(ped_df, by = 'id') %>% 
           mutate(gt = replace_na(gt, 'ND'),
-                 label = str_c(iid, gt, sep = '\n')) %>% 
+                 label = str_c(id, gt, sep = '\n')) %>% 
           plot_ped()
       })
   }

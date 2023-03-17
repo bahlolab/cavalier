@@ -57,9 +57,9 @@ add_inheritance <- function(variants,
     affected <- intersect(affected, sample_set)
     unaffected <- get_unaffected(ped_df) %>% intersect(sample_set)
     trio <- get_trio(ped_df) %>% 
-      filter(iid %in% sample_set,
-             pid %in% sample_set,
-             mid %in% sample_set)
+      filter(id %in% sample_set,
+             dadid %in% sample_set,
+             momid %in% sample_set)
   }
   
   assert_that(all(affected %in% sample_set),
