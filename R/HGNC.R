@@ -5,17 +5,37 @@ hgnc_complete_base_url <- 'http://ftp.ebi.ac.uk/pub/databases/genenames/hgnc/arc
 get_hgnc_latest_version <- function()
 {
   (function()
-    retry('GET', hgnc_complete_base_url) %>% 
-     content(encoding = 'UTF-8') %>% 
-     rvest::html_nodes('a') %>%
-     rvest::html_attr("href") %>% 
-     tibble(filename = .) %>% 
-     filter(str_starts(filename, 'hgnc_complete_set_')) %>% 
-     mutate(date = str_extract(filename, '(?<=hgnc_complete_set_)\\d{4}-\\d{2}-\\d{2}') %>% 
-              lubridate::as_date()) %>% 
-     slice(which.max(date)) %>% 
-     pull(date) %>% 
-     as.character()) %>% 
+    tryCatch(
+      retry('GET', hgnc_complete_base_url) %>% 
+        content(encoding = 'UTF-8') %>% 
+        rvest::html_nodes('a') %>%
+        rvest::html_attr("href") %>% 
+        tibble(filename = .) %>% 
+        filter(str_starts(filename, 'hgnc_complete_set_')) %>% 
+        mutate(date = str_extract(filename, '(?<=hgnc_complete_set_)\\d{4}-\\d{2}-\\d{2}') %>% 
+                 lubridate::as_date()) %>% 
+        slice(which.max(date)) %>% 
+        pull(date) %>% 
+        as.character(),
+      error = function(e) {
+        ver <-
+          tibble(filename = list.files(get_cache_dir(), pattern = '^hgnc_complete_set_\\d{4}-\\d{2}-\\d{2}.rds$')) %>% 
+          filter(str_starts(filename, 'hgnc_complete_set_')) %>% 
+          mutate(date = str_extract(filename, '(?<=hgnc_complete_set_)\\d{4}-\\d{2}-\\d{2}') %>% 
+                   lubridate::as_date()) %>% 
+          slice(which.max(date)) %>% 
+          pull(date) %>% 
+          as.character()
+        hgnc_files <- 
+        if (length(ver)) {
+          warning("Coudn't access latest HGNC build at: ", hgnc_complete_base_url, '. ',
+                  "Using cached version ", ver, '.')
+          ver
+        } else {
+          stop('could not get HGNC latest version')
+        }
+      }
+    )) %>% 
     cache('hgnc_latest_version')
 }
 
