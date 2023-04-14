@@ -69,7 +69,8 @@ get_panelapp_gene_list <- function(id, min_confidence = 2L, version = NULL)
   assert_that(is_scalar_character(id),
               !is.na(id),
               str_detect(id, '^PA[AE]:\\d+'),
-              is.null(version) | is_scalar_character(version))
+              is.null(version) | is_scalar_character(version),
+              is_scalar_integer(min_confidence))
   
   source <- str_extract(id, '^PA[AE]')
   url <- str_c(get_panelapp_url(source), 
@@ -131,8 +132,12 @@ get_panelapp_gene_list <- function(id, min_confidence = 2L, version = NULL)
              list_name = panel_name,
              version = panel_version,
              gene,
+             hgnc_id,
+             panelapp_symbol = gene_symbol,
              inheritance,
              status)) %>% 
-    cache(str_c(str_replace(id, ':', '_'), `if`(!is.null(version), str_c('_v', version))),
+    cache(str_c(str_replace(id, ':', '_'),
+                `if`(!is.null(version), str_c('_v', version)),
+                '_mc', min_confidence),
           disk = !is.null(version))
 }
