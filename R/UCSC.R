@@ -1,39 +1,55 @@
 
 #' @importFrom dplyr select mutate across bind_rows arrange_all filter
+#' @importFrom readr read_tsv cols
 
 get_centromeres_gaps <- function() {
   
   ref_genome <- get_cavalier_opt('ref_genome')
   
   (function() {
-    mySession <- rtracklayer::browserSession()
-    rtracklayer::genome(mySession) <- ref_genome
+
+    if (ref_genome == 'hg38') {
+      agp_url <- 'ftp://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.agp.gz'
+    } else {
+      agp_url <- 'ftp://hgdownload.soe.ucsc.edu/goldenPath/hg19/bigZips/hg19.agp.gz'
+    }
     
     gaps <- 
-      rtracklayer::getTable(rtracklayer::ucscTableQuery(mySession, track="gap")) %>% 
-      as_tibble() %>% 
-      select(chrom, start = chromStart, end=chromEnd, type) %>% 
-      mutate(across(where(is.factor), as.character),
-             start = start + 1L) %>% 
-      mutate(type = if_else(type %in% c('centromere', 'heterochromatin', 'short_arm', 'telomere'),
-                            type, 'gap'))
+      read_tsv(agp_url,
+               col_names = c('object',
+                             'object_beg',
+                             'object_end',
+                             'part_number',
+                             'component_type',
+                             'gap_length',
+                             'gap_type',
+                             'linkage',
+                             'linkage_evidence'),
+               col_types = cols()) %>% 
+      filter(component_type %in% c('N', 'U')) %>% 
+      select(chrom = object,
+             start = object_beg,
+             end = object_end,
+             type = gap_type)  %>% 
+      arrange_all()
     
     if (ref_genome == 'hg38') {
-      centro <- 
-        rtracklayer::getTable(rtracklayer::ucscTableQuery(mySession, track="centromeres")) %>% 
-        as_tibble() %>% 
-        select(chrom, start = chromStart, end=chromEnd) %>% 
-        mutate(type = 'centromere') %>% 
-        mutate(across(where(is.factor), as.character),
-               start = start + 1L)
       
-      gaps <-
-        bind_rows(gaps, centro) %>% 
-        arrange_all()
-    } else {
-      gaps <-
-        gaps %>% 
-        filter(str_detect(chrom, '^chr[0-9XY]+$')) %>% 
+      cen_url <- 'ftp://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/centromeres.txt.gz'
+      
+      gaps <- 
+        bind_rows(
+          gaps,
+          read_tsv(cen_url,
+                   col_names = c('NUM',
+                                 'chrom',
+                                 'start',
+                                 'end',
+                                 'id'),
+                   col_types = cols()) %>% 
+            mutate(type = 'centromere') %>% 
+            select(chrom, start, end, type)
+        ) %>% 
         arrange_all()
     }
     
@@ -41,3 +57,4 @@ get_centromeres_gaps <- function() {
   }) %>% 
     cache(str_c(ref_genome, '.centromeres_gaps'), disk = TRUE)
 }
+
