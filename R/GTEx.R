@@ -85,7 +85,7 @@ plot_gtex_expression <- function(gene, ensembl_id = NULL)
             theme_bw() + 
             theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.25),
                   axis.title.y = element_blank()) + 
-            guides(fill=FALSE) +
+            guides(fill='none') +
             coord_flip()
     } else {
         # plot multiple genes as boxplot
@@ -98,7 +98,7 @@ plot_gtex_expression <- function(gene, ensembl_id = NULL)
             theme_bw() + 
             theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.25),
                   axis.title.y = element_blank()) + 
-            guides(fill=FALSE) +
+            guides(fill='none') +
             coord_flip()
     }
     
@@ -169,7 +169,7 @@ plot_gtex_compact <- function(gene, ensembl_id = NULL, top_n = 3)
               axis.ticks.x = element_blank(),
               axis.title.x = element_blank(),
               plot.margin = margin(t = 2)) + 
-        guides(fill=FALSE) +
+        guides(fill='none') +
         ylim(0, ymx) +
         coord_flip() +
         facet_wrap(~facet, strip.position = 'left')

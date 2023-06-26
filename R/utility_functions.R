@@ -96,6 +96,6 @@ retry <- function(...)
     return(result)
   }
   
-  stop(result$url, ' retured ', result$status_code)
+  stop(result$url, ' returned ', result$status_code)
 }
 

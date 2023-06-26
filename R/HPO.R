@@ -1,4 +1,5 @@
-hpo_jenkins_base_url <- 'https://ci.monarchinitiative.org/job/hpo.annotations/'
+# hpo_jenkins_base_url <- 'https://ci.monarchinitiative.org/job/hpo.annotations/'
+hpo_github_base_url <-'https://github.com/obophenotype/human-phenotype-ontology/'
 inheritance_term_id <- 'HP:0000005'
 
 ## TODO: move these to options in exported functions(e.g. secure = TRUE), use as httr::with_config
@@ -7,103 +8,180 @@ insecure <- function() httr::set_config(httr::config(ssl_verifypeer = 0L))
 #'@export
 secure <- function() httr::set_config(httr::config(ssl_verifypeer = 1L))
 
-#' @importFrom httr RETRY
-latest_hpo_build_num <- function()
-{
+# deprecated
+#' #' @importFrom httr RETRY 
+#' latest_hpo_build_num <- function()
+#' {
+#'   (function() {
+#'     # attempt to get latest version, but otherwise use cached version in case server is down
+#'     build_url <- str_c(hpo_jenkins_base_url, 'lastSuccessfulBuild/buildNumber')
+#'     tryCatch(
+#'       content(retry(build_url, verb = 'GET')),
+#'       error = function(e) {
+#'         hpo_files <- list.files(get_cache_dir(), pattern = '^hpo\\..*\\v[0-9]+\\.rds$')
+#'         if (length(hpo_files)) {
+#'           ver <- 
+#'             str_extract(hpo_files, '(?<=.v)\\d+(?=\\.rds)') %>% 
+#'             as.integer() %>% 
+#'             max() %>% 
+#'             as.character()
+#'           warning("Coudn't access latest HPO build at: ", build_url, '. ',
+#'                   "Using cached version ", ver, '.')
+#'           ver
+#'         } else {
+#'           stop('could not get hpo build number')
+#'         }
+#'       })
+#'   }) %>% cache('latest_hpo_build_num')
+#' }
+
+latest_hpo_release <-function() {
   (function() {
-    # attempt to get latest version, but otherwise use cached version in case server is down
-    build_url <- str_c(hpo_jenkins_base_url, 'lastSuccessfulBuild/buildNumber')
+    # attempt to get latest hpo release from github, but otherwise use cached version in case server is down
+    tag_url <- 'https://api.github.com/repos/obophenotype/human-phenotype-ontology/tags'
+    
     tryCatch(
-      content(retry(build_url, verb = 'GET')),
+      content(retry(tag_url, verb = 'GET')) %>% 
+        map_chr('name') %>% 
+        keep(str_detect, 'v[0-9]{4}-[0-9]{2}-[0-9]{2}') %>% 
+        sort(decreasing = TRUE) %>% 
+        first() %>% 
+        (function(x) { assert_that(is_scalar_character(x) & !is.na(x)); x }),
       error = function(e) {
-        hpo_files <- list.files(get_cache_dir(), pattern = '^hpo\\..*\\v[0-9]+\\.rds$')
+        hpo_files <- list.files(get_cache_dir(), pattern = '^hpo\\..*\\v[0-9]{4}-[0-9]{2}-[0-9]{2}\\.rds$')
         if (length(hpo_files)) {
           ver <- 
-            str_extract(hpo_files, '(?<=.v)\\d+(?=\\.rds)') %>% 
-            as.integer() %>% 
-            max() %>% 
-            as.character()
-          warning("Coudn't access latest HPO build at: ", build_url, '. ',
+            str_extract(hpo_files, 'v[0-9]{4}-[0-9]{2}-[0-9]{2}(?=\\.rds)') %>% 
+            sort(decreasing = TRUE) %>% 
+            first()
+          warning("Coudn't retrieve latest HPO release from: ", tag_url, '. ',
                   "Using cached version ", ver, '.')
           ver
         } else {
-          stop('could not get hpo build number')
+          stop('could not get latest hpo release')
         }
       })
-  }) %>% cache('latest_hpo_build_num')
-}
+  }) %>% cache('latest_hpo_release')
+} 
 
 # this contains childmost term for a phenotype heirachy
 # use for annotating genes
 get_genes_to_phenotype <- function() 
 {
-  build_num <- latest_hpo_build_num()
-  url <- str_c(hpo_jenkins_base_url, build_num, '/artifact/rare-diseases/util/annotation/genes_to_phenotype.txt')
-  col_names <- 
-    c('entrez_gene_id', 'entrez_gene_symbol', 'hpo_term_id', 'hpo_term_name', 'frequency_raw', 
-      'frequency_hpo', 'additional_info', 'g_d_source', 'disease_id')
+  hpo_release <- latest_hpo_release()
+  
+  url <- str_c(hpo_github_base_url, 'releases/download/', hpo_release, '/genes_to_phenotype.txt')
   
   (function()
     retry('GET', url) %>% 
       content(as = 'raw') %>% 
       rawConnection() %>% 
-      read_tsv(col_names = col_names,
+      read_tsv(col_names = c('entrez_gene_id',
+                             'entrez_gene_symbol',
+                             'hpo_term_id',
+                             'hpo_term_name', 
+                             'frequency', 
+                             'disease_id'),
                skip = 1,
-               col_types = cols())) %>% 
-    cache(str_c('hpo.genes_to_phenotype.v', build_num),
+               col_types = 'iccccc')) %>% 
+    cache('hpo.genes_to_phenotype',
+          ver = hpo_release,
           disk = TRUE)
 }
+# deprecated
+# get_genes_to_phenotype <- function() 
+# {
+#   build_num <- latest_hpo_build_num()
+#   url <- str_c(hpo_jenkins_base_url, build_num, '/artifact/rare-diseases/util/annotation/genes_to_phenotype.txt')
+#   col_names <- 
+#     c('entrez_gene_id', 'entrez_gene_symbol', 'hpo_term_id', 'hpo_term_name', 'frequency_raw', 
+#       'frequency_hpo', 'additional_info', 'g_d_source', 'disease_id')
+#   
+#   (function()
+#     retry('GET', url) %>% 
+#       content(as = 'raw') %>% 
+#       rawConnection() %>% 
+#       read_tsv(col_names = col_names,
+#                skip = 1,
+#                col_types = cols())) %>% 
+#     cache(str_c('hpo.genes_to_phenotype.v', build_num),
+#           disk = TRUE)
+# }
 
 # this contains all hpo terms
 # use for creating gene lists from hpo terms
 get_phenotype_to_genes <- function() 
 {
-  build_num <- latest_hpo_build_num()
-  url <- str_c(hpo_jenkins_base_url, build_num, '/artifact/rare-diseases/util/annotation/phenotype_to_genes.txt')
-  col_names <- 
-    c('hpo_term_id', 'hpo_term_name', 'entrez_gene_id', 'entrez_gene_symbol',
-      'additional_info', 'g_d_source', 'disease_id')
+  hpo_release <- latest_hpo_release()
+  
+  url <- str_c(hpo_github_base_url, 'releases/download/', hpo_release, '/phenotype_to_genes.txt')
   
   (function()
     retry('GET', url) %>% 
       content(as = 'raw') %>% 
       rawConnection() %>% 
-      read_tsv(col_names = col_names,
-               skip = 1,
-               col_types = cols())) %>% 
-    cache(str_c('hpo.phenotype_to_genes.v', build_num),
+      read_tsv(col_names = c('hpo_term_id',
+                             'hpo_term_name',
+                             'entrez_gene_id', 
+                             'entrez_gene_symbol',
+                             'disease_id'),
+               col_types = 'ccicc',
+               skip = 1)) %>% 
+    cache('hpo.phenotype_to_genes',
+          ver = hpo_release,
           disk = TRUE)
 }
+# deprecated
+# get_phenotype_to_genes <- function() 
+# {
+#   build_num <- latest_hpo_build_num()
+#   url <- str_c(hpo_jenkins_base_url, build_num, '/artifact/rare-diseases/util/annotation/phenotype_to_genes.txt')
+#   col_names <- 
+#     c('hpo_term_id', 'hpo_term_name', 'entrez_gene_id', 'entrez_gene_symbol',
+#       'additional_info', 'g_d_source', 'disease_id')
+#   
+#   (function()
+#     retry('GET', url) %>% 
+#       content(as = 'raw') %>% 
+#       rawConnection() %>% 
+#       read_tsv(col_names = col_names,
+#                skip = 1,
+#                col_types = cols())) %>% 
+#     cache(str_c('hpo.phenotype_to_genes.v', build_num),
+#           disk = TRUE)
+# }
 
+# deprecated
 # this contains all hpo terms and disease identifiers & names
-get_phenotype_annotations <- function() 
-{
-  build_num <- latest_hpo_build_num()
-  url <- str_c(hpo_jenkins_base_url, build_num, '/artifact/rare-diseases/misc/phenotype_annotation.tab')
-  col_names <- 
-    c('disease_db', 'disease_identifier', 'disease_name', 'negation', 'hpo_term_id',
-      'reference', 'evidence_code', 'onset', 'frequency_hpo', 'modifier', 'sub_ontology',
-      'alt_names', 'curators', 'frequency_raw', 'sex')
-  
-  (function()
-    retry('GET', url) %>% 
-      content(as = 'raw') %>% 
-      rawConnection() %>% 
-      read_tsv(col_names = col_names,
-               skip = 1,
-               col_types = cols()) %>% 
-      tidyr::unite('disease_id', disease_db, disease_identifier, sep = ':')) %>% 
-    cache(str_c('hpo.phenotype_annotation.v', build_num),
-          disk = TRUE)
-}
+# get_phenotype_annotations <- function() 
+# {
+#   build_num <- latest_hpo_build_num()
+#   url <- str_c(hpo_jenkins_base_url, build_num, '/artifact/rare-diseases/misc/phenotype_annotation.tab')
+#   col_names <- 
+#     c('disease_db', 'disease_identifier', 'disease_name', 'negation', 'hpo_term_id',
+#       'reference', 'evidence_code', 'onset', 'frequency_hpo', 'modifier', 'sub_ontology',
+#       'alt_names', 'curators', 'frequency_raw', 'sex')
+#   
+#   (function()
+#     retry('GET', url) %>% 
+#       content(as = 'raw') %>% 
+#       rawConnection() %>% 
+#       read_tsv(col_names = col_names,
+#                skip = 1,
+#                col_types = cols()) %>% 
+#       tidyr::unite('disease_id', disease_db, disease_identifier, sep = ':')) %>% 
+#     cache(str_c('hpo.phenotype_annotation.v', build_num),
+#           disk = TRUE)
+# }
 
-get_disease_names <- function() {
-  (function() 
-    get_phenotype_annotations() %>% 
-     select(disease_id, disease_name) %>% 
-     distinct()) %>% 
-    cache('disease_names')
-}
+# deprecated
+# get_disease_names <- function() {
+#   (function() 
+#     get_phenotype_annotations() %>% 
+#      select(disease_id, disease_name) %>% 
+#      distinct()) %>% 
+#     cache('disease_names')
+# }
 
 get_omim_gene_map <- function() 
 {
@@ -123,7 +201,9 @@ get_omim_gene_map <- function()
                                    hgnc_sym2sym(entrez_gene_symbol),
                                    entrez_gene_symbol)) %>% 
      select(symbol = hgnc_symbol, disease_id, inheritance)) %>% 
-    cache('omim_gene_map')
+    cache('hpo_omim_gene_map',
+          disk = TRUE,
+          ver = latest_hpo_release())
 }
 
 get_term_names <- function() 
@@ -293,46 +373,82 @@ get_inheritance_terms <- function()
     cache('inheritance_terms')
 }
 
-#'@export
-get_hpo_api_disease <- function(disease_id)
-{
-  assert_that(
-    is.character(disease_id),
-    all(str_detect(disease_id, '^(OMIM)|(ORPHA):\\d+$'), na.rm = TRUE))
-  
-  mapper <- cavalier_cache$get_hpo_disease_mapper
-  
-  if (is.null(mapper)) {
-    mapper <- memoise(
-      function(disease_id) {
-        if (!is.na(disease_id)) {
-          result <- hpo_api_get(str_c('disease/', disease_id))
-          if (!is.null(result)) {
-            data <-
-              as_tibble(result$disease) %>% 
-              mutate(
-                catTermsMap = list(map_df(result$catTermsMap, function(data) {
-                  tibble(catLabel = data$catLabel,
-                         terms = list(bind_rows(data$terms))) %>% 
-                    unnest(terms)
-                })),
-                geneAssoc = list(bind_rows(result$geneAssoc)))
-            return(data)
-          } 
-        }
-        return(tibble(diseaseId = disease_id,
-                      diseaseName = NA_character_))
-      })
-    cavalier_cache$get_hpo_disease_mapper <- mapper
-  }
-  
-  # map_df_prog(disease_id, mapper)
-  map_df(disease_id, mapper)
-}
+#' #'@export
+#' get_hpo_api_disease <- function(disease_id)
+#' {
+#'   assert_that(
+#'     is.character(disease_id),
+#'     all(str_detect(disease_id, '^(OMIM)|(ORPHA):\\d+$'), na.rm = TRUE))
+#'   
+#'   mapper <- cavalier_cache$get_hpo_disease_mapper
+#'   
+#'   if (is.null(mapper)) {
+#'     mapper <- memoise(
+#'       function(disease_id) {
+#'         if (!is.na(disease_id)) {
+#'           result <- hpo_api_get(str_c('disease/', disease_id))
+#'           if (!is.null(result)) {
+#'             data <-
+#'               as_tibble(result$disease) %>% 
+#'               mutate(
+#'                 catTermsMap = list(map_df(result$catTermsMap, function(data) {
+#'                   tibble(catLabel = data$catLabel,
+#'                          terms = list(bind_rows(data$terms))) %>% 
+#'                     unnest(terms)
+#'                 })),
+#'                 geneAssoc = list(bind_rows(result$geneAssoc)))
+#'             return(data)
+#'           } 
+#'         }
+#'         return(tibble(diseaseId = disease_id,
+#'                       diseaseName = NA_character_))
+#'       })
+#'     cavalier_cache$get_hpo_disease_mapper <- mapper
+#'   }
+#'   
+#'   # map_df_prog(disease_id, mapper)
+#'   map_df(disease_id, mapper)
+#' }
 
+# disease_names <- function(ids)
+# {
+#   with(get_disease_names(), disease_name[match(ids, disease_id)])
+# }
+
+# pull disease names from HPO API and store locally
+#' @export
 disease_names <- function(ids)
 {
-  with(get_disease_names(), disease_name[match(ids, disease_id)])
+  hpo_release <- latest_hpo_release()
+  
+  dndb_0 <-
+    (function() 
+      tibble(disease_id   = character(), 
+             disease_name = character())) %>% 
+    cache('hpo_disease_names',
+          disk = TRUE,
+          ver = hpo_release)
+  
+  dndb <- 
+    tibble(disease_id = ids) %>% 
+    filter(str_detect(disease_id, '(OMIM)|(ORPHA):[0-9]+')) %>% 
+    anti_join(dndb_0,  by = "disease_id") %>% 
+    mutate(disease_name = map_chr(disease_id, function(x) {
+      result <- hpo_api_get(str_c('disease/', x))$disease$diseaseName
+      `if`(is.null(result), NA_character_, result)
+    })) %>% 
+    bind_rows(dndb_0) %>% 
+    arrange_all()
+  
+  if (nrow(dndb) > nrow(dndb_0)) {
+    (function() dndb) %>% 
+      cache('hpo_disease_names',
+            disk = TRUE,
+            ver = hpo_release,
+            overwrite = TRUE)
+  }
+  
+  with(dndb, disease_name[match(ids, disease_id)])
 }
 
 #' @export
