@@ -1,4 +1,3 @@
-# hpo_jenkins_base_url <- 'https://ci.monarchinitiative.org/job/hpo.annotations/'
 hpo_github_base_url <-'https://github.com/obophenotype/human-phenotype-ontology/'
 inheritance_term_id <- 'HP:0000005'
 
@@ -7,33 +6,6 @@ inheritance_term_id <- 'HP:0000005'
 insecure <- function() httr::set_config(httr::config(ssl_verifypeer = 0L))
 #'@export
 secure <- function() httr::set_config(httr::config(ssl_verifypeer = 1L))
-
-# deprecated
-#' #' @importFrom httr RETRY 
-#' latest_hpo_build_num <- function()
-#' {
-#'   (function() {
-#'     # attempt to get latest version, but otherwise use cached version in case server is down
-#'     build_url <- str_c(hpo_jenkins_base_url, 'lastSuccessfulBuild/buildNumber')
-#'     tryCatch(
-#'       content(retry(build_url, verb = 'GET')),
-#'       error = function(e) {
-#'         hpo_files <- list.files(get_cache_dir(), pattern = '^hpo\\..*\\v[0-9]+\\.rds$')
-#'         if (length(hpo_files)) {
-#'           ver <- 
-#'             str_extract(hpo_files, '(?<=.v)\\d+(?=\\.rds)') %>% 
-#'             as.integer() %>% 
-#'             max() %>% 
-#'             as.character()
-#'           warning("Coudn't access latest HPO build at: ", build_url, '. ',
-#'                   "Using cached version ", ver, '.')
-#'           ver
-#'         } else {
-#'           stop('could not get hpo build number')
-#'         }
-#'       })
-#'   }) %>% cache('latest_hpo_build_num')
-#' }
 
 latest_hpo_release <-function() {
   (function() {
@@ -88,25 +60,6 @@ get_genes_to_phenotype <- function()
           ver = hpo_release,
           disk = TRUE)
 }
-# deprecated
-# get_genes_to_phenotype <- function() 
-# {
-#   build_num <- latest_hpo_build_num()
-#   url <- str_c(hpo_jenkins_base_url, build_num, '/artifact/rare-diseases/util/annotation/genes_to_phenotype.txt')
-#   col_names <- 
-#     c('entrez_gene_id', 'entrez_gene_symbol', 'hpo_term_id', 'hpo_term_name', 'frequency_raw', 
-#       'frequency_hpo', 'additional_info', 'g_d_source', 'disease_id')
-#   
-#   (function()
-#     retry('GET', url) %>% 
-#       content(as = 'raw') %>% 
-#       rawConnection() %>% 
-#       read_tsv(col_names = col_names,
-#                skip = 1,
-#                col_types = cols())) %>% 
-#     cache(str_c('hpo.genes_to_phenotype.v', build_num),
-#           disk = TRUE)
-# }
 
 # this contains all hpo terms
 # use for creating gene lists from hpo terms
@@ -131,57 +84,6 @@ get_phenotype_to_genes <- function()
           ver = hpo_release,
           disk = TRUE)
 }
-# deprecated
-# get_phenotype_to_genes <- function() 
-# {
-#   build_num <- latest_hpo_build_num()
-#   url <- str_c(hpo_jenkins_base_url, build_num, '/artifact/rare-diseases/util/annotation/phenotype_to_genes.txt')
-#   col_names <- 
-#     c('hpo_term_id', 'hpo_term_name', 'entrez_gene_id', 'entrez_gene_symbol',
-#       'additional_info', 'g_d_source', 'disease_id')
-#   
-#   (function()
-#     retry('GET', url) %>% 
-#       content(as = 'raw') %>% 
-#       rawConnection() %>% 
-#       read_tsv(col_names = col_names,
-#                skip = 1,
-#                col_types = cols())) %>% 
-#     cache(str_c('hpo.phenotype_to_genes.v', build_num),
-#           disk = TRUE)
-# }
-
-# deprecated
-# this contains all hpo terms and disease identifiers & names
-# get_phenotype_annotations <- function() 
-# {
-#   build_num <- latest_hpo_build_num()
-#   url <- str_c(hpo_jenkins_base_url, build_num, '/artifact/rare-diseases/misc/phenotype_annotation.tab')
-#   col_names <- 
-#     c('disease_db', 'disease_identifier', 'disease_name', 'negation', 'hpo_term_id',
-#       'reference', 'evidence_code', 'onset', 'frequency_hpo', 'modifier', 'sub_ontology',
-#       'alt_names', 'curators', 'frequency_raw', 'sex')
-#   
-#   (function()
-#     retry('GET', url) %>% 
-#       content(as = 'raw') %>% 
-#       rawConnection() %>% 
-#       read_tsv(col_names = col_names,
-#                skip = 1,
-#                col_types = cols()) %>% 
-#       tidyr::unite('disease_id', disease_db, disease_identifier, sep = ':')) %>% 
-#     cache(str_c('hpo.phenotype_annotation.v', build_num),
-#           disk = TRUE)
-# }
-
-# deprecated
-# get_disease_names <- function() {
-#   (function() 
-#     get_phenotype_annotations() %>% 
-#      select(disease_id, disease_name) %>% 
-#      distinct()) %>% 
-#     cache('disease_names')
-# }
 
 get_omim_gene_map <- function() 
 {
@@ -409,11 +311,6 @@ get_inheritance_terms <- function()
 #'   # map_df_prog(disease_id, mapper)
 #'   map_df(disease_id, mapper)
 #' }
-
-# disease_names <- function(ids)
-# {
-#   with(get_disease_names(), disease_name[match(ids, disease_id)])
-# }
 
 # pull disease names from HPO API and store locally
 #' @export
