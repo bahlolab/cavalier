@@ -18,7 +18,7 @@ cavalier_opts$cache_dir <- '~/.cavalier'
 cavalier_opts$snapshot_dir <- '.igv_snapshots'
 cavalier_opts$retry_pause_base <- 5
 cavalier_opts$retry_pause_min <- 5
-cavalier_opts$retry_times <- 5
+cavalier_opts$retry_times <- 3
 cavalier_opts$ref_genome <- 'hg38'
 cavalier_opts$xvfb_run_cmd <- 'xvfb-run'
 cavalier_opts$igv_cmd <- 'igv.sh'

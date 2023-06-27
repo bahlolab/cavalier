@@ -87,15 +87,24 @@ pad_df <- function(df, n) {
 retry <- function(...) 
 {
   result <- 
-    RETRY(...,
-          pause_base = get_cavalier_opt('retry_pause_base'),
-          pause_min  = get_cavalier_opt('retry_pause_min'),
-          times = get_cavalier_opt('retry_times'))
-  
-  if (!http_error(result)) {
+    tryCatch(
+      RETRY(...,
+            pause_base = get_cavalier_opt('retry_pause_base'),
+            pause_min  = get_cavalier_opt('retry_pause_min'),
+            times = get_cavalier_opt('retry_times')),
+      error = function(e) { warning(e); NULL })
+
+  if (!is.null(result) && !http_error(result)) {
     return(result)
   }
   
+  if (is.null(result)) {
+    args <- rlang::dots_list(...)
+    args <- args[names(args) == '']
+    warning('failed to ', args[1], ' ', args[2])
+    stop('failed to ', args[1], ' ', args[2])
+  }
+  
+  warning(result$url, ' returned ', result$status_code)
   stop(result$url, ' returned ', result$status_code)
 }
-
