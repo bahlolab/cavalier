@@ -12,6 +12,7 @@ create_slides <- function(variants,
                           layout = layout_single(),
                           title_col = 'title',
                           slide_template = get_slide_template(),
+                          is_sv = FALSE,
                           var_info = get_var_info())
 {
   # check args
@@ -45,7 +46,7 @@ create_slides <- function(variants,
       select(variants, all_of(var_info)) %>% 
       (function(x) {
         # add in gnomad link
-        `if`('af_gnomad' %in% var_info,
+        `if`('af_gnomad' %in% var_info && !is_sv,
              names(var_info)[which(var_info == 'af_gnomad')] %>% 
                str_c( '_url') %>% 
                { mutate(x, !!. := gnomad_link(variants)) },
