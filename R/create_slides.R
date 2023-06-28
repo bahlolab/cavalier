@@ -125,8 +125,6 @@ create_slides <- function(variants,
           plot_gtex_expression(gene, ensembl_id = ensembl_gene)
         } else if(!is.na(gene)) {
           plot_gtex_expression(gene)
-        } else {
-          ggdraw()
         }
       })
   }

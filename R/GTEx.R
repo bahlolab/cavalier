@@ -55,7 +55,7 @@ plot_gtex_expression <- function(gene, ensembl_id = NULL)
     # if gene not found return plot stating as such
     if ((is.null(ensembl_id) && !gene %in% gtex_gene_median_tpm$symbol) | 
         (!is.null(ensembl_id) && !ensembl_id %in% gtex_gene_median_tpm$ensembl_gene_id)) {
-        return(ggdraw() + draw_text(str_c('"', gene, '"\n not found in GTEx')))
+      return(NULL)
     }
     
     gene_exp <-
