@@ -83,11 +83,28 @@ pad_df <- function(df, n) {
         select(-.id)
 }
 
-#' @importFrom purrr map_df
-#' @importFrom progress progress_bar
-map_df_prog <- function(.x, .f, ...) {
-    pb <- progress_bar$new(total = length(.x))
-    f2 <- function(...) { pb$tick(); .f(...) }
-    map_df(.x, f2, ...)
-}
+#' @importFrom httr RETRY http_error
+retry <- function(...) 
+{
+  result <- 
+    tryCatch(
+      RETRY(...,
+            pause_base = get_cavalier_opt('retry_pause_base'),
+            pause_min  = get_cavalier_opt('retry_pause_min'),
+            times = get_cavalier_opt('retry_times')),
+      error = function(e) { warning(e); NULL })
 
+  if (!is.null(result) && !http_error(result)) {
+    return(result)
+  }
+  
+  if (is.null(result)) {
+    args <- rlang::dots_list(...)
+    args <- args[names(args) == '']
+    warning('failed to ', args[1], ' ', args[2])
+    stop('failed to ', args[1], ' ', args[2])
+  }
+  
+  warning(result$url, ' returned ', result$status_code)
+  stop(result$url, ' returned ', result$status_code)
+}

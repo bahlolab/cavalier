@@ -12,6 +12,7 @@ create_slides <- function(variants,
                           layout = layout_single(),
                           title_col = 'title',
                           slide_template = get_slide_template(),
+                          is_sv = FALSE,
                           var_info = get_var_info())
 {
   # check args
@@ -45,7 +46,7 @@ create_slides <- function(variants,
       select(variants, all_of(var_info)) %>% 
       (function(x) {
         # add in gnomad link
-        `if`('af_gnomad' %in% var_info,
+        `if`('af_gnomad' %in% var_info && !is_sv,
              names(var_info)[which(var_info == 'af_gnomad')] %>% 
                str_c( '_url') %>% 
                { mutate(x, !!. := gnomad_link(variants)) },
@@ -106,11 +107,11 @@ create_slides <- function(variants,
       map(function(i) {
         variants$genotype[i, ] %>% 
           pivot_longer(everything(),
-                       names_to = 'iid',
+                       names_to = 'id',
                        values_to = 'gt') %>% 
-          right_join(ped_df, by = 'iid') %>% 
+          right_join(ped_df, by = 'id') %>% 
           mutate(gt = replace_na(gt, 'ND'),
-                 label = str_c(iid, gt, sep = '\n')) %>% 
+                 label = str_c(id, gt, sep = '\n')) %>% 
           plot_ped()
       })
   }
@@ -124,9 +125,7 @@ create_slides <- function(variants,
         if (!is.na(ensembl_gene)) {
           plot_gtex_expression(gene, ensembl_id = ensembl_gene)
         } else if(!is.na(gene)) {
-          plot_gtex_expression(gene,)
-        } else {
-          ggdraw()
+          plot_gtex_expression(gene)
         }
       })
   }
@@ -369,19 +368,35 @@ is_valid_row <- function(x) {
 }
 
 #' @export
-get_var_info <- function() {
-  c(`Gene Symbol` = 'gene',
-    `Ensembl Gene` = 'ensembl_gene',
-    Inheritance = 'inheritance',
-    Consequence = 'consequence',
-    dbSNP = 'db_snp',
-    HGVSg = 'hgvs_genomic', 
-    HGVSc = 'hgvs_coding',
-    HGVSp = 'hgvs_protein',
-    SIFT = 'sift',
-    PolyPhen = 'polyphen',
-    `gnomAD AF` = 'af_gnomad'
-  )    
+get_var_info <- function(sv = FALSE) {
+  if (!sv) {
+    c(`Gene Symbol` = 'gene',
+      `Ensembl Gene` = 'ensembl_gene',
+      Inheritance = 'inheritance',
+      Consequence = 'consequence',
+      `ClinVar Max` = 'clin_sig',
+      dbSNP = 'db_snp',
+      HGVSg = 'hgvs_genomic', 
+      HGVSc = 'hgvs_coding',
+      HGVSp = 'hgvs_protein',
+      SIFT = 'sift',
+      PolyPhen = 'polyphen',
+      `gnomAD AF` = 'af_gnomad'
+    )
+  } else {
+    c(`Gene Symbol` = 'gene',
+      `Other Genes` = 'other_genes',
+      `Ensembl Gene` = 'ensembl_gene',
+      Inheritance = 'inheritance',
+      Consequence = 'consequence',
+      `SV type` = 'SVTYPE',
+      Chromosome = 'chrom',
+      Start = 'pos',
+      End = 'END',
+      Length = 'SVLEN',
+      `gnomAD AF` = 'af_gnomad'
+    )
+  }
 }
 
 re_encode_pptx_hlinks <- function(target) 

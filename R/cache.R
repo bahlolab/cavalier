@@ -7,17 +7,20 @@ cavalier_cache <- new.env()
 #' @importFrom stringr str_ends str_c
 cache <- function(fun, name,
                   disk = FALSE,
-                  ver = '') 
+                  overwrite = FALSE,
+                  ver = NULL) 
 {
   # attempt to return from memory
   value <- cavalier_cache[[name]]
-  if (!is.null(value)) { return(value) }
+  if (!is.null(value) && !overwrite) { return(value) }
   
   # attempt to return from disk
   if (disk) {
-    cache_dir <- get_cavalier_opt('cache_dir')
-    cache_file <- file.path(cache_dir, str_c(name, ver, '.rds'))
-    if (file.exists(cache_file)) { 
+    cache_dir <- get_cache_dir()
+    cache_file <- `if`(!is.null(ver),
+                       file.path(cache_dir, str_c(name, '.', ver, '.rds')),
+                       file.path(cache_dir, str_c(name, '.rds')))
+    if (file.exists(cache_file) & !overwrite) { 
       value <- readRDS(cache_file)
       cavalier_cache[[name]] <- value
       return(value)
@@ -35,7 +38,13 @@ cache <- function(fun, name,
     tmp_fn <- tempfile(pattern = basename(cache_file) %>% str_c('.'),
                        tmpdir = cache_dir)
     saveRDS(value, tmp_fn)
-    file.rename(tmp_fn, cache_file)
+    # attempt to avoid race conditions
+    if (file.exists(cache_file) && !overwrite) {
+      file.remove(tmp_fn)
+    } else {
+      file.rename(tmp_fn, cache_file)
+    }
+    
   }
   
   return(value)
@@ -46,7 +55,7 @@ cache <- function(fun, name,
 clear_cache <- function(mem = TRUE, disk = FALSE)
 {
   if (disk) {
-    cache_dir <- get_cavalier_opt('cache_dir')
+    cache_dir <- get_cache_dir()
     if (dir.exists(cache_dir)) {
       file.remove(list.files(cache_dir, full.names = TRUE))
     }
@@ -54,4 +63,8 @@ clear_cache <- function(mem = TRUE, disk = FALSE)
   if (mem) {
     rm(list = ls(envir = cavalier_cache), envir = cavalier_cache)
   }
+}
+
+get_cache_dir <- function() {
+  file.path(get_cavalier_opt('cache_dir'), packageVersion('cavalier'))
 }

@@ -7,8 +7,9 @@ gtex_gene_median_tpm_uri <-
 get_gtex_expression <- function()
 {
     (function() 
-        read_delim(gtex_gene_median_tpm_uri,
-                   delim = "\t",
+      retry('GET', gtex_gene_median_tpm_uri) %>% 
+       content() %>% rawConnection() %>% gzcon() %>% 
+        read_delim(delim = "\t",
                    skip = 2,
                    col_types = cols()) %>% 
          rename(ensembl_gene_id = Name,
@@ -32,6 +33,7 @@ get_gtex_tissues <- function()
 #' 
 
 #' @importFrom cowplot ggdraw draw_text
+#' @importFrom dplyr n_distinct
 #' @importFrom ggplot2 ggplot aes geom_bar scale_fill_manual ggtitle ylab xlab theme_bw theme guides coord_flip
 #' @export
 plot_gtex_expression <- function(gene, ensembl_id = NULL)
@@ -45,10 +47,15 @@ plot_gtex_expression <- function(gene, ensembl_id = NULL)
     
     gtex_gene_median_tpm <- get_gtex_expression()
     
+    if (!is.null(ensembl_id) && 
+        !ensembl_id %in% gtex_gene_median_tpm$ensembl_gene_id) {
+        ensembl_id <- NULL
+    }
+    
     # if gene not found return plot stating as such
     if ((is.null(ensembl_id) && !gene %in% gtex_gene_median_tpm$symbol) | 
         (!is.null(ensembl_id) && !ensembl_id %in% gtex_gene_median_tpm$ensembl_gene_id)) {
-        return(ggdraw() + draw_text(str_c('"', gene, '"\n not found in GTEx')))
+      return(NULL)
     }
     
     gene_exp <-
@@ -78,7 +85,7 @@ plot_gtex_expression <- function(gene, ensembl_id = NULL)
             theme_bw() + 
             theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.25),
                   axis.title.y = element_blank()) + 
-            guides(fill=FALSE) +
+            guides(fill='none') +
             coord_flip()
     } else {
         # plot multiple genes as boxplot
@@ -91,7 +98,7 @@ plot_gtex_expression <- function(gene, ensembl_id = NULL)
             theme_bw() + 
             theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.25),
                   axis.title.y = element_blank()) + 
-            guides(fill=FALSE) +
+            guides(fill='none') +
             coord_flip()
     }
     
@@ -162,7 +169,7 @@ plot_gtex_compact <- function(gene, ensembl_id = NULL, top_n = 3)
               axis.ticks.x = element_blank(),
               axis.title.x = element_blank(),
               plot.margin = margin(t = 2)) + 
-        guides(fill=FALSE) +
+        guides(fill='none') +
         ylim(0, ymx) +
         coord_flip() +
         facet_wrap(~facet, strip.position = 'left')

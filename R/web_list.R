@@ -39,7 +39,7 @@ get_web_list_version <- function(id, save = NULL)
 
 
 #' @export
-get_web_list <- function(id, save = NULL, secure = TRUE)
+get_web_list <- function(id, version = NULL, save = NULL, secure = TRUE)
 {
   assert_that(is_scalar_character(id))
   
@@ -48,8 +48,8 @@ get_web_list <- function(id, save = NULL, secure = TRUE)
   result <- 
     switch(str_extract(id, '^[^:]+'),
            HP = get_hpo_gene_list(id),
-           PAA = get_panelapp_gene_list(id),
-           PAE = get_panelapp_gene_list(id))
+           PAA = get_panelapp_gene_list(id, version = version),
+           PAE = get_panelapp_gene_list(id, version = version))
   
   if (!is.null(save)) {
     write_tsv(result, save)

@@ -1,8 +1,10 @@
 #' @importFrom stringr str_c str_extract str_split_fixed str_detect
 #' @importFrom magrittr '%>%' set_colnames
-#' @importFrom dplyr transmute coalesce
-get_vep_ann <- function(gds, vep_field,
-                        add_annot = character()) 
+#' @importFrom dplyr transmute coalesce rename_with across starts_with
+get_vep_ann <- function(gds, 
+                        vep_field = 'CSQ',
+                        add_annot = character(),
+                        SVO = FALSE) 
 {
     
     vep_ann_names <- 
@@ -18,6 +20,10 @@ get_vep_ann <- function(gds, vep_field,
         c()
     
     vep_ann <- seqGetData(gds, str_c('annotation/info/', vep_field))
+    if (!is.list(vep_ann)) {
+      vep_ann <- list(length = rep(1, length(vep_ann)),
+                      data = vep_ann)
+    }
     vid <- tibble(variant_id = rep(seqGetData(gds, 'variant.id'), times = vep_ann$length))
     
     vep_raw <-
@@ -47,7 +53,9 @@ get_vep_ann <- function(gds, vep_field,
                   sift = str_extract(SIFT, '^.+(?=\\([0-9\\.]+\\)$)') %>% str_remove('_low_confidence'),
                   sift_score = str_extract(SIFT, '(?<=\\()[0-9\\.]+(?=\\)$)') %>% as.numeric(),
                   polyphen = str_extract(PolyPhen, '^.+(?=\\([0-9\\.]+\\)$)'),
-                  polyphen_score = str_extract(PolyPhen, '(?<=\\()[0-9\\.]+(?=\\)$)') %>% as.numeric()) %T>% 
+                  polyphen_score = str_extract(PolyPhen, '(?<=\\()[0-9\\.]+(?=\\)$)') %>% as.numeric(),
+                  clin_sig_raw = CLIN_SIG,
+                  clin_sig = clean_clin_sig(CLIN_SIG)) %T>% 
         with(assert_that(all(sift %in% c(NA, 'tolerated', 'deleterious'))),
              assert_that(all(polyphen %in% c(NA, 'benign', 'possibly_damaging', 'probably_damaging', 'unknown')))) %>% 
         mutate(sift = ordered(sift,  c('tolerated', 'deleterious')),
@@ -69,7 +77,48 @@ get_vep_ann <- function(gds, vep_field,
                              mutate(data, grantham_score = grantham_score(hgvs_protein)),
                              data))
     
+    if (SVO) {
+      vep_clean <-
+        select(vep_raw, starts_with('SVO_')) %>%
+        mutate(across(everything(), map, ~ c(str_split(.,  pattern = '&', simplify = T )))) %>% 
+        mutate(rn = row_number()) %>% 
+        unnest(starts_with('SVO_')) %>% 
+        mutate(across(c('SVO_AF', 'SVO_PC'), as.numeric)) %>% 
+        mutate(SVO_AF = replace_na(SVO_AF, -1)) %>% 
+        group_by(rn) %>% 
+        slice(which.max(SVO_AF)) %>% 
+        ungroup() %>% 
+        mutate(SVO_AF = if_else(SVO_AF == -1, NA_real_, SVO_AF)) %>% 
+        select(-rn) %>% 
+        rename_with(str_to_lower) %>% 
+        bind_cols(vep_clean, .)
+    }
+    
     return( bind_cols(vid, vep_clean) ) 
+}
+
+clean_clin_sig <- function(x) {
+  # take "highest" clinical significance annotation for each variant
+  
+  clin_sig_levels <- 
+    c('benign',
+      'benign/likely_benign',
+      'likely_benign',
+      'likely_pathogenic',
+      'pathogenic/likely_pathogenic',
+      'pathogenic')
+  
+  tibble(x = x,
+         i = seq_along(x)) %>% 
+    separate_rows(x, sep = '&') %>% 
+    mutate(x = ordered(x, clin_sig_levels)) %>% 
+    distinct() %>% 
+    group_by(i) %>% 
+    slice(`if`(n()==1, 1, which.max(x))) %>% 
+    ungroup() %>% 
+    arrange(i) %>% 
+    pull(x)
+  
 }
 
 #' @importFrom readr cols col_character col_double col_integer

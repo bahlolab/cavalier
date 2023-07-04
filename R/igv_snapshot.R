@@ -188,7 +188,7 @@ create_igv_snapshots <- function(variants, bam_files,
 # download IGV genome file
 get_igv_genome <- function(ref_genome) {
   
-  cache_dir <- get_cavalier_opt('cache_dir')
+  cache_dir <- get_cache_dir()
   
   genome_uri <- `if`(ref_genome == 'hg38',
                      get_cavalier_opt('igv_hg38_uri'),

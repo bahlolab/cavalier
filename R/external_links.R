@@ -30,8 +30,10 @@ genecards_link <- function(gene)
 {
   assert_that(is.character(gene))
   
-  str_c('https://www.genecards.org/cgi-bin/carddisp.pl?gene=',
-        gene)
+  if_else(gene %in% get_hgnc_complete()$symbol,
+          str_c('https://www.genecards.org/cgi-bin/carddisp.pl?gene=',
+                gene),
+          NA_character_)
 }
 
 ensembl_gene_link <- function(ensembl_gene) 
