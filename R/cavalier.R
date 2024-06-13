@@ -5,10 +5,9 @@
 #' 2) combine information from multiple sources useful for evaluating and prioritising variants
 #' 3) create PDF output for visualing and communicating results
 #'
-#' @docType package
 #' @name cavalier
+"_PACKAGE"
 
-NULL
 
 # environment to store default options, user settable with function cavalier_options()
 cavalier_opts <- new.env()
@@ -50,6 +49,13 @@ cavalier_opts$gtex_tissues <-
     "Testis",
     "Thyroid",
     "Whole Blood")
+
+############ HGNC options #################
+# either "latest", "local" or monthly release e.g. "2024-06-04"
+cavalier_opts$hgnc_ver = "latest"
+cavalier_opts$hgnc_monthly_base_url <- 'http://ftp.ebi.ac.uk/pub/databases/genenames/hgnc/archive/monthly/tsv/'
+# set to a local file path for use without web access
+cavalier_opts$hgnc_local_file <- NULL
 
 #' @export
 get_cavalier_opt <- function(name = NULL) {

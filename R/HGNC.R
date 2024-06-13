@@ -1,12 +1,11 @@
 
-hgnc_complete_base_url <- 'http://ftp.ebi.ac.uk/pub/databases/genenames/hgnc/archive/monthly/tsv/'
-
 #' @importFrom dplyr slice pull mutate filter
 get_hgnc_latest_version <- function()
 {
+  hgnc_monthly_base_url <- get_cavalier_opt("hgnc_monthly_base_url")
   (function()
     tryCatch(
-      retry('GET', hgnc_complete_base_url) %>% 
+      retry('GET', hgnc_monthly_base_url) %>% 
         content(encoding = 'UTF-8') %>% 
         rvest::html_nodes('a') %>%
         rvest::html_attr("href") %>% 
@@ -19,7 +18,7 @@ get_hgnc_latest_version <- function()
         as.character(),
       error = function(e) {
         ver <-
-          tibble(filename = list.files(get_cache_dir(), pattern = '^hgnc_complete_set_\\d{4}-\\d{2}-\\d{2}.rds$')) %>% 
+          tibble(filename = list.files(get_cache_dir(), pattern = '^hgnc_complete_set_\\d{4}-\\d{2}-\\d{2}.*\\.rds$')) %>% 
           filter(str_starts(filename, 'hgnc_complete_set_')) %>% 
           mutate(date = str_extract(filename, '(?<=hgnc_complete_set_)\\d{4}-\\d{2}-\\d{2}') %>% 
                    lubridate::as_date()) %>% 
@@ -28,7 +27,7 @@ get_hgnc_latest_version <- function()
           as.character()
         hgnc_files <- 
         if (length(ver)) {
-          warning("Coudn't access latest HGNC build at: ", hgnc_complete_base_url, '. ',
+          warning("Coudn't access latest HGNC build at: ", hgnc_monthly_base_url, '. ',
                   "Using cached version ", ver, '.')
           ver
         } else {
@@ -45,18 +44,30 @@ get_hgnc_latest_version <- function()
 #' @importFrom rlang is_scalar_character
 get_hgnc_complete <- function()
 {
-    ver <- get_hgnc_latest_version()
-    uri <- str_c(hgnc_complete_base_url, 'hgnc_complete_set_', ver,'.txt')
+    ver <- get_cavalier_opt("hgnc_ver")
+    assert_that(is_scalar_character(ver))
     
-    (function()
-      retry('GET', uri) %>% 
-        content(as = 'raw') %>% 
-        rawConnection() %>% 
-        { suppressWarnings(read_tsv(., col_types = cols())) } %>% 
+    if (ver == "latest") {
+      ver <- get_hgnc_latest_version()
+    }
+    if (ver == "local") {
+      con <- get_cavalier_opt("hgnc_local_file")
+    } else {
+      con <- str_c(get_cavalier_opt("hgnc_monthly_base_url"), 'hgnc_complete_set_', ver,'.txt')
+    }
+    
+    cache_name <- basename(con)
+    
+    fun <- function() {
+      suppressWarnings(
+        read_tsv(con, 
+                 col_types = cols()
+        )) %>% 
         select(hgnc_id, symbol, name, location, ensembl_gene_id, entrez_id, alias_symbol, prev_symbol) %>% 
-        mutate(entrez_id = as.integer(entrez_id))) %>% 
-      cache(str_remove(basename(uri), '.txt$'),
-            disk = TRUE)
+        mutate(entrez_id = as.integer(entrez_id))
+    }
+    
+    cache(fun = fun, name = cache_name, disk = ver != "local")
 }
 
 #' @importFrom tidyr replace_na separate_rows
@@ -83,32 +94,35 @@ get_hgnc_alias <- function()
         cache('hgnc_alias')
 }
 
-#' @importFrom dplyr "%>%" select
-get_hgnc_id <- function() 
+#' @importFrom dplyr "%>%" select distinct
+get_hgnc_symbol <- function() 
 {
     (function()
         get_hgnc_complete() %>% 
-         select(symbol, hgnc_id) %>% 
+         select(hgnc_id, symbol) %>% 
+         distinct() %>% 
          na.omit()) %>% 
-        cache('hgnc_id')
+        cache('hgnc_symbol')
 }
 
-#' @importFrom dplyr "%>%" select
+#' @importFrom dplyr "%>%" select distinct
 get_hgnc_ensembl <- function() 
 {
     (function()
         get_hgnc_complete() %>% 
-         select(symbol, ensembl_gene_id) %>% 
+         select(hgnc_id, ensembl_gene_id) %>% 
+         distinct() %>% 
          na.omit()) %>% 
         cache('hgnc_ensembl')
 }
 
-#' @importFrom dplyr "%>%" select
+#' @importFrom dplyr "%>%" select distinct
 get_hgnc_entrez <- function() 
 {
     (function()
         get_hgnc_complete() %>% 
-         select(symbol, entrez_id) %>% 
+         select(hgnc_id, entrez_id) %>% 
+         distinct() %>% 
          na.omit()) %>% 
         cache('hgnc_entrez')
 }
@@ -129,37 +143,68 @@ hgnc_sym2sym <- function(symbols, remove_unknown = FALSE)
 }
 
 #' @export
-hgnc_sym2ensembl <- function(symbols) 
-{
-    symbols <- hgnc_sym2sym(symbols)
-    hgnc_ensembl <- get_hgnc_ensembl()
-    hgnc_ensembl$ensembl_gene_id[match(symbols, hgnc_ensembl$symbol)]
-}
-
-#' @export
-hgnc_ensembl2sym <- function(ensembl_gene_id) {
-    hgnc_ensembl <- get_hgnc_ensembl()
-    hgnc_ensembl$symbol[match(ensembl_gene_id, hgnc_ensembl$ensembl_gene_id)]
-}
-
-#' @export
 hgnc_id2sym <- function(ids) 
 {
-    hgnc_id <- get_hgnc_id()
-    hgnc_id$symbol[match(ids, hgnc_id$hgnc_id)]
+  hgnc_symbol <- get_hgnc_symbol()
+  hgnc_symbol$symbol[match(ids, hgnc_symbol$hgnc_id)]
+}
+
+#' @export
+hgnc_sym2id <- function(symbols) 
+{
+  symbols <- hgnc_sym2sym(symbols)
+  hgnc_symbol <- get_hgnc_symbol()
+  hgnc_symbol$hgnc_id[match(symbols, hgnc_symbol$symbol)]
+}
+
+#' @export
+hgnc_id2ensembl<- function(hgnc_ids) 
+{
+  hgnc_ensembl <- get_hgnc_ensembl()
+  hgnc_ensembl$ensembl_gene_id[match(hgnc_ids, hgnc_ensembl$hgnc_id)]
+}
+
+#' @export
+hgnc_ensembl2id <- function(ensembl_gene_ids) 
+{
+  hgnc_ensembl <- get_hgnc_ensembl()
+  hgnc_ensembl$hgnc_id[match(ensembl_gene_ids, hgnc_ensembl$ensembl_gene_id)]
+}
+
+#' @export
+hgnc_id2entrez<- function(hgnc_ids) 
+{
+  hgnc_entrez <- get_hgnc_entrez()
+  hgnc_entrez$entrez_id[match(hgnc_ids, hgnc_entrez$hgnc_id)]
+}
+
+#' @export
+hgnc_entrez2id <- function(entrez_ids) 
+{
+  hgnc_entrez <- get_hgnc_entrez()
+  hgnc_entrez$hgnc_id[match(entrez_ids, hgnc_entrez$entrez_id)]
+}
+
+#' @export
+hgnc_entrez2sym <- function(entrez_ids) 
+{
+  hgnc_id2sym(hgnc_entrez2id(entrez_ids))
 }
 
 #' @export
 hgnc_sym2entrez <- function(symbols) 
 {
-    symbols <- hgnc_sym2sym(symbols)
-    hgnc_entrez <- get_hgnc_entrez()
-    hgnc_entrez$entrez_id[match(symbols, hgnc_entrez$symbol)]
+  hgnc_id2entrez(hgnc_sym2id(symbols))
 }
 
 #' @export
-hgnc_entrez2sym <- function(entrez_id) 
+hgnc_ensembl2sym <- function(ensembl_gene_ids) 
 {
-    hgnc_entrez <- get_hgnc_entrez()
-    hgnc_entrez$symbol[match(entrez_id, hgnc_entrez$entrez_id)]
+  hgnc_id2sym(hgnc_ensembl2id(ensembl_gene_ids))
+}
+
+#' @export
+hgnc_sym2ensembl <- function(symbols) 
+{
+  hgnc_id2ensembl(hgnc_sym2id(symbols))
 }
