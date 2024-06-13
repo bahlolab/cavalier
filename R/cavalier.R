@@ -10,7 +10,6 @@
 
 NULL
 
-
 # environment to store default options, user settable with function cavalier_options()
 cavalier_opts <- new.env()
 # set default options
@@ -25,6 +24,10 @@ cavalier_opts$igv_cmd <- 'igv.sh'
 cavalier_opts$singularity_cmd <- 'singularity'
 cavalier_opts$igv_hg38_uri <- 'https://s3.amazonaws.com/igv.org.genomes/hg38/hg38.genome'
 cavalier_opts$igv_hg19_uri <- 'https://s3.amazonaws.com/igv.org.genomes/hg19/hg19.genome'
+############ GTEX options #################
+# note: gtex_gene_median_tpm_url can be set to local file with e.g. "file:///path/to/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz"
+cavalier_opts$gtex_gene_median_tpm_url <-
+  "https://storage.googleapis.com/adult-gtex/bulk-gex/v8/rna-seq/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz"
 cavalier_opts$gtex_tissues <-
   c(
     "Adipose - Subcutaneous",
@@ -63,6 +66,4 @@ set_cavalier_opt <- function(...) {
   purrr::walk2(names(dots), dots, function(n, v) {
     assign(n, v, envir = cavalier_opts)
   })
-} 
-
-
+}

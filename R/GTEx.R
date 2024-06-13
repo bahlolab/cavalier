@@ -1,24 +1,40 @@
 
-gtex_gene_median_tpm_uri <-
-    "https://storage.googleapis.com/gtex_analysis_v8/rna_seq_data/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz"
-
 #' @importFrom readr read_delim cols
 #' @importFrom dplyr "%>%" mutate rename
 get_gtex_expression <- function()
 {
-    (function() 
-      retry('GET', gtex_gene_median_tpm_uri) %>% 
-       content() %>% rawConnection() %>% gzcon() %>% 
-        read_delim(delim = "\t",
-                   skip = 2,
-                   col_types = cols()) %>% 
-         rename(ensembl_gene_id = Name,
-                symbol = Description) %>% 
-         mutate(ensembl_gene_id = str_remove(ensembl_gene_id, '\\.[0-9]+$'),
-                symbol = coalesce(hgnc_ensembl2sym(ensembl_gene_id),
-                                  hgnc_sym2sym(symbol)))) %>% 
-        cache(str_remove(basename(gtex_gene_median_tpm_uri), '.gz$'),
-              disk = TRUE)
+  gtex_gene_median_tpm_url <- get_cavalier_opt("gtex_gene_median_tpm_url")
+  
+  stopifnot(is_scalar_character(gtex_gene_median_tpm_url))
+  
+  cache_name <- basename(gtex_gene_median_tpm_url)
+
+  parsed <- httr::parse_url(gtex_gene_median_tpm_url)
+  
+  fun <- function() {
+    if (parsed$scheme == 'file') {
+      con <- parsed$path
+    } else {
+      con <-  
+        retry('GET', parsed) %>% 
+        content() %>% 
+        rawConnection() %>% 
+        gzcon()
+    }
+    read_delim(
+      con,
+      delim = "\t",
+      skip = 2,
+      col_types = cols()) %>% 
+      rename(ensembl_gene_id = Name,
+             symbol = Description) %>% 
+      mutate(ensembl_gene_id = str_remove(ensembl_gene_id, '\\.[0-9]+$'),
+             symbol = coalesce(hgnc_ensembl2sym(ensembl_gene_id),
+                               hgnc_sym2sym(symbol)))
+  }
+  
+  cache(fun = fun, name = cache_name, disk = TRUE)
+
 }
 
 #' @export
@@ -180,9 +196,6 @@ plot_gtex_compact <- function(gene, ensembl_id = NULL, top_n = 3)
         slice(seq.int(n()-top_n)) %>% 
         ggplot(aes(x=tissue, y=expression)) + 
         geom_col(aes(), col = 'gray35', fill = 'gray34') +
-        # ggplot(aes(x=1, y=expression)) + 
-        # geom_boxplot(outlier.color = NA, fill = 'dodgerblue') +
-        # geom_jitter(alpha = 0.50, height = 0, width = 0.25) +
         labs(y = "log-2 TPM") +
         theme_bw() + 
         theme(axis.text.y = element_blank(),
