@@ -1,7 +1,17 @@
 Package: cavalier
 Title: Assist With Variant Interpretation Phase Of Next Generation Sequencing Analysis Pipeline
-Version: 0.1
-Authors@R: person("Mark", "Bennett", email = "mark.bennett@wehi.edu.au", role = c("aut", "cre"))
+Version: 24.06.0
+Authors@R:
+  c(person("Mark", "Bennett",
+           email = "mark.bennett@wehi.edu.au",
+           role = c("aut", "cre")),
+    person("Jacob", "Munro",
+           email = "munro.j@wehi.edu.au",
+           role = c("aut")),
+    person("Neblina", "Sikta",
+           email = "sikta.n@wehi.edu.au",
+           role = c("aut"))
+    )
 Description: cavalier: Candidate Variant List Evaluation Report
     Assist and automate the with variant interpretation in next-generation sequencing data.
     1) filter list of variants and create a short list of candidate variants
@@ -37,4 +47,5 @@ BugReports: https://github.com/bahlolab/cavalier/issues
 LazyData: true
 Depends: 
     R (>= 2.10)
-RoxygenNote: 7.2.2
+RoxygenNote: 7.3.1
+Encoding: UTF-8
