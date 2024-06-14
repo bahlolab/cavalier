@@ -6,12 +6,12 @@ get_centromeres_gaps <- function() {
   
   ref_genome <- get_cavalier_opt('ref_genome')
   
-  (function() {
-
+  fun <- function() {
+    
     if (ref_genome == 'hg38') {
-      agp_url <- 'ftp://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.agp.gz'
+      agp_url <- get_cavalier_opt("agp_url_hg38")
     } else {
-      agp_url <- 'ftp://hgdownload.soe.ucsc.edu/goldenPath/hg19/bigZips/hg19.agp.gz'
+      agp_url <- get_cavalier_opt("agp_url_hg19")
     }
     
     gaps <- 
@@ -35,7 +35,7 @@ get_centromeres_gaps <- function() {
     
     if (ref_genome == 'hg38') {
       
-      cen_url <- 'ftp://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/centromeres.txt.gz'
+      cen_url <- get_cavalier_opt("cen_url_hg38")
       
       gaps <- 
         bind_rows(
@@ -54,7 +54,12 @@ get_centromeres_gaps <- function() {
     }
     
     return(gaps)
-  }) %>% 
-    cache(str_c(ref_genome, '.centromeres_gaps'), disk = TRUE)
+  }
+  
+  cache(
+    fun = fun,
+    name = str_c(ref_genome, '.centromeres_gaps'),
+    disk = TRUE
+  )
 }
 

@@ -122,12 +122,12 @@ caller_format_columns <- function(caller) {
 
 #' @export
 default_annotations <- function() {
-  c('rvis_percentile', 'gevir_percentile', 'grantham_score')
+  c('loeuf_percentile', 'gevir_percentile', 'grantham_score')
 }
 
 #' @export
 all_annotations <- function() {
-  c('rvis_percentile', 'gevir_percentile', 'loeuf_percentile', 'grantham_score')
+  c('gevir_percentile', 'loeuf_percentile', 'grantham_score')
 }
 
 #' @importFrom SeqArray seqOpen seqVCF2GDS

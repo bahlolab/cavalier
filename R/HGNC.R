@@ -1,3 +1,4 @@
+#### hgnc_ids used as primary identifier when joining different gene identifiers
 
 #' @importFrom dplyr slice pull mutate filter
 get_hgnc_latest_version <- function()
@@ -67,7 +68,11 @@ get_hgnc_complete <- function()
         mutate(entrez_id = as.integer(entrez_id))
     }
     
-    cache(fun = fun, name = cache_name, disk = ver != "local")
+    cache(
+      fun = fun,
+      name = cache_name,
+      disk = ver != "local",
+      subdir = 'HGNC')
 }
 
 #' @importFrom tidyr replace_na separate_rows

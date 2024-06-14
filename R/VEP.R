@@ -60,17 +60,13 @@ get_vep_ann <- function(gds,
              assert_that(all(polyphen %in% c(NA, 'benign', 'possibly_damaging', 'probably_damaging', 'unknown')))) %>% 
         mutate(sift = ordered(sift,  c('tolerated', 'deleterious')),
                polyphen = ordered(polyphen, c('benign', 'possibly_damaging', 'probably_damaging'))) %>% 
-        # add rvis_percentile
-        (function(data) `if`('rvis_percentile' %in% add_annot,
-                             mutate(data, rvis_percentile = sym2rvis(gene)),
-                             data)) %>% 
         # add gevir_percentile
         (function(data) `if`('gevir_percentile' %in% add_annot,
-                             mutate(data, gevir_percentile = coalesce(sym2gevir(gene), ensembl2gevir(ensembl_gene))),
+                             mutate(data, gevir_percentile = coalesce(ensembl2gevir(ensembl_gene), sym2gevir(gene))),
                              data)) %>% 
         # add loeuf_percentile
         (function(data) `if`('loeuf_percentile' %in% add_annot,
-                             mutate(data, loeuf_percentile = coalesce(sym2loeuf(gene), ensembl2loeuf(ensembl_gene))),
+                             mutate(data, loeuf_percentile = coalesce(ensembl2loeuf(ensembl_gene), sym2loeuf(gene))),
                              data)) %>% 
         # add grantham_score
         (function(data) `if`('grantham_score' %in% add_annot,

@@ -14,8 +14,8 @@ cavalier_opts <- new.env()
 # set default options
 cavalier_opts$cache_dir <- '~/.cavalier'
 cavalier_opts$snapshot_dir <- '.igv_snapshots'
-cavalier_opts$retry_pause_base <- 5
-cavalier_opts$retry_pause_min <- 5
+cavalier_opts$retry_pause_base <- 1
+cavalier_opts$retry_pause_cap  <- 30
 cavalier_opts$retry_times <- 3
 cavalier_opts$ref_genome <- 'hg38'
 cavalier_opts$xvfb_run_cmd <- 'xvfb-run'
@@ -23,6 +23,14 @@ cavalier_opts$igv_cmd <- 'igv.sh'
 cavalier_opts$singularity_cmd <- 'singularity'
 cavalier_opts$igv_hg38_uri <- 'https://s3.amazonaws.com/igv.org.genomes/hg38/hg38.genome'
 cavalier_opts$igv_hg19_uri <- 'https://s3.amazonaws.com/igv.org.genomes/hg19/hg19.genome'
+
+# TBD: where possible, use cached data instead of getting latest resources from web
+# for best results, run cavalier::build_cache
+# cavalier_opts$offline_mode <- FALSE
+
+# gene intolerance urls, TODO: add gnomadv4 intolerances
+cavalier_opts$gevir_url <- "http://www.gevirank.org/static/files/gene_ranking.csv" 
+
 ############ GTEX options #################
 # note: gtex_gene_median_tpm_url can be set to local file with e.g. "file:///path/to/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz"
 cavalier_opts$gtex_gene_median_tpm_url <-
@@ -57,6 +65,12 @@ cavalier_opts$hgnc_monthly_base_url <- 'http://ftp.ebi.ac.uk/pub/databases/genen
 # set to a local file path for use without web access
 cavalier_opts$hgnc_local_file <- NULL
 
+########### HPO options ####################
+cavalier_opts$hpo_api_base_url <- "https://ontology.jax.org/api/"
+cavalier_opts$hpo_api_max_failuers <- 10L
+cavalier_opts$hpo_github_tag_url <- "https://api.github.com/repos/obophenotype/human-phenotype-ontology/tags"
+cavalier_opts$hpo_github_base_url <- "https://github.com/obophenotype/human-phenotype-ontology/"
+
 #' @export
 get_cavalier_opt <- function(name = NULL) {
   if (is.null(name)) {
@@ -64,6 +78,15 @@ get_cavalier_opt <- function(name = NULL) {
   }
   cavalier_opts[[name]]
 }
+
+######### OMIM options ####################
+cavalier_opts$mim2gene_url <- 'https://omim.org/static/omim/data/mim2gene.txt'
+
+######## UCSC options #####################
+cavalier_opts$agp_url_hg38 <- 'https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.agp.gz'
+cavalier_opts$cen_url_hg38 <- 'https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/centromeres.txt.gz'
+cavalier_opts$agp_url_hg19 <- 'https://hgdownload.soe.ucsc.edu/goldenPath/hg19/bigZips/hg19.agp.gz'
+
  
 #' @export
 set_cavalier_opt <- function(...) {

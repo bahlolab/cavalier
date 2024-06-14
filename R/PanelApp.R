@@ -10,6 +10,7 @@ get_panelapp_url <- function(source = c('PAA', 'PAE'))
   }
 }
 
+
 #'@importFrom dplyr tibble as_tibble bind_rows mutate bind_cols
 #'@importFrom tidyr unnest
 #'@importFrom httr GET accept_json content
@@ -57,6 +58,32 @@ get_panelapp_panels <- function(source = c('PAA', 'PAE'))
     cache(str_c(source, '_panels'))
 }
 
+get_panelapp_gene_list_ver <- function(id) {
+  
+  assert_that(is_scalar_character(id),
+              !is.na(id),
+              str_detect(id, '^PA[AE]:\\d+'))
+  
+  source <- str_extract(id, '^PA[AE]')
+  
+  tryCatch(
+    # get latest version from API
+    get_panelapp_panels(source = source) %>% 
+      filter(id == !!id) %>% 
+      pull(version) %>% 
+      first(),
+    error = function(e) {
+      # if that fails, get latest cached version
+      list.files(get_cache_dir(subdir = 'PanelApp')) %>% 
+        keep(str_starts, str_replace(id, ':', '_')) %>% 
+        str_extract('(?<=\\.ver_)[\\d\\.]+(?=\\.rds)') %>% 
+        sort_versions() %>% 
+        dplyr::last()
+    }
+  )
+    
+}
+
 #'@importFrom dplyr tibble as_tibble bind_rows mutate bind_cols
 #'@importFrom tidyr unnest
 #'@importFrom httr GET accept_json content RETRY
@@ -70,14 +97,19 @@ get_panelapp_gene_list <- function(id, min_confidence = 2L, version = NULL)
               !is.na(id),
               str_detect(id, '^PA[AE]:\\d+'),
               is.null(version) | is_scalar_character(version),
-              is_scalar_integer(min_confidence))
+              is_scalar_integerish(min_confidence))
   
   source <- str_extract(id, '^PA[AE]')
+  
+  if (is.null(version)) {
+    version <- get_panelapp_gene_list_ver(id)
+  }
+  
   url <- str_c(get_panelapp_url(source), 
                 'api/v1/panels/', str_extract(id, '\\d+'), '/',
                `if`(!is.null(version), str_c('?version=', version)))
-  
-  (function()
+
+  fun <- function() {
     retry('GET', url, accept_json()) %>%
       content() %>%
       (function(x) {
@@ -113,11 +145,18 @@ get_panelapp_gene_list <- function(id, min_confidence = 2L, version = NULL)
         }
         x
       }) %>% 
-      filter(entity_type == 'gene',
-             confidence_level >= min_confidence) %>% 
+      bind_rows(tibble(
+        entity_type = character(), 
+        entity_name = character(), 
+        hgnc_id = character(),
+        hgnc_symbol = character(),
+        gene_symbol = character(),
+        confidence_level = character(),
+        mode_of_inheritance = character(),
+      )) %>% 
+      mutate(confidence_level = as.numeric(confidence_level)) %>% 
+      filter(entity_type == 'gene') %>% 
       mutate(panel_id = str_c(source, ':', panel_id),
-             gene = coalesce(hgnc_sym2sym(hgnc_symbol),
-                             entity_name),
              status = case_when(confidence_level == 3 ~ 'GREEN',
                                 confidence_level == 2 ~ 'AMBER',
                                 confidence_level == 1 ~ 'RED'),
@@ -131,13 +170,49 @@ get_panelapp_gene_list <- function(id, min_confidence = 2L, version = NULL)
       select(list_id = panel_id,
              list_name = panel_name,
              version = panel_version,
-             gene,
              hgnc_id,
+             gene = hgnc_symbol,
              panelapp_symbol = gene_symbol,
              inheritance,
-             status)) %>% 
-    cache(str_c(str_replace(id, ':', '_'),
-                `if`(!is.null(version), str_c('_v', version)),
-                '_mc', min_confidence),
-          disk = !is.null(version))
+             status,
+             confidence_level)
+  }
+  
+    
+  cache(
+    fun = fun,
+    name = str_c(str_replace(id, ':', '_')),
+    disk = !is.null(version),
+    ver = version,
+    subdir = 'PanelApp') %>% 
+    filter(confidence_level >= min_confidence)
+}
+
+build_panelapp_cache <- function(sources = c('PAA', 'PAE')) {
+  
+  for(source in sources) {
+    get_panelapp_panels(source = source) %>% 
+      select(id, version) %>% 
+      pwalk(function(id, version)
+        invisible(get_panelapp_gene_list(id=id, version=version))
+      )
+  }
+}
+
+
+get_panelapp_versions <- function(id) 
+{
+  assert_that(is_scalar_character(id),
+              !is.na(id),
+              str_detect(id, '^PA[AE]:\\d+'))
+  
+  source <- str_extract(id, '^PA[AE]')
+  url <- str_c(get_panelapp_url(source), 
+               'api/v1/panels/', str_extract(id, '\\d+'), '/activities')
+  
+  response <- retry('GET', url, accept_json()) %>% content()
+  
+  versions <- unique(map_chr(response, 'panel_version'))
+  
+  return(versions)
 }
