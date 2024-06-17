@@ -19,6 +19,7 @@ dependencies:
     - r-png
     - r-jpeg
     - r-kinship2
+    - r-gdtools
     - bioconductor-seqvartools
     - bioconductor-genomicranges
     - bioconductor-rtracklayer

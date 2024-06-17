@@ -27,10 +27,11 @@ RUN cp /opt/conda/bin/igv /opt/conda/bin/igv.sh \
 
 # Install cavalier R package and build caches
 COPY . /tmp/cavalier
-RUN /opt/conda/bin/R --slave --vanilla -e \
-    "devtools::install(pkg = '/tmp/cavalier', force = TRUE, upgrade = 'never'); \
+RUN /opt/conda/bin/R --slave --vanilla -e "\
+    devtools::install(pkg = '/tmp/cavalier', force = TRUE, upgrade = 'never'); \
     cavalier::set_cavalier_opt(cache_dir = NULL); \
-    cavalier::build_caches(PanelApp = FALSE)"
+    cavalier::build_caches(PanelApp = FALSE) \
+    "
 
 ENV PATH="/opt/conda/bin:${PATH}" \
     TZ=Etc/UTC \
