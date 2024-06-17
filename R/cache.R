@@ -201,7 +201,7 @@ get_cache_dirs <- function() {
 
   # system dir - useful for prebuilt cache in containers
   cache_dirs <- tryCatch(
-    system.file('cache', package = 'cavalier', mustWork = TRUE),
+    file.path(system.file(package = 'cavalier', mustWork = TRUE), 'cache'),
     error = function(e) character()
   )
 
