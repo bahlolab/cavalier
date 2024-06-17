@@ -1,7 +1,8 @@
 
+#' Get assembly gap and centromere locations for get_cavalier_opt('ref_genome')
+#' 
 #' @importFrom dplyr select mutate across bind_rows arrange_all filter
 #' @importFrom readr read_tsv cols
-
 get_centromeres_gaps <- function() {
   
   ref_genome <- get_cavalier_opt('ref_genome')
@@ -58,8 +59,7 @@ get_centromeres_gaps <- function() {
   
   cache(
     fun = fun,
-    name = str_c(ref_genome, '.centromeres_gaps'),
-    disk = TRUE
+    name = str_c('UCSC.assembly_gaps.', ref_genome)
   )
 }
 

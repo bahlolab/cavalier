@@ -23,11 +23,15 @@ cavalier_opts$igv_cmd <- 'igv.sh'
 cavalier_opts$singularity_cmd <- 'singularity'
 cavalier_opts$igv_hg38_uri <- 'https://s3.amazonaws.com/igv.org.genomes/hg38/hg38.genome'
 cavalier_opts$igv_hg19_uri <- 'https://s3.amazonaws.com/igv.org.genomes/hg19/hg19.genome'
+cavalier_opts$use_memoisation <- TRUE
 
-# TBD: where possible, use cached data instead of getting latest resources from web
-# for best results, run cavalier::build_cache
-# cavalier_opts$offline_mode <- FALSE
+# three modes: 
+#   "latest" - use latest version from web, fail if can't access it
+#   "fallback" - use latest version if from web if possible, fallback to latest cache version if not
+#   "offline" - use latest cached version, only check online if no cached version available
+cavalier_opts$database_mode <- "fallback"
 
+########### Gene Intolerance #############
 # gene intolerance urls, TODO: add gnomadv4 intolerances
 cavalier_opts$gevir_url <- "http://www.gevirank.org/static/files/gene_ranking.csv" 
 
@@ -59,8 +63,8 @@ cavalier_opts$gtex_tissues <-
     "Whole Blood")
 
 ############ HGNC options #################
-# either "latest", "local" or monthly release e.g. "2024-06-04"
-cavalier_opts$hgnc_ver = "latest"
+# NULL or specific monthly release e.g. "2024-06-04" or "local" for local file
+cavalier_opts$hgnc_ver = NULL
 cavalier_opts$hgnc_monthly_base_url <- 'http://ftp.ebi.ac.uk/pub/databases/genenames/hgnc/archive/monthly/tsv/'
 # set to a local file path for use without web access
 cavalier_opts$hgnc_local_file <- NULL
@@ -68,8 +72,13 @@ cavalier_opts$hgnc_local_file <- NULL
 ########### HPO options ####################
 cavalier_opts$hpo_api_base_url <- "https://ontology.jax.org/api/"
 cavalier_opts$hpo_api_max_failuers <- 10L
-cavalier_opts$hpo_github_tag_url <- "https://api.github.com/repos/obophenotype/human-phenotype-ontology/tags"
-cavalier_opts$hpo_github_base_url <- "https://github.com/obophenotype/human-phenotype-ontology/"
+cavalier_opts$hpo_github_url <- "https://github.com/obophenotype/human-phenotype-ontology/"
+
+########## PanelApp options ###############
+cavalier_opts$panelapp_urls <- list(
+  PAA = "https://panelapp.agha.umccr.org/",       # PanelApp Australia
+  PAE = "https://panelapp.genomicsengland.co.uk/" # PanelApp England
+)
 
 #' @export
 get_cavalier_opt <- function(name = NULL) {

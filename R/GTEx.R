@@ -6,12 +6,10 @@ get_gtex_expression <- function()
   gtex_gene_median_tpm_url <- get_cavalier_opt("gtex_gene_median_tpm_url")
   
   stopifnot(is_scalar_character(gtex_gene_median_tpm_url))
-  
-  cache_name <- basename(gtex_gene_median_tpm_url)
 
-  parsed <- httr::parse_url(gtex_gene_median_tpm_url)
-  
   fun <- function() {
+    parsed <- httr::parse_url(gtex_gene_median_tpm_url)
+    
     if (parsed$scheme == 'file') {
       con <- parsed$path
     } else {
@@ -27,22 +25,31 @@ get_gtex_expression <- function()
       skip = 2,
       col_types = cols()) %>% 
       rename(ensembl_gene_id = Name,
-             symbol = Description) %>% 
-      mutate(ensembl_gene_id = str_remove(ensembl_gene_id, '\\.[0-9]+$'),
-             symbol = coalesce(hgnc_ensembl2sym(ensembl_gene_id),
-                               hgnc_sym2sym(symbol)))
+             symbol = Description) 
   }
   
-  cache(fun = fun, name = cache_name, disk = TRUE)
+  cache(
+    fun = fun,
+    name = 'GTEx_gene_median_tmp')
 
+}
+
+#' Replace symbol in GTEx expression with current HGNC version
+get_gtex_expression_hgnc <- function()
+{
+  get_gtex_expression() %>% 
+    mutate(ensembl_gene_id = str_remove(ensembl_gene_id, '\\.[0-9]+$'),
+           symbol = coalesce(hgnc_ensembl2sym(ensembl_gene_id),
+                             hgnc_sym2sym(symbol)))
+  
 }
 
 #' @export
 get_gtex_tissues <- function()
 {
-    get_gtex_expression() %>% 
-        select(-(1:2)) %>% 
-        colnames()
+  get_gtex_expression_hgnc() %>% 
+    select(-(1:2)) %>% 
+    colnames()
 }
 
 #' Plot GTEx tissue median RPKM expression for given gene symbol
@@ -50,7 +57,8 @@ get_gtex_tissues <- function()
 
 #' @importFrom cowplot ggdraw draw_text
 #' @importFrom dplyr n_distinct
-#' @importFrom ggplot2 ggplot aes geom_bar scale_fill_manual ggtitle ylab xlab theme_bw theme guides coord_flip
+#' @importFrom ggplot2 ggplot aes geom_bar scale_fill_manual ggtitle ylab xlab theme_bw theme guides 
+#' @importFrom ggplot2 coord_flip geom_col labs geom_text element_blank margin ylim facet_wrap element_text
 #' @export
 plot_gtex_expression <- function(gene, ensembl_id = NULL)
 {
@@ -61,7 +69,7 @@ plot_gtex_expression <- function(gene, ensembl_id = NULL)
                 is_character(tissues),
                 all(tissues %in% get_gtex_tissues()))
     
-    gtex_gene_median_tpm <- get_gtex_expression()
+    gtex_gene_median_tpm <- get_gtex_expression_hgnc()
     
     if (!is.null(ensembl_id) && 
         !ensembl_id %in% gtex_gene_median_tpm$ensembl_gene_id) {
@@ -123,7 +131,9 @@ plot_gtex_expression <- function(gene, ensembl_id = NULL)
 
 # Note: WIP
 #' @importFrom cowplot ggdraw draw_text
+#' @importFrom forcats as_factor
 #' @importFrom ggplot2 ggplot aes geom_bar scale_fill_manual ggtitle ylab xlab theme_bw theme guides coord_flip
+#' @importFrom cowplot plot_grid
 #' @export
 plot_gtex_compact <- function(gene, ensembl_id = NULL, top_n = 3)
 {
@@ -134,7 +144,7 @@ plot_gtex_compact <- function(gene, ensembl_id = NULL, top_n = 3)
                 is_character(tissues),
                 all(tissues %in% get_gtex_tissues()))
     
-    gtex_gene_median_tpm <- get_gtex_expression()
+    gtex_gene_median_tpm <- get_gtex_expression_hgnc()
     
     # if gene not found return plot stating as such
     if ((is.null(ensembl_id) && !gene %in% gtex_gene_median_tpm$symbol) | 
@@ -207,8 +217,8 @@ plot_gtex_compact <- function(gene, ensembl_id = NULL, top_n = 3)
         facet_wrap(~facet, strip.position = 'left')
     
     
-    plot_grid(p1, p2, rel_heights = c(1,2), ncol = 1,
-              align = 'v')
+    p <- plot_grid(p1, p2, rel_heights = c(1,2), ncol = 1,
+                   align = 'v')
     
     return(p)
 }
