@@ -5,8 +5,8 @@ channels:
 dependencies:
     - igv
     - xorg-libxtst
-    - openssl < 3.0.0
-    - r >= 4.2
+    - openssl
+    - r-base >= 4.3
     - r-tidyverse
     - r-docopt
     - r-devtools
@@ -19,7 +19,6 @@ dependencies:
     - r-png
     - r-jpeg
     - r-kinship2
-    - r-gdtools >= 0.3.6
     - bioconductor-seqvartools
     - bioconductor-genomicranges
     - bioconductor-rtracklayer
