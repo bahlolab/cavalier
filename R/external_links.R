@@ -15,7 +15,7 @@ gnomad_link <- function(variants,
        str_c('https://gnomad.broadinstitute.org/variant/',
              str_c(str_remove(chrom, 'chr'), pos, ref, alt, sep = '-'),
              '?dataset=gnomad_',
-             if_else(ref_genome == 'hg38', 'r3', 'r2_1')))
+             if_else(ref_genome == 'hg38', 'r4', 'r2_1')))
 }
 
 dbsnp_link <- function(rsid) 
