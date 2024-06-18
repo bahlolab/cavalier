@@ -144,17 +144,20 @@ get_gene_disease_map <- function(source = c('ALL', 'OMIM', 'ORPHA'))
 }
 
 #' Mapping of hpo_term_id to hpo_term_name
-hpo_term_names <- function(hpo_term_ids)
+get_hpo_term_names <- function()
 {
-  term_names <-
-    bind_rows(
-      get_phenotype_to_genes() %>%
-        select(hpo_term_id, hpo_term_name),
-      get_genes_to_phenotype() %>%
-        select(hpo_term_id, hpo_term_name)
-    ) %>% 
-    distinct()
-  
+  bind_rows(
+    get_phenotype_to_genes() %>%
+      select(hpo_term_id, hpo_term_name),
+    get_genes_to_phenotype() %>%
+      select(hpo_term_id, hpo_term_name)
+  ) %>% distinct()
+}
+
+#' convert hpo_term_id to hpo_term_name
+hpo_id2name <- function(hpo_term_ids)
+{
+  term_names <- get_hpo_term_names()
   with(term_names, hpo_term_name[match(hpo_term_ids, hpo_term_id)])
 }
 
@@ -217,6 +220,7 @@ hpo_api_get <- function(query, prefix = '', suffix = '')
   return(content(response))
 }
 
+#' Query HPO API for disease name with disease id
 hpo_api_get_disease_names <- function(disease_ids) {
   
   assert_that(
@@ -250,24 +254,75 @@ hpo_api_get_disease_names <- function(disease_ids) {
   disease_names
 }
 
+#' Query HPO API for diseases associates with gene, returning table of ids and name
+hpo_api_get_diseases_by_gene <- function(entrez_ids) {
+  
+  assert_that(is_integer(entrez_ids))
+  
+  num_failuers <- 0L
+  
+  disease_tbl <-
+    map_df(entrez_ids, function(entrez_id) {
+      value <-
+        tibble(entrez_id,
+               disease_id = NA_character_, 
+               disease_name = NA_character_,
+               mondo_id = NA_character_)
+      
+      if (!is.na(entrez_id) & num_failuers < get_cavalier_opt('hpo_api_max_failuers')) {
+        result <- tryCatch(
+          hpo_api_get(str_c('NCBIGene:', entrez_id), prefix = 'network/annotation'),
+          error = function(e) { 'ERROR' }
+        )
+        if (is_scalar_character(result) && result == 'ERROR') {
+          num_failuers <- num_failuers + 1L
+        }
+        value <- 
+          tryCatch(
+            bind_rows(result$diseases) %>% 
+              mutate(entrez_id = entrez_id) %>% 
+              select(entrez_id, 
+                     disease_id = id, 
+                     disease_name = name,
+                     mondo_id = mondoId), 
+            error = function(e) value)
+      }
+      
+      return(value)
+    }) %>% 
+    mutate(across(where(is.character), ~ replace(., nchar(.) == 0, NA_character_)))
+  
+  if (num_failuers > get_cavalier_opt('hpo_api_max_failuers')) {
+    warning('exceeded ', get_cavalier_opt('hpo_api_max_failuers'), ' HPO API failures')
+  }
+  
+  return(disease_tbl)
+
+}
+
 #' Build a complete cache of disease names
 #' 
 #' Use as a fallback method if hpo_api_get_disease_names fails
 #' @export
 build_disease_name_cache <- function(version = get_hpo_version()) 
 {
-  
 
   fun <- function() {
     disease_name_tbl <- 
       get_gene_disease_map(source = 'ALL') %>% 
-      select(disease_id) %>% 
+      select(entrez_id, disease_id) %>% 
       distinct() %>% 
-      # head(10) %>% # testing only
-      mutate(disease_name = hpo_api_get_disease_names(disease_id)) %>% 
-      na.omit()
+      add_count(entrez_id, name = 'n_disease') %>% 
+      group_by(disease_id) %>% 
+      slice(which.max(n_disease)) %>% 
+      ungroup() %>% 
+      pull(entrez_id) %>% 
+      unique() %>% 
+      hpo_api_get_diseases_by_gene() %>% 
+      select(disease_id, disease_name) %>% 
+      distinct() %>% 
+      arrange(disease_id)
   }
-  
   
   result <- cache(
     fun = fun,

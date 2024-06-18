@@ -1,4 +1,4 @@
-
+# TODO: support SV links with format https://gnomad.broadinstitute.org/region/<chr>-<start>-<end>?dataset=gnomad_sv_r4
 gnomad_link <- function(variants,
                         ref_genome = get_cavalier_opt('ref_genome'))
 {
