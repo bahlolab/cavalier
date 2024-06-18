@@ -30,7 +30,7 @@ get_gtex_expression <- function()
   
   cache(
     fun = fun,
-    name = 'GTEx_gene_median_tmp')
+    name = 'GTEx_gene_median_tpm')
 
 }
 

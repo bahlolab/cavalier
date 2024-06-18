@@ -22,16 +22,18 @@ cache <- function(name,
     is.function(fun) | is.null(fun),
     is_scalar_character(version) | is.null(version),
     is_scalar_character(subdir) | is.null(subdir),
-    is.character(cache_dirs) & length(na.omit(cache_dirs)) > 0
+    is.list(cache_dirs),
+    is_scalar_character(cache_dirs$primary),
+    is_scalar_character(cache_dirs$read_only) || is.null(cache_dirs$read_only)
   )
   
   name_ver <- `if`(!is.null(version), str_c(name, '.version_', version), name)
   
   # get cached object paths
   if (!is.null(subdir)) {
-    paths <- file.path(cache_dirs, subdir, str_c(name_ver, '.rds'))
+    paths <- file.path(unlist(cache_dirs), subdir, str_c(name_ver, '.rds'))
   } else {
-    paths <- file.path(cache_dirs, str_c(name_ver, '.rds'))
+    paths <- file.path(unlist(cache_dirs), str_c(name_ver, '.rds'))
   }
   
   # read first cached object if exists
@@ -49,25 +51,25 @@ cache <- function(name,
   
   # Evaluate fun and attempt to store in first path
   value <- fun()
-  for (path in paths) {
-    dir <- dirname(path)
-    tryCatch(
-      {
-        if (!dir.exists(dir)) { dir.create(dir, recursive = T) }
-        tmp <- tempfile(pattern = str_c(name_ver, '.tmp_'), tmpdir = dir)
-        saveRDS(value, file = tmp, compress = TRUE)
-        file.rename(tmp, path)
-        message("Saved ", name_ver, ' to ', path)
-      },
-      error = function(e) NULL
-    )
-    if (file.exists(path)) {
-      return(value)
-    }
+
+  path <- paths[1]
+  
+  tryCatch(
+    {
+      dir <- dirname(path)
+      if (!dir.exists(dir)) { dir.create(dir, recursive = T) }
+      tmp <- tempfile(pattern = str_c(name_ver, '.tmp_'), tmpdir = dir)
+      saveRDS(value, file = tmp, compress = TRUE)
+      file.rename(tmp, path)
+      message("Saved ", name_ver, ' to ', path)
+    },
+    error = function(e) NULL
+  )
+  
+  if (!file.exists(path)) {
+    warning('Could not save ', name_ver, ' to cache ', path)
   }
-
-  warning('Could not save ', name_ver, ' to cache')
-
+  
   return(value)
 }
 
@@ -76,11 +78,18 @@ get_latest_cached_version <- function(
     subdir = NULL,
     cache_dirs = get_cache_dirs()) 
 {
+  assert_that(
+    is_scalar_character(name),
+    is_scalar_character(subdir) | is.null(subdir),
+    is.list(cache_dirs),
+    is_scalar_character(cache_dirs$primary),
+    is_scalar_character(cache_dirs$read_only) || is.null(cache_dirs$read_only)
+  )
   
   if (!is.null(subdir)) {
-    paths <- file.path(cache_dirs, subdir)
+    paths <- file.path(unlist(cache_dirs), subdir)
   } else {
-    paths <- file.path(cache_dirs)
+    paths <- file.path(unlist(cache_dirs))
   }
   
   version <-
@@ -147,25 +156,26 @@ get_version <- function(
   
 }
 
-
 #' Store or load extenal file to disk
 cache_file <- function(url,
                        version = NULL,
                        subdir = NULL,
                        cache_dirs = get_cache_dirs())
 {
-  
   assert_that(
+    is_scalar_character(url),
     is_scalar_character(version) | is.null(version),
     is_scalar_character(subdir) | is.null(subdir),
-    is.character(cache_dirs) & length(na.omit(cache_dirs)) > 0
+    is.list(cache_dirs),
+    is_scalar_character(cache_dirs$primary),
+    is_scalar_character(cache_dirs$read_only) || is.null(cache_dirs$read_only)
   )
   
   # get cached object paths
   if (!is.null(subdir)) {
-    paths <- file.path(cache_dirs, subdir, basename(url))
+    paths <- file.path(unlist(cache_dirs), subdir, basename(url))
   } else {
-    paths <- file.path(cache_dirs, basename(url))
+    paths <- file.path(unlist(cache_dirs), basename(url))
   }
   
   # read first cached object if exists
@@ -176,48 +186,41 @@ cache_file <- function(url,
     }
   }
   
-  # Download file attempt to store in first path
-  for (path in paths) {
-    dir <- dirname(path)
-    tryCatch(
-      {
-        if (!dir.exists(dir)) { dir.create(dir, recursive = T) }
-        tmp <- tempfile(pattern = str_c(basename(url), '.tmp_'), tmpdir = dir)
-        download.file(url, destfile = tmp)
-        file.rename(tmp, path)
-        message("Downloaded ", url, ' to ', path)
-      },
-      error = function(e) NULL
-    )
-    if (file.exists(path)) {
-      return(path)
-    }
+  # Download file attempt to primary cache_dir
+  
+  tryCatch(
+    {
+      path <- paths[1]
+      dir <- dirname(path)
+      if (!dir.exists(dir)) { dir.create(dir, recursive = T) }
+      tmp <- tempfile(pattern = str_c(basename(url), '.tmp_'), tmpdir = dir)
+      download.file(url, destfile = tmp)
+      file.rename(tmp, path)
+      message("Downloaded ", url, ' to ', path)
+    },
+    error = function(e) NULL
+  )
+  
+  if (file.exists(path)) {
+    return(path)
   }
   
   stop('Could not download ', url)
 }
 
 get_cache_dirs <- function() {
-
-  # system dir - useful for prebuilt cache in containers
-  cache_dirs <- tryCatch(
-    file.path(system.file(package = 'cavalier', mustWork = TRUE), 'cache'),
-    error = function(e) character()
-  )
-
-  # user dir, defaults to '~/.cavalier_cache'
-  user_cache_dir <- get_cavalier_opt('cache_dir')
-  if (!is.null(user_cache_dir)) {
-    # increment whenever breaking changes are made to cached files
-    CACHE_VER <- "v1"
-    user_cache_dir <- file.path(user_cache_dir, CACHE_VER)
-    if (!file.exists(user_cache_dir)) {
-      dir.create(user_cache_dir, recursive = TRUE)
-    }
-    cache_dirs <- c(user_cache_dir, cache_dirs)
-  }
-
-  assert_that(length(cache_dirs) > 0)
+  
+  # increment whenever breaking changes are made to cached files
+  CACHE_VER <- "v1"
+  
+  cache_dirs <-
+    list(
+      primary = get_cavalier_opt("cache_dir"), 
+      read_only = get_cavalier_opt("read_only_cache_dir")
+    ) %>% 
+    map(function(x) {
+      `if`(!is.null(x), file.path(x, CACHE_VER))
+    })
 
   return(cache_dirs)
 

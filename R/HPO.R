@@ -289,6 +289,7 @@ hpo_api_get_diseases_by_gene <- function(entrez_ids) {
       }
       
       return(value)
+      
     }) %>% 
     mutate(across(where(is.character), ~ replace(., nchar(.) == 0, NA_character_)))
   
@@ -341,19 +342,16 @@ build_disease_name_cache <- function(version = get_hpo_version())
 #' Get latest disease name cache from disk
 get_disease_name_cache <- function()
 {
-  c('OMIM', 'ORPHA') %>% 
-    map_df( function(source) {
-      ver <- get_latest_cached_version(name = str_c(source, '_disease_names'), subdir = 'HPO')
-      if (is_scalar_character(ver) && !is.na(ver)) {
-        cache(
-          name = str_c(source, '_disease_names'), 
-          subdir = 'HPO', 
-          ver = ver
-        )
-      } else {
-        tibble(disease_id = character(), disease_name = character())
-      }
-    })
+  ver <- get_latest_cached_version(name = 'disease_names', subdir = 'HPO')
+  if (is_scalar_character(ver) && !is.na(ver)) {
+    cache(
+      name = 'disease_names', 
+      subdir = 'HPO', 
+      ver = ver
+    )
+  } else {
+    tibble(disease_id = character(), disease_name = character())
+  }
 }
 
 

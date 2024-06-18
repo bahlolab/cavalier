@@ -13,6 +13,8 @@
 cavalier_opts <- new.env()
 # set default options
 cavalier_opts$cache_dir <- '~/.cavalier'
+# useful for a shared cache, will only read from but not write to
+cavalier_opts$read_only_cache_dir <- NULL
 cavalier_opts$snapshot_dir <- '.igv_snapshots'
 cavalier_opts$retry_pause_base <- 1
 cavalier_opts$retry_pause_cap  <- 30
