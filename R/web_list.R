@@ -45,14 +45,16 @@ get_web_list <- function(id, version = NULL, save = NULL, secure = TRUE)
   
   if (!secure) { insecure() }
   
-  result <- switch(
-    str_extract(id, '^[^:]+'),
-    HP = get_hpo_gene_list(id),
-    PAA = get_panelapp_panel(id, version = version) %>% 
-      filter(min_confidence >= 2L),
-    PAE = get_panelapp_panel(id, version = version) %>% 
-      filter(min_confidence >= 2L)
-  )
+  ## assume PanelApp starts with PA
+  pref <- str_extract(id, '^[^:]+')
+  
+  if (pref == 'HP') {
+    result <- get_hpo_gene_list(id)
+  } else if (str_starts(pref, 'PA')) {
+    result <- get_panelapp_panel(id, version = version)
+  } else {
+    stop('Unrecognised web gene list id "', id, '"')
+  }
   
   if (!is.null(save)) {
     write_tsv(result, save)

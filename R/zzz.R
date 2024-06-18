@@ -12,6 +12,7 @@
     hpo_api_get <<- memoise::memoise(hpo_api_get)
     get_hpo_g2p_p2g <<- memoise::memoise(get_hpo_g2p_p2g)
     get_gene_disease_map <<- memoise::memoise(get_gene_disease_map)
+    hpo_term_names <<- memoise::memoise(hpo_term_names)
     get_hpo_gene_list <<- memoise::memoise(get_hpo_gene_list)
     get_disease_name_cache <<- memoise::memoise(get_disease_name_cache)
     

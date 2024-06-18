@@ -4,7 +4,7 @@
 \alias{get_gene_disease_map}
 \title{Simplified mapping from gene to phenotype from HPO}
 \usage{
-get_gene_disease_map(source = c("OMIM", "ORPHA"))
+get_gene_disease_map(source = c("ALL", "OMIM", "ORPHA"))
 }
 \description{
 Simplified mapping from gene to phenotype from HPO

@@ -136,7 +136,11 @@ create_slides <- function(variants,
       variants %>%
       select(gene) %>%
       mutate(id = slide_data$id) %>%
-      left_join(get_gene_disease_map(source = 'OMIM'), by = c(gene = 'symbol')) %>% 
+      left_join(
+        get_gene_disease_map(source = 'OMIM') %>% 
+          mutate(symbol = coalesce(hgnc_entrez2sym(entrez_id), 
+                                   hgnc_sym2sym(symbol))),
+        by = c(gene = 'symbol')) %>% 
       mutate(disease_name = get_disease_names(disease_id)) %>% 
       mutate(disease_name_url = str_c('https://omim.org/entry/', str_extract(disease_id, '\\d+$')),
              disease_id_url = disease_name_url) %>% 

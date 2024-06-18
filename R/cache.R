@@ -245,7 +245,7 @@ build_caches <- function(
     UCSC = TRUE,
     PanelApp = TRUE,
     HPO = TRUE,
-    HPO_disease_names = c('OMIM')) 
+    HPO_disease_names = TRUE) 
 {
   if (HGNC) {
     message('Building HGNC cache')
@@ -282,20 +282,19 @@ build_caches <- function(
     message('Building HPO cache')
     invisible(get_genes_to_phenotype())
     invisible(get_phenotype_to_genes())
-    invisible(get_gene_disease_map(source = 'OMIM'))
-    invisible(get_gene_disease_map(source = 'ORPHA'))
+    invisible(get_gene_disease_map())
     message('HPO done')
   }
-  for (source in HPO_disease_names) {
-    message('Building ', source, ' disease names cache')
-    message('This will take some time...')
-    invisible(build_disease_name_cache(source = source))
-    message(source, ' disease name done')
+  if (HPO_disease_names) {
+    message('Building HPO disease names cache')
+    message('This may take some time...')
+    invisible(build_disease_name_cache())
+    message('HPO disease names cache done')
   }
   if (PanelApp) {
     message('Building PanelApp cache')
     message('This will take some time...')
-    invisible(build_panelapp_cache(sources = c('PAA', 'PAE')))
+    invisible(build_panelapp_cache(sources = names(get_cavalier_opt('panelapp_urls'))))
     message('PanelApp cache done')
   }
 }

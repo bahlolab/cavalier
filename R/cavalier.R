@@ -75,6 +75,7 @@ cavalier_opts$hpo_api_max_failuers <- 10L
 cavalier_opts$hpo_github_url <- "https://github.com/obophenotype/human-phenotype-ontology/"
 
 ########## PanelApp options ###############
+# can add additional PanelApp endpoints here if needed - name should start with 'PA'
 cavalier_opts$panelapp_urls <- list(
   PAA = "https://panelapp.agha.umccr.org/",       # PanelApp Australia
   PAE = "https://panelapp.genomicsengland.co.uk/" # PanelApp England

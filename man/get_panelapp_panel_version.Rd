@@ -4,7 +4,7 @@
 \alias{get_panelapp_panel_version}
 \title{Get latest version of PanelApp Panel (from server or cache)}
 \usage{
-get_panelapp_panel_version(id)
+get_panelapp_panel_version(id, db_mode = get_cavalier_opt("database_mode"))
 }
 \description{
 Get latest version of PanelApp Panel (from server or cache)

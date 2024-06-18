@@ -4,10 +4,7 @@
 \alias{build_disease_name_cache}
 \title{Build a complete cache of disease names}
 \usage{
-build_disease_name_cache(
-  source = c("OMIM", "ORPHA"),
-  version = get_hpo_version()
-)
+build_disease_name_cache(version = get_hpo_version())
 }
 \description{
 Use as a fallback method if hpo_api_get_disease_names fails

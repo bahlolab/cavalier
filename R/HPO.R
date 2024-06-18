@@ -110,44 +110,50 @@ get_phenotype_to_genes <- function()
 }
 
 #' Simplified mapping from gene to phenotype from HPO
-get_gene_disease_map <- function(source = c('OMIM', 'ORPHA')) 
+get_gene_disease_map <- function(source = c('ALL', 'OMIM', 'ORPHA')) 
 {
   source <- match.arg(source)
   
   fun <- function() {
     get_genes_to_phenotype() %>% 
       select(entrez_id, symbol, disease_id, hpo_term_id) %>% 
-      filter(str_starts(disease_id, str_c(source, ':'))) %>% 
       group_by(entrez_id, symbol, disease_id) %>% 
       left_join(hpo_mendelian_inheritnace, by = 'hpo_term_id') %>% 
       summarise(inheritance = str_c(sort(na.omit(inheritance)), collapse = '/'),
                 .groups = 'drop') %>% 
+      mutate(inheritance = if_else(nchar(inheritance) == 0, NA_character_, inheritance)) %>% 
       select(entrez_id, symbol, disease_id, inheritance) %>% 
       distinct()
   }
   
-  cache(
+  result <-
+    cache(
     fun = fun,
-    name = str_c(source, '_gene_disease_map'),
+    name = 'gene_disease_map',
     subdir = 'HPO',
     ver = get_hpo_version()
   )
+  
+  if (source == 'ALL') {
+    return(result)
+  } else {
+    return(
+      filter(result, str_detect(disease_id, str_c('^', source)))
+    )
+  }
 }
 
 #' Mapping of hpo_term_id to hpo_term_name
 hpo_term_names <- function(hpo_term_ids)
 {
-  fun <- function() {
-    distinct(
-      bind_rows(
+  term_names <-
+    bind_rows(
       get_phenotype_to_genes() %>%
         select(hpo_term_id, hpo_term_name),
       get_genes_to_phenotype() %>%
         select(hpo_term_id, hpo_term_name)
-    ))
-  }
-  
-  term_names <- cache(fun = fun, name = 'hpo_term_names')
+    ) %>% 
+    distinct()
   
   with(term_names, hpo_term_name[match(hpo_term_ids, hpo_term_id)])
 }
@@ -170,10 +176,7 @@ get_hpo_gene_list <- function(hpo_id, prefer_omim = TRUE) {
     select(entrez_id, symbol, disease_id) %>% 
     distinct() %>% 
     left_join(
-      bind_rows(
-        get_gene_disease_map(source = 'OMIM'),
-        get_gene_disease_map(source = 'ORPHA')
-      ) %>% select(-symbol),
+      get_gene_disease_map(source = 'ALL') %>% select(-symbol),
       by = c('entrez_id', 'disease_id')) %>% 
     group_by(entrez_id) %>% 
     filter(!prefer_omim | str_starts(disease_id, 'OMIM') | !any(str_starts(disease_id, 'OMIM'))) %>% 
@@ -218,26 +221,26 @@ hpo_api_get_disease_names <- function(disease_ids) {
   
   assert_that(
     is.character(disease_ids),
-    all(str_detect(disease_ids, '^(OMIM|ORPHA):'))
+    all(na.omit(str_detect(disease_ids, '^(OMIM|ORPHA):')))
   )
   
   num_failuers <- 0L
   
   disease_names <-
     map_chr(disease_ids, function(disease_id) {
-    if (num_failuers < get_cavalier_opt('hpo_api_max_failuers')) {
-      result <- tryCatch(
-        hpo_api_get(disease_id, prefix = 'network/annotation'),
-        error = function(e) { 'ERROR' }
-      )
-      if (is_scalar_character(result) && result == 'ERROR') {
-        num_failuers <- num_failuers + 1L
-      }
-      tryCatch(result$disease$name, error = function(e) NA_character_)
-    } else {
-      NA_character_
-    } 
-  })
+      if (!is.na(disease_id) & num_failuers < get_cavalier_opt('hpo_api_max_failuers')) {
+        result <- tryCatch(
+          hpo_api_get(disease_id, prefix = 'network/annotation'),
+          error = function(e) { 'ERROR' }
+        )
+        if (is_scalar_character(result) && result == 'ERROR') {
+          num_failuers <- num_failuers + 1L
+        }
+        tryCatch(result$disease$name, error = function(e) NA_character_)
+      } else {
+        NA_character_
+      } 
+    })
   
   
   if (num_failuers > get_cavalier_opt('hpo_api_max_failuers')) {
@@ -251,17 +254,13 @@ hpo_api_get_disease_names <- function(disease_ids) {
 #' 
 #' Use as a fallback method if hpo_api_get_disease_names fails
 #' @export
-build_disease_name_cache <- function(
-    source = c('OMIM', 'ORPHA'),
-    version = get_hpo_version()
-    ) 
+build_disease_name_cache <- function(version = get_hpo_version()) 
 {
   
-  source <- match.arg(source)
-  
+
   fun <- function() {
     disease_name_tbl <- 
-      get_gene_disease_map(source = source) %>% 
+      get_gene_disease_map(source = 'ALL') %>% 
       select(disease_id) %>% 
       distinct() %>% 
       # head(10) %>% # testing only
@@ -269,16 +268,19 @@ build_disease_name_cache <- function(
       na.omit()
   }
   
-  invisible(
-    cache(
-      fun = fun,
-      name = str_c(source, '_disease_names'),
-      version = version,
-      subdir = 'HPO'
-    )
+  
+  result <- cache(
+    fun = fun,
+    name = 'disease_names',
+    version = version,
+    subdir = 'HPO'
   )
   
-  if (memoise::is.memoised(get_disease_name_cache)) { memoise::drop_cache(get_disease_name_cache) }
+  if (memoise::is.memoised(get_disease_name_cache)) { 
+    memoise::drop_cache(get_disease_name_cache) 
+  }
+  
+  invisible(result)
 }
 
 #' Get latest disease name cache from disk

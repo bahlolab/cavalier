@@ -30,7 +30,7 @@ COPY . /tmp/cavalier
 RUN /opt/conda/bin/R --slave --vanilla -e "\
     devtools::install(pkg = '/tmp/cavalier', force = TRUE, upgrade = 'never'); \
     cavalier::set_cavalier_opt(cache_dir = NULL); \
-    cavalier::build_caches(PanelApp = FALSE) \
+    cavalier::build_caches() \
     "
 
 ENV PATH="/opt/conda/bin:${PATH}" \
