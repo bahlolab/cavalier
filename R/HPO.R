@@ -36,9 +36,7 @@ get_hpo_version <- function(db_mode = get_cavalier_opt("database_mode")) {
 #' Retrieve HPO genes_to_phenotype and phenotype_to_genes
 #' 
 #' Download or load from disk cache
-get_hpo_g2p_p2g <- function() {
-  
-  hpo_version <- get_hpo_version()
+get_hpo_g2p_p2g <- function(hpo_version = get_hpo_version()) {
   
   fun <- function() {
     
@@ -98,24 +96,25 @@ get_hpo_g2p_p2g <- function() {
 }
 
 #' HPO genes_to_phenotype table
-get_genes_to_phenotype <- function() 
+get_genes_to_phenotype <- function(hpo_version = get_hpo_version()) 
 {
-  get_hpo_g2p_p2g()$genes_to_phenotype
+  get_hpo_g2p_p2g(hpo_version)$genes_to_phenotype
 }
 
 #' HPO phenotype_to_genes table
-get_phenotype_to_genes <- function() 
+get_phenotype_to_genes <- function(hpo_version = get_hpo_version()) 
 {
-  get_hpo_g2p_p2g()$phenotype_to_genes
+  get_hpo_g2p_p2g(hpo_version)$phenotype_to_genes
 }
 
 #' Simplified mapping from gene to phenotype from HPO
-get_gene_disease_map <- function(source = c('ALL', 'OMIM', 'ORPHA')) 
+get_gene_disease_map <- function(source = c('ALL', 'OMIM', 'ORPHA'),
+                                 hpo_version = get_hpo_version()) 
 {
   source <- match.arg(source)
   
   fun <- function() {
-    get_genes_to_phenotype() %>% 
+    get_genes_to_phenotype(hpo_version) %>% 
       select(entrez_id, symbol, disease_id, hpo_term_id) %>% 
       group_by(entrez_id, symbol, disease_id) %>% 
       left_join(hpo_mendelian_inheritnace, by = 'hpo_term_id') %>% 
@@ -131,7 +130,7 @@ get_gene_disease_map <- function(source = c('ALL', 'OMIM', 'ORPHA'))
     fun = fun,
     name = 'gene_disease_map',
     subdir = 'HPO',
-    ver = get_hpo_version()
+    ver = hpo_version
   )
   
   if (source == 'ALL') {
@@ -144,56 +143,60 @@ get_gene_disease_map <- function(source = c('ALL', 'OMIM', 'ORPHA'))
 }
 
 #' Mapping of hpo_term_id to hpo_term_name
-get_hpo_term_names <- function()
+get_hpo_term_names <- function(hpo_version = get_hpo_version())
 {
   bind_rows(
-    get_phenotype_to_genes() %>%
+    get_phenotype_to_genes(hpo_version) %>%
       select(hpo_term_id, hpo_term_name),
-    get_genes_to_phenotype() %>%
+    get_genes_to_phenotype(hpo_version) %>%
       select(hpo_term_id, hpo_term_name)
   ) %>% distinct()
 }
 
 #' convert hpo_term_id to hpo_term_name
-hpo_id2name <- function(hpo_term_ids)
+hpo_id2name <- function(hpo_term_ids, hpo_version = get_hpo_version())
 {
-  term_names <- get_hpo_term_names()
+  term_names <- get_hpo_term_names(hpo_version)
   with(term_names, hpo_term_name[match(hpo_term_ids, hpo_term_id)])
 }
 
 #' Get a gene list from HPO phenotype_to_genes table
 #' @export
 #' @importFrom dplyr inner_join anti_join add_row
-get_hpo_gene_list <- function(hpo_id, prefer_omim = TRUE) {
+get_hpo_gene_list <- function(hpo_id, prefer_omim = TRUE, hpo_version = get_hpo_version()) {
   
   assert_that(
     is_scalar_character(hpo_id),
     !is.na(hpo_id),
-    str_detect(hpo_id, 'HP:\\d+$')
+    str_detect(hpo_id, 'HP:\\d+$'),
+    is_scalar_character(hpo_version) || is.null(hpo_version)
   )
   
-  term_name <- hpo_term_names(hpo_id)
+  if (is.null(hpo_version)) {
+    hpo_version <- get_hpo_version()
+  }
   
-  get_phenotype_to_genes() %>% 
+  term_name <- hpo_id2name(hpo_id, hpo_version)
+  
+  get_phenotype_to_genes(hpo_version) %>% 
     filter(hpo_term_id == hpo_id) %>% 
     select(entrez_id, symbol, disease_id) %>% 
     distinct() %>% 
     left_join(
-      get_gene_disease_map(source = 'ALL') %>% select(-symbol),
+      get_gene_disease_map(source = 'ALL', hpo_version = hpo_version) %>%
+        select(-symbol),
       by = c('entrez_id', 'disease_id')) %>% 
     group_by(entrez_id) %>% 
     filter(!prefer_omim | str_starts(disease_id, 'OMIM') | !any(str_starts(disease_id, 'OMIM'))) %>% 
     ungroup() %>% 
-    mutate(gene = coalesce(
+    mutate(symbol = coalesce(
       hgnc_entrez2sym(entrez_id),
       hgnc_sym2sym(symbol),
       symbol)) %>% 
-    select(gene, disease_id,  inheritance) %>%
-    arrange(gene, disease_id) %>% 
-    mutate(version = get_hpo_version()) %>% 
+    mutate(list_version = get_hpo_version()) %>% 
     mutate(list_id = hpo_id,
            list_name = term_name) %>% 
-    select(list_id, list_name, everything())
+    select(list_id, list_name, list_version, symbol, entrez_id, disease_id, inheritance)
 }
 
 #' Query HPO API

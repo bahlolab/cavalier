@@ -4,7 +4,7 @@
 \alias{get_genes_to_phenotype}
 \title{HPO genes_to_phenotype table}
 \usage{
-get_genes_to_phenotype()
+get_genes_to_phenotype(hpo_version = get_hpo_version())
 }
 \description{
 HPO genes_to_phenotype table

@@ -4,7 +4,7 @@
 \alias{get_hpo_g2p_p2g}
 \title{Retrieve HPO genes_to_phenotype and phenotype_to_genes}
 \usage{
-get_hpo_g2p_p2g()
+get_hpo_g2p_p2g(hpo_version = get_hpo_version())
 }
 \description{
 Download or load from disk cache

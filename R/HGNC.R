@@ -217,3 +217,17 @@ hgnc_sym2ensembl <- function(symbols)
 {
   hgnc_id2ensembl(hgnc_sym2id(symbols))
 }
+
+#' Convert ensembl_gene_id to entrez_id
+#' @export
+hgnc_ensembl2entrez <- function(ensembl_gene_ids) 
+{
+  hgnc_id2entrez(hgnc_ensembl2id(ensembl_gene_ids))
+}
+
+#' Convert entrez_id to ensembl_gene_id
+#' @export
+hgnc_entrez2ensembl <- function(entrez_ids) 
+{
+  hgnc_id2ensembl(hgnc_entrez2id(entrez_ids))
+}

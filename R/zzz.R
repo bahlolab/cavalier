@@ -38,7 +38,21 @@
     
     ### UCSC ###
     get_centromeres_gaps <<- memoise::memoise(get_centromeres_gaps)
+    
+    ### Genes4Epilepsy
+    get_g4e_version <<- memoise::memoise(get_g4e_version)
+    get_g4e_full_list <<- memoise::memoise(get_g4e_full_list)
   }
+  
+  # set cavalier options from global options
+  options() %>% 
+    (function(x) {
+      x <- x[str_starts(names(x), 'cavalier.')]
+      names(x) <- str_remove(names(x), '^cavalier.')
+      x
+    }) %>% 
+    (function(x) do.call(set_cavalier_opt, x))
+    
 
   invisible()
   

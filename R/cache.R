@@ -39,8 +39,9 @@ cache <- function(name,
   # read first cached object if exists
   for (path in paths) {
     if (file.exists(path)) {
-      message('Loading ', name_ver, ' from cache: ', path)
-      return(readRDS(path))
+      value <- readRDS(path)
+      message('Loaded ', name_ver, ' from cache: ', path)
+      return(value)
     }
   }
   
@@ -248,7 +249,8 @@ build_caches <- function(
     UCSC = TRUE,
     PanelApp = TRUE,
     HPO = TRUE,
-    HPO_disease_names = TRUE) 
+    HPO_disease_names = TRUE,
+    Genes4Epilepsy = TRUE) 
 {
   if (HGNC) {
     message('Building HGNC cache')
@@ -273,13 +275,14 @@ build_caches <- function(
   }
   if (UCSC) {
     message('Building UCSC assembly gaps')
-    ref_genome <- get_cavalier_opt('ref_genome')
-    set_cavalier_opt(ref_genome = 'hg38')
-    invisible(get_centromeres_gaps())
-    set_cavalier_opt(ref_genome = 'hg19')
-    invisible(get_centromeres_gaps())
-    set_cavalier_opt(ref_genome = ref_genome)
+    invisible(get_centromeres_gaps(ref_genome = 'hg38'))
+    invisible(get_centromeres_gaps(ref_genome = 'hg19'))
     message('UCSC assembly gaps done')
+  }
+  if (Genes4Epilepsy) {
+    message('Building Genes4Epilepsy cache')
+    invisible(get_g4e_full_list())
+    message('Genes4Epilepsy done')
   }
   if (HPO) {
     message('Building HPO cache')

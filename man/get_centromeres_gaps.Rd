@@ -4,7 +4,7 @@
 \alias{get_centromeres_gaps}
 \title{Get assembly gap and centromere locations for get_cavalier_opt('ref_genome')}
 \usage{
-get_centromeres_gaps()
+get_centromeres_gaps(ref_genome = get_cavalier_opt("ref_genome"))
 }
 \description{
 Get assembly gap and centromere locations for get_cavalier_opt('ref_genome')

@@ -33,45 +33,45 @@ get_vep_ann <- function(gds,
         readr::type_convert(col_types = vep_col_spec)
     
     vep_clean <-
-        vep_raw %>% 
-        transmute(gene = coalesce(hgnc_ensembl2sym(Gene),
+      vep_raw %>% 
+      transmute(symbol = coalesce(hgnc_ensembl2sym(Gene),
                                   hgnc_id2sym(HGNC_ID),
                                   hgnc_sym2sym(SYMBOL)),
-                  hgnc_id = HGNC_ID,
-                  ensembl_gene = Gene,
-                  ensembl_transcript = str_extract(Feature, '^ENST.+'),
-                  ensembl_protein = str_extract(ENSP, '^ENSP.+'),
-                  consequence = Consequence,
-                  impact = ordered(IMPACT, c('MODIFIER', 'LOW', 'MODERATE', 'HIGH')),
-                  hgvs_genomic = HGVSg,
-                  hgvs_coding = str_extract(HGVSc, '(?<=:).+$'),
-                  hgvs_protein = str_extract(HGVSp, '(?<=:).+$') %>% str_replace('%3D', '='),
-                  db_snp = str_extract(Existing_variation, 'rs[0-9]+'),
-                  af_gnomad = gnomAD_AF,
-                  af_1000G = AF,
-                  af_popmax = MAX_AF,
-                  sift = str_extract(SIFT, '^.+(?=\\([0-9\\.]+\\)$)') %>% str_remove('_low_confidence'),
-                  sift_score = str_extract(SIFT, '(?<=\\()[0-9\\.]+(?=\\)$)') %>% as.numeric(),
-                  polyphen = str_extract(PolyPhen, '^.+(?=\\([0-9\\.]+\\)$)'),
-                  polyphen_score = str_extract(PolyPhen, '(?<=\\()[0-9\\.]+(?=\\)$)') %>% as.numeric(),
-                  clin_sig_raw = CLIN_SIG,
-                  clin_sig = clean_clin_sig(CLIN_SIG)) %T>% 
-        with(assert_that(all(sift %in% c(NA, 'tolerated', 'deleterious'))),
-             assert_that(all(polyphen %in% c(NA, 'benign', 'possibly_damaging', 'probably_damaging', 'unknown')))) %>% 
-        mutate(sift = ordered(sift,  c('tolerated', 'deleterious')),
-               polyphen = ordered(polyphen, c('benign', 'possibly_damaging', 'probably_damaging'))) %>% 
-        # add gevir_percentile
-        (function(data) `if`('gevir_percentile' %in% add_annot,
-                             mutate(data, gevir_percentile = coalesce(ensembl2gevir(ensembl_gene), sym2gevir(gene))),
-                             data)) %>% 
-        # add loeuf_percentile
-        (function(data) `if`('loeuf_percentile' %in% add_annot,
-                             mutate(data, loeuf_percentile = coalesce(ensembl2loeuf(ensembl_gene), sym2loeuf(gene))),
-                             data)) %>% 
-        # add grantham_score
-        (function(data) `if`('grantham_score' %in% add_annot,
-                             mutate(data, grantham_score = grantham_score(hgvs_protein)),
-                             data))
+                hgnc_id = HGNC_ID,
+                ensembl_gene_id = Gene,
+                ensembl_transcript_id = str_extract(Feature, '^ENST.+'),
+                ensembl_protein_id = str_extract(ENSP, '^ENSP.+'),
+                consequence = Consequence,
+                impact = ordered(IMPACT, c('MODIFIER', 'LOW', 'MODERATE', 'HIGH')),
+                hgvs_genomic = HGVSg,
+                hgvs_coding = str_extract(HGVSc, '(?<=:).+$'),
+                hgvs_protein = str_extract(HGVSp, '(?<=:).+$') %>% str_replace('%3D', '='),
+                db_snp = str_extract(Existing_variation, 'rs[0-9]+'),
+                af_gnomad = gnomAD_AF,
+                af_1000G = AF,
+                af_popmax = MAX_AF,
+                sift = str_extract(SIFT, '^.+(?=\\([0-9\\.]+\\)$)') %>% str_remove('_low_confidence'),
+                sift_score = str_extract(SIFT, '(?<=\\()[0-9\\.]+(?=\\)$)') %>% as.numeric(),
+                polyphen = str_extract(PolyPhen, '^.+(?=\\([0-9\\.]+\\)$)'),
+                polyphen_score = str_extract(PolyPhen, '(?<=\\()[0-9\\.]+(?=\\)$)') %>% as.numeric(),
+                clin_sig_raw = CLIN_SIG,
+                clin_sig = clean_clin_sig(CLIN_SIG)) %T>% 
+      with(assert_that(all(sift %in% c(NA, 'tolerated', 'deleterious'))),
+           assert_that(all(polyphen %in% c(NA, 'benign', 'possibly_damaging', 'probably_damaging', 'unknown')))) %>% 
+      mutate(sift = ordered(sift,  c('tolerated', 'deleterious')),
+             polyphen = ordered(polyphen, c('benign', 'possibly_damaging', 'probably_damaging'))) %>% 
+      # add gevir_percentile
+      (function(data) `if`('gevir_percentile' %in% add_annot,
+                           mutate(data, gevir_percentile = coalesce(ensembl2gevir(ensembl_gene_id), sym2gevir(symbol))),
+                           data)) %>% 
+      # add loeuf_percentile
+      (function(data) `if`('loeuf_percentile' %in% add_annot,
+                           mutate(data, loeuf_percentile = coalesce(ensembl2loeuf(ensembl_gene_id), sym2loeuf(symbol))),
+                           data)) %>% 
+      # add grantham_score
+      (function(data) `if`('grantham_score' %in% add_annot,
+                           mutate(data, grantham_score = grantham_score(hgvs_protein)),
+                           data))
     
     if (SVO) {
       vep_clean <-

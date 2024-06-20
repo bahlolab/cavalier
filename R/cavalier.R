@@ -83,6 +83,9 @@ cavalier_opts$panelapp_urls <- list(
   PAE = "https://panelapp.genomicsengland.co.uk/" # PanelApp England
 )
 
+######### Genes4Epilepsy ##################
+cavalier_opts$g4e_github_url <- 'https://github.com/bahlolab/Genes4Epilepsy/'
+
 #' @export
 get_cavalier_opt <- function(name = NULL) {
   if (is.null(name)) {
@@ -108,3 +111,10 @@ set_cavalier_opt <- function(...) {
     assign(n, v, envir = cavalier_opts)
   })
 }
+
+#' @export
+set_options_from_json <- function(json) {
+  do.call(set_cavalier_opt, jsonlite::fromJSON(json))
+}
+
+

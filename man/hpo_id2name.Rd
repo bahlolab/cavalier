@@ -4,7 +4,7 @@
 \alias{hpo_id2name}
 \title{convert hpo_term_id to hpo_term_name}
 \usage{
-hpo_id2name(hpo_term_ids)
+hpo_id2name(hpo_term_ids, hpo_version = get_hpo_version())
 }
 \description{
 convert hpo_term_id to hpo_term_name

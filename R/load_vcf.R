@@ -75,6 +75,11 @@ load_vcf <- function(input,
            left_join(x, get_vep_ann(gds, annotater_field, add_annot = additional_annotation, SVO = SVO),
                      by = 'variant_id'),
            x)
+    }) %>% 
+    (function(x) {
+      `if`(annotater == 'VEP' & caller == 'manta',
+           mutate(x, hgvs_genomic = str_c(chrom, ':g.', pos, '_', coalesce(END, pos + SVLEN, pos), '_', SVTYPE)),
+           x)
     })
   
   seqClose(gds)

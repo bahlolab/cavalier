@@ -120,12 +120,12 @@ create_slides <- function(variants,
     
     slide_data$gtex <-
       variants %>% 
-      select(ensembl_gene, gene) %>% 
-      pmap(function(ensembl_gene, gene) {
-        if (!is.na(ensembl_gene)) {
-          plot_gtex_expression(gene, ensembl_id = ensembl_gene)
-        } else if(!is.na(gene)) {
-          plot_gtex_expression(gene)
+      select(ensembl_gene_id, symbol) %>% 
+      pmap(function(ensembl_gene_id, symbol) {
+        if (!is.na(ensembl_gene_id)) {
+          plot_gtex_expression(symbol, ensembl_id = ensembl_gene_id)
+        } else if(!is.na(symbol)) {
+          plot_gtex_expression(symbol)
         }
       })
   }
@@ -134,13 +134,13 @@ create_slides <- function(variants,
     
     slide_data$omim <-
       variants %>%
-      select(gene) %>%
+      select(symbol) %>%
       mutate(id = slide_data$id) %>%
       left_join(
         get_gene_disease_map(source = 'OMIM') %>% 
           mutate(symbol = coalesce(hgnc_entrez2sym(entrez_id), 
                                    hgnc_sym2sym(symbol))),
-        by = c(gene = 'symbol')) %>% 
+        by = 'symbol') %>% 
       mutate(disease_name = get_disease_names(disease_id)) %>% 
       mutate(disease_name_url = str_c('https://omim.org/entry/', str_extract(disease_id, '\\d+$')),
              disease_id_url = disease_name_url) %>% 
@@ -270,6 +270,7 @@ layout_multiple <- function(pedigree = FALSE,
 #' @importFrom rlang dots_list is_scalar_double
 #' @importFrom purrr map_lgl walk map_df
 #' @importFrom stringr str_starts
+#' @importFrom dplyr row_number
 #' @export
 slide_layout <- function(...,
                          heights = NULL,
@@ -374,8 +375,8 @@ is_valid_row <- function(x) {
 #' @export
 get_var_info <- function(sv = FALSE) {
   if (!sv) {
-    c(`Gene Symbol` = 'gene',
-      `Ensembl Gene` = 'ensembl_gene',
+    c(`Gene Symbol` = 'symbol',
+      `Ensembl Gene` = 'ensembl_gene_id',
       Inheritance = 'inheritance',
       Consequence = 'consequence',
       `ClinVar Max` = 'clin_sig',
@@ -388,9 +389,9 @@ get_var_info <- function(sv = FALSE) {
       `gnomAD AF` = 'af_gnomad'
     )
   } else {
-    c(`Gene Symbol` = 'gene',
+    c(`Gene Symbol` = 'symbol',
       `Other Genes` = 'other_genes',
-      `Ensembl Gene` = 'ensembl_gene',
+      `Ensembl Gene` = 'ensembl_gene_id',
       Inheritance = 'inheritance',
       Consequence = 'consequence',
       `SV type` = 'SVTYPE',

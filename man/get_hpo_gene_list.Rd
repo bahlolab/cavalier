@@ -4,7 +4,7 @@
 \alias{get_hpo_gene_list}
 \title{Get a gene list from HPO phenotype_to_genes table}
 \usage{
-get_hpo_gene_list(hpo_id, prefer_omim = TRUE)
+get_hpo_gene_list(hpo_id, prefer_omim = TRUE, hpo_version = get_hpo_version())
 }
 \description{
 Get a gene list from HPO phenotype_to_genes table

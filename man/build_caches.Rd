@@ -12,7 +12,8 @@ build_caches(
   UCSC = TRUE,
   PanelApp = TRUE,
   HPO = TRUE,
-  HPO_disease_names = TRUE
+  HPO_disease_names = TRUE,
+  Genes4Epilepsy = TRUE
 )
 }
 \description{
