@@ -5,8 +5,8 @@
 \title{Get HGNC complete table from either get_cavalier_opt("hgnc_monthly_base_url") or disk cache}
 \usage{
 get_hgnc_complete(
-  ver = get_cavalier_opt("hgnc_ver"),
-  local_file = get_cavalier_opt("hgnc_local_file")
+  local_file = get_cavalier_opt("hgnc_local_file"),
+  ver = get_hgnc_version()
 )
 }
 \description{

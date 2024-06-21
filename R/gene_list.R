@@ -9,9 +9,11 @@
 #' # Get HPO genes associated with HP:0001250 (Seizure)
 #' get_gene_list('HP:0001250')
 #' #' Get all Genes4Epilepsy genes
-#' get_gene_list('G4E:Epilepsy')
+#' get_gene_list('G4E:ALL')
 #' # Get Genes4Epilepsy genes associated Malformations of Cortical Development
 #' get_gene_list('G4E:MCD')
+#' Get all protein coding genes from HGNC
+#' get_gene_list('HGNC:protein-coding')
 #' @export
 get_gene_list <- function(id, version = NULL, save = NULL, min_confidence = 2L)
 {
@@ -40,6 +42,11 @@ get_gene_list <- function(id, version = NULL, save = NULL, min_confidence = 2L)
       get_g4e_phenotype_list(version = version, phenotype = pheno) %>% 
       mutate(list_name = str_c('Genes4Epilepsy - ', pheno),
              symbol = coalesce(hgnc_id2sym(hgnc_id), hgnc_sym2sym(symbol)))
+  } else if (pref == 'HGNC') {
+    locus_group <- str_extract(id, '(?<=:).+')
+    result <-
+      get_hgnc_locus_group_list(locus_group = locus_group) %>% 
+      mutate(inheritance = NA_character_)
   } else {
     stop('Unrecognised web gene list id "', id, '"')
   }

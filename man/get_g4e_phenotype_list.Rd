@@ -6,7 +6,7 @@
 \usage{
 get_g4e_phenotype_list(
   version = get_g4e_version(),
-  phenotype = c("Epilepsy", "DEE", "Focal", "MCD", "GGE", "PME")
+  phenotype = c("ALL", "DEE", "Focal", "MCD", "GGE", "PME")
 )
 }
 \description{

@@ -62,7 +62,7 @@ get_g4e_full_list <- function(version = get_g4e_version()) {
 #' Get sublist of Genes4Epilepsy by phenotype
 get_g4e_phenotype_list <- function(
     version = get_g4e_version(),
-    phenotype = c('Epilepsy', 'DEE', 'Focal', 'MCD', 'GGE', 'PME')
+    phenotype = c('ALL', 'DEE', 'Focal', 'MCD', 'GGE', 'PME')
 ) 
 {
   phenotype <- match.arg(phenotype)
@@ -72,7 +72,7 @@ get_g4e_phenotype_list <- function(
   }
   
   get_g4e_full_list(version) %>% 
-    mutate(phenotype = str_c('Epilepsy, ', phenotype)) %>% 
+    mutate(phenotype = str_c('ALL, ', phenotype)) %>% 
     separate_rows(phenotype) %>% 
     filter(phenotype == !!phenotype) %>% 
     select(-phenotype) %>% 

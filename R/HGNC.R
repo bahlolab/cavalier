@@ -1,8 +1,14 @@
 
 #' Get HGNC version from either get_cavalier_opt("hgnc_monthly_base_url") or disk cache
 #' @importFrom dplyr slice pull mutate filter
-get_hgnc_version <- function(db_mode = get_cavalier_opt("database_mode"))
+get_hgnc_version <- function(
+    db_mode = get_cavalier_opt("database_mode"),
+    ver = get_cavalier_opt("hgnc_ver"))
 {
+  if (!is.null(ver)) {
+    return(ver)
+  }
+  
   func_online <- function() {
     get_cavalier_opt("hgnc_monthly_base_url") %>% 
       retry(verb = 'GET') %>% 
@@ -30,18 +36,17 @@ get_hgnc_version <- function(db_mode = get_cavalier_opt("database_mode"))
 #' @importFrom stringr str_remove
 #' @importFrom rlang is_scalar_character
 get_hgnc_complete <- function(
-    ver = get_cavalier_opt("hgnc_ver"),
-    local_file = get_cavalier_opt("hgnc_local_file")
+    local_file = get_cavalier_opt("hgnc_local_file"),
+    ver = get_hgnc_version()
 )
 {
     assert_that(
-      is_scalar_character(ver) | is.null(ver),
+      is_scalar_character(ver),
       is_scalar_character(local_file) | is.null(local_file)
     )
     
-    if (is.null(ver)) {
-      ver <- get_hgnc_version()
-    }
+    
+    
     if (ver == "local") {
       con <- local_file
     } else {
@@ -53,7 +58,7 @@ get_hgnc_complete <- function(
         read_tsv(con, 
                  col_types = cols()
         )) %>% 
-        select(hgnc_id, symbol, name, location, ensembl_gene_id, entrez_id, alias_symbol, prev_symbol) %>% 
+        select(hgnc_id, symbol, name, locus_group, location, ensembl_gene_id, entrez_id, alias_symbol, prev_symbol) %>% 
         mutate(entrez_id = as.integer(entrez_id))
     }
     
@@ -124,6 +129,16 @@ get_hgnc_entrez <- function()
      select(hgnc_id, entrez_id) %>% 
      distinct() %>% 
      na.omit()
+}
+
+#' Get HGNC hgnc_id, locus_group table
+#' @importFrom dplyr "%>%" select distinct
+get_hgnc_locus_group <- function() 
+{
+  get_hgnc_complete() %>% 
+    select(hgnc_id, locus_group) %>% 
+    distinct() %>% 
+    na.omit()
 }
 
 # Replace gene symbols with HGNC approved symbol
@@ -230,4 +245,23 @@ hgnc_ensembl2entrez <- function(ensembl_gene_ids)
 hgnc_entrez2ensembl <- function(entrez_ids) 
 {
   hgnc_id2ensembl(hgnc_entrez2id(entrez_ids))
+}
+
+#' Get list of from HGNC by locus_group
+get_hgnc_locus_group_list <- function(
+    locus_group = c('protein-coding gene', 'non-coding RNA', 'pseudogene', 'other', 'ALL')
+) 
+{
+  locus_group <- match.arg(locus_group)
+  
+  get_hgnc_locus_group() %>% 
+    filter(!!locus_group == 'ALL' | locus_group == !!locus_group) %>% 
+    select(-locus_group) %>% 
+    left_join(get_hgnc_symbol(), by = 'hgnc_id') %>% 
+    left_join(get_hgnc_ensembl(), by = 'hgnc_id') %>% 
+    left_join(get_hgnc_entrez(), by = 'hgnc_id') %>% 
+    mutate(list_id = str_c('HGNC:', locus_group),
+           list_name = list_id,
+           list_version = get_hgnc_version(),
+           .before = 1)
 }

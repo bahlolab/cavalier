@@ -4,7 +4,10 @@
 \alias{get_hgnc_version}
 \title{Get HGNC version from either get_cavalier_opt("hgnc_monthly_base_url") or disk cache}
 \usage{
-get_hgnc_version(db_mode = get_cavalier_opt("database_mode"))
+get_hgnc_version(
+  db_mode = get_cavalier_opt("database_mode"),
+  ver = get_cavalier_opt("hgnc_ver")
+)
 }
 \description{
 Get HGNC version from either get_cavalier_opt("hgnc_monthly_base_url") or disk cache

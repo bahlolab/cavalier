@@ -23,6 +23,8 @@
     get_hgnc_symbol <<- memoise::memoise(get_hgnc_symbol)
     get_hgnc_ensembl <<- memoise::memoise(get_hgnc_ensembl)
     get_hgnc_entrez <<- memoise::memoise(get_hgnc_entrez)
+    get_hgnc_locus_group <<- memoise::memoise(get_hgnc_locus_group)
+    get_hgnc_locus_group_list <<- memoise::memoise(get_hgnc_locus_group_list)
     
     ### Gene intolerance ###
     get_gevir_table <<- memoise::memoise(get_gevir_table)

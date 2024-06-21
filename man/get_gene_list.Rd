@@ -16,7 +16,9 @@ get_gene_list('PAA:202', version = '1.26')
 # Get HPO genes associated with HP:0001250 (Seizure)
 get_gene_list('HP:0001250')
 #' Get all Genes4Epilepsy genes
-get_gene_list('G4E:Epilepsy')
+get_gene_list('G4E:ALL')
 # Get Genes4Epilepsy genes associated Malformations of Cortical Development
 get_gene_list('G4E:MCD')
+Get all protein coding genes from HGNC
+get_gene_list('HGNC:protein-coding')
 }

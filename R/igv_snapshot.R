@@ -130,7 +130,7 @@ create_igv_snapshots <- function(variants, bam_files,
     # xvfb/ IGV commamnd
     cmd <- 
       str_c(str_c('HOME=',normalizePath(home_dir)),
-            str_c('TMPDIR=',normalizePath(file.path(home_dir, "tmp"))),
+            str_c(' TMPDIR=',normalizePath(home_dir)),
             ' bash -c "',
             str_c(
               xvfb_run_cmd,
