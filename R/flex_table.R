@@ -307,8 +307,8 @@ cell_dims_wrapped <- function(ft,
     
     flextable:::fortify_content(part$content, default_chunk_fmt = part$styles$text) %>% 
       (function(x) {
-        tibble(row_id = x$ft_row_id,
-               col_id = as.character(x$col_id),
+        tibble(row_id = x$.row_id,
+               col_id = as.character(x$.col_id),
                dims =  select(x, txt, font.size, font.family, bold, italic) %>% 
                  pmap(., txt_dim_wrap, max_lines = max_lines))
       }) %>% 

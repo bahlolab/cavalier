@@ -75,6 +75,11 @@ load_vcf <- function(input,
            left_join(x, get_vep_ann(gds, annotater_field, add_annot = additional_annotation, SVO = SVO),
                      by = 'variant_id'),
            x)
+    }) %>% 
+    (function(x) {
+      `if`(annotater == 'VEP' & caller == 'manta',
+           mutate(x, hgvs_genomic = str_c(chrom, ':g.', pos, '_', coalesce(END, pos + SVLEN, pos), '_', SVTYPE)),
+           x)
     })
   
   seqClose(gds)
@@ -122,12 +127,12 @@ caller_format_columns <- function(caller) {
 
 #' @export
 default_annotations <- function() {
-  c('rvis_percentile', 'gevir_percentile', 'grantham_score')
+  c('loeuf_percentile', 'gevir_percentile', 'grantham_score')
 }
 
 #' @export
 all_annotations <- function() {
-  c('rvis_percentile', 'gevir_percentile', 'loeuf_percentile', 'grantham_score')
+  c('gevir_percentile', 'loeuf_percentile', 'grantham_score')
 }
 
 #' @importFrom SeqArray seqOpen seqVCF2GDS

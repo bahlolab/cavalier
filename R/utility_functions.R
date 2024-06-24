@@ -90,7 +90,7 @@ retry <- function(...)
     tryCatch(
       RETRY(...,
             pause_base = get_cavalier_opt('retry_pause_base'),
-            pause_min  = get_cavalier_opt('retry_pause_min'),
+            pause_cap = get_cavalier_opt('retry_pause_cap'),
             times = get_cavalier_opt('retry_times')),
       error = function(e) { warning(e); NULL })
 
@@ -108,3 +108,23 @@ retry <- function(...)
   warning(result$url, ' returned ', result$status_code)
   stop(result$url, ' returned ', result$status_code)
 }
+
+## TODO: move these to options in exported functions(e.g. secure = TRUE), use as httr::with_config
+#'@export
+insecure <- function() httr::set_config(httr::config(ssl_verifypeer = 0L))
+#'@export
+secure <- function() httr::set_config(httr::config(ssl_verifypeer = 1L))
+
+
+sort_versions <- function(x) {
+  
+  if(length(x) <=1) {
+    return(x)
+  }
+  stringr::str_remove_all(x, '[^\\d\\.]+') %>% 
+    str_split("\\.", simplify = T) %>% 
+    apply(2, \(x) stringr::str_pad(x, max(nchar(x)), pad = '0')) %>% 
+    apply(1, str_c, collapse = '') %>% 
+    { x[order(.)] }
+}
+
