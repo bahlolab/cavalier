@@ -128,8 +128,12 @@ add_inheritance <- function(variants,
         ungroup() %>% 
         select(gene, uid, sample) %>% 
         mutate(uid = map(uid, function(x) {
-          # split into pairs
-          combn(x, 2) %>% as.data.frame() %>% as.list() %>% unname()
+          if (length(x) < 2) {
+            return(list(x))
+          } else {
+            # split into pairs
+            combn(x, 2) %>% as.data.frame() %>% as.list() %>% unname()
+          }
         })) %>% 
         unnest(uid)
     }
