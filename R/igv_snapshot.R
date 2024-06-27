@@ -130,6 +130,7 @@ create_igv_snapshots <- function(variants, bam_files,
     # xvfb/ IGV commamnd
     cmd <- 
       str_c(str_c('HOME=',normalizePath(home_dir)),
+            str_c(' TMPDIR=',normalizePath(home_dir)),
             ' bash -c "',
             str_c(
               xvfb_run_cmd,
@@ -188,22 +189,11 @@ create_igv_snapshots <- function(variants, bam_files,
 # download IGV genome file
 get_igv_genome <- function(ref_genome) {
   
-  cache_dir <- get_cache_dir()
-  
   genome_uri <- `if`(ref_genome == 'hg38',
                      get_cavalier_opt('igv_hg38_uri'),
                      get_cavalier_opt('igv_hg19_uri'))
   
-  genome_file <- file.path(cache_dir, basename(genome_uri))
-  
-  if (!file.exists(genome_file)) {
-    tmp <- tempfile(tmpdir = cache_dir)
-    download.file(url = genome_uri, destfile = tmp)
-    file.rename(tmp, genome_file)
-  }
-  
-  assert_that(file.exists(genome_file))
-  genome_file
+  cache_file(genome_uri)
 }
 
 #' @importFrom ggplot2 ggplot theme_void coord_fixed aes scale_x_continuous scale_y_continuous

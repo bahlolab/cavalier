@@ -1,4 +1,4 @@
-
+# TODO: support SV links with format https://gnomad.broadinstitute.org/region/<chr>-<start>-<end>?dataset=gnomad_sv_r4
 gnomad_link <- function(variants,
                         ref_genome = get_cavalier_opt('ref_genome'))
 {
@@ -15,7 +15,7 @@ gnomad_link <- function(variants,
        str_c('https://gnomad.broadinstitute.org/variant/',
              str_c(str_remove(chrom, 'chr'), pos, ref, alt, sep = '-'),
              '?dataset=gnomad_',
-             if_else(ref_genome == 'hg38', 'r3', 'r2_1')))
+             if_else(ref_genome == 'hg38', 'r4', 'r2_1')))
 }
 
 dbsnp_link <- function(rsid) 
