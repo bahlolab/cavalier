@@ -1,10 +1,21 @@
-# Changelog: nf-cavalier
+# Changelog: cavalier
 <!--- https://keepachangelog.com/en/1.0.0/ --->
 
-## [Unreleased]
+## [24.06.0]
+### Fixed
+- HPO API updated to current version
+
+### Added
+- Gene4Epilepsy gene lists: e.g. `get_gene_list('G4E:ALL')`
+- HGNC gene lists: e.g.  `get_gene_list('HGNC:protein-coding')`
+- Caching of all files the rely on web resources
+- Option `read_only_cache_dir` to allow shared cavalier cache directory: e.g. `set_cavalier_opt(read_only_cache_dir = '/PATH/TO/DIR')`
+- All URLs to remote resources as options that can be changed in case they move
+- Roxygen function documentation to many functions
+
 ### Changed
-- Cache dir now uses package version in case of changes in formatting of cache files between versions
-- PanelApp lists stored in cache as well if a specific list version is requested
-- Add support for Structural variants
-- Better messaging about failed HTTP requests
-- Removed reliance on HPO API for disease names by using hpo.annotation build artifacts instead. HPO API seems to be missing some OMIM diseases.
+- improve compound heterozygous detection in `inheritance.R`
+- moved Dockerfile to this repository from nf-cavalier to streamline building docker container
+
+### Removed
+- RVIS scores as outdated and certificate has expired on download page
