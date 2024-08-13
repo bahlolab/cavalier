@@ -100,7 +100,7 @@ caller_info_columns <- function(caller) {
   assert_that(is_scalar_character(caller))
   
   if (caller == 'GATK') {
-    c('AF', 'AC', 'AN', 'QD')
+    c('AF', 'AC', 'AN', 'gnomAD_AC', 'gnomAD_nhomalt', 'gnomAD_AN', 'CADD')
   } else if (caller == 'Mutect2') {
     c('AF', 'AC', 'AN')
   } else if (caller == 'manta') {
