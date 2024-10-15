@@ -10,15 +10,14 @@ get_hgnc_version <- function(
   }
   
   func_online <- function() {
-    get_cavalier_opt("hgnc_monthly_base_url") %>% 
-      retry(verb = 'GET') %>% 
-      content(encoding = 'UTF-8') %>% 
-      rvest::html_nodes('a') %>%
-      rvest::html_attr("href") %>% 
-      keep(str_starts, 'hgnc_complete_set_') %>% 
+    rvest::read_html('https://storage.googleapis.com/public-download-files') %>% 
+      rvest::html_elements("key") %>%
+      rvest::html_text() %>% 
+      keep(str_detect, 'monthly/tsv/hgnc_complete_set_.+\\.txt$') %>% 
       str_extract('(?<=hgnc_complete_set_)\\d{4}-\\d{2}-\\d{2}') %>% 
       sort() %>% 
       last()
+        
   }
   
   get_version(
@@ -44,7 +43,6 @@ get_hgnc_complete <- function(
       is_scalar_character(ver),
       is_scalar_character(local_file) | is.null(local_file)
     )
-    
     
     
     if (ver == "local") {
