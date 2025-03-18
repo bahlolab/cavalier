@@ -79,7 +79,7 @@ cavalier_opts$hpo_github_url <- "https://github.com/obophenotype/human-phenotype
 ########## PanelApp options ###############
 # can add additional PanelApp endpoints here if needed - name should start with 'PA'
 cavalier_opts$panelapp_urls <- list(
-  PAA = "https://panelapp.agha.umccr.org/",       # PanelApp Australia
+  PAA = "https://panelapp-aus.org/",       # PanelApp Australia
   PAE = "https://panelapp.genomicsengland.co.uk/" # PanelApp England
 )
 
