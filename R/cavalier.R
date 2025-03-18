@@ -67,7 +67,7 @@ cavalier_opts$gtex_tissues <-
 ############ HGNC options #################
 # NULL or specific monthly release e.g. "2024-06-04" or "local" for local file
 cavalier_opts$hgnc_ver = NULL
-cavalier_opts$hgnc_monthly_base_url <- 'http://ftp.ebi.ac.uk/pub/databases/genenames/hgnc/archive/monthly/tsv/'
+cavalier_opts$hgnc_monthly_base_url <- 'https://storage.googleapis.com/public-download-files/hgnc/archive/archive/monthly/tsv/'
 # set to a local file path for use without web access
 cavalier_opts$hgnc_local_file <- NULL
 
@@ -79,7 +79,7 @@ cavalier_opts$hpo_github_url <- "https://github.com/obophenotype/human-phenotype
 ########## PanelApp options ###############
 # can add additional PanelApp endpoints here if needed - name should start with 'PA'
 cavalier_opts$panelapp_urls <- list(
-  PAA = "https://panelapp.agha.umccr.org/",       # PanelApp Australia
+  PAA = "https://panelapp-aus.org/",       # PanelApp Australia
   PAE = "https://panelapp.genomicsengland.co.uk/" # PanelApp England
 )
 

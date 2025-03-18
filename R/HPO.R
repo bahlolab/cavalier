@@ -231,17 +231,17 @@ hpo_api_get_disease_names <- function(disease_ids) {
     all(na.omit(str_detect(disease_ids, '^(OMIM|ORPHA):')))
   )
   
-  num_failuers <- 0L
+  num_failures <- 0L
   
   disease_names <-
     map_chr(disease_ids, function(disease_id) {
-      if (!is.na(disease_id) & num_failuers < get_cavalier_opt('hpo_api_max_failuers')) {
+      if (!is.na(disease_id) & num_failures < get_cavalier_opt('hpo_api_max_failuers')) {
         result <- tryCatch(
           hpo_api_get(disease_id, prefix = 'network/annotation'),
           error = function(e) { 'ERROR' }
         )
         if (is_scalar_character(result) && result == 'ERROR') {
-          num_failuers <- num_failuers + 1L
+          num_failures <<- num_failures + 1L
         }
         tryCatch(result$disease$name, error = function(e) NA_character_)
       } else {
@@ -250,7 +250,7 @@ hpo_api_get_disease_names <- function(disease_ids) {
     })
   
   
-  if (num_failuers > get_cavalier_opt('hpo_api_max_failuers')) {
+  if (num_failures > get_cavalier_opt('hpo_api_max_failuers')) {
     warning('exceeded ', get_cavalier_opt('hpo_api_max_failuers'), ' HPO API failures')
   }
   
@@ -262,7 +262,7 @@ hpo_api_get_diseases_by_gene <- function(entrez_ids) {
   
   assert_that(is_integer(entrez_ids))
   
-  num_failuers <- 0L
+  num_failures <- 0L
   
   disease_tbl <-
     map_df(entrez_ids, function(entrez_id) {
@@ -272,13 +272,13 @@ hpo_api_get_diseases_by_gene <- function(entrez_ids) {
                disease_name = NA_character_,
                mondo_id = NA_character_)
       
-      if (!is.na(entrez_id) & num_failuers < get_cavalier_opt('hpo_api_max_failuers')) {
+      if (!is.na(entrez_id) & num_failures < get_cavalier_opt('hpo_api_max_failuers')) {
         result <- tryCatch(
           hpo_api_get(str_c('NCBIGene:', entrez_id), prefix = 'network/annotation'),
           error = function(e) { 'ERROR' }
         )
         if (is_scalar_character(result) && result == 'ERROR') {
-          num_failuers <- num_failuers + 1L
+          num_failures <- num_failures + 1L
         }
         value <- 
           tryCatch(
@@ -296,7 +296,7 @@ hpo_api_get_diseases_by_gene <- function(entrez_ids) {
     }) %>% 
     mutate(across(where(is.character), ~ replace(., nchar(.) == 0, NA_character_)))
   
-  if (num_failuers > get_cavalier_opt('hpo_api_max_failuers')) {
+  if (num_failures > get_cavalier_opt('hpo_api_max_failuers')) {
     warning('exceeded ', get_cavalier_opt('hpo_api_max_failuers'), ' HPO API failures')
   }
   
@@ -312,6 +312,7 @@ build_disease_name_cache <- function(version = get_hpo_version())
 {
 
   fun <- function() {
+    # this is more effecient (fewer API queries)
     disease_name_tbl <- 
       get_gene_disease_map(source = 'ALL') %>% 
       select(entrez_id, disease_id) %>% 
@@ -324,8 +325,30 @@ build_disease_name_cache <- function(version = get_hpo_version())
       unique() %>% 
       hpo_api_get_diseases_by_gene() %>% 
       select(disease_id, disease_name) %>% 
+      na.omit() %>% 
       distinct() %>% 
       arrange(disease_id)
+    
+    missing <-
+      get_gene_disease_map(source = 'ALL') %>% 
+      select(disease_id) %>% 
+      anti_join(disease_name_tbl, by = 'disease_id') %>%
+      distinct()  
+    
+    if (nrow(missing)) {
+      # if any missing using slower API to get names
+      disease_name_tbl <-
+        bind_rows(
+          disease_name_tbl,
+          missing %>% 
+            mutate(disease_name = hpo_api_get_disease_names(disease_id)) %>% 
+            na.omit()
+        ) %>% 
+        distinct() %>% 
+        arrange(disease_id)
+    }
+    
+    return(disease_name_tbl)
   }
   
   result <- cache(
