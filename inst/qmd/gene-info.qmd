@@ -1,0 +1,51 @@
+---
+execute:
+  echo: false
+  warning: false
+  message: false  
+---
+
+```{r, include=FALSE}
+library(tidyverse)
+library(cavalier)
+stopifnot(
+  exists('variant'),
+  is.data.frame(variant)
+)
+```
+
+```{r, results='asis'}
+
+ft <-
+  variant %>%
+  select(symbol = SYMBOL) %>%
+  left_join(
+    cavalier:::get_gene_disease_map(source = 'OMIM') %>% 
+      mutate(symbol = coalesce(hgnc_entrez2sym(entrez_id), 
+                               hgnc_sym2sym(symbol))),
+    by = 'symbol') %>% 
+  mutate(disease_name = cavalier:::get_disease_names(disease_id)) %>% 
+  mutate(disease_name_url = str_c('https://omim.org/entry/', str_extract(disease_id, '\\d+$')),
+         disease_id_url = disease_name_url) %>% 
+  select(disease_id, disease_name, inheritance, disease_id_url, disease_name_url) %>%
+  cavalier:::flex_table()
+
+html <- htmltools::renderTags(flextable::htmltools_value(ft))$html
+# emit *just* the table HTML
+cat(html)
+```
+
+```{r results='asis', echo=FALSE}
+# `v` is the same one-row tibble
+p   <- cavalier::plot_gtex_expression(
+  gene = variant$SYMBOL,
+  ensembl_id = variant$Gene)
+
+tmp <- tempfile(fileext = ".png")
+ggplot2::ggsave(tmp, p,
+                width = 8, height = 5, dpi = 200, device = "png")
+uri <- knitr::image_uri(tmp)
+
+# emit *just* the <img> tag
+cat(sprintf('<img src="%s" style="max-width:800px; height:auto;"/>', uri))
+```

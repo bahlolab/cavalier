@@ -1,0 +1,120 @@
+---
+title: "CAVALIER REPORT"
+editor: source
+format:
+  html:
+    self_contained: true     # inline all CSS/JS/assets for this one page
+    embed-resources: true     # (alias for self_contained in newer Quarto)
+    page-layout: full         # span the full browser width
+    minimal: true 
+    strip-comments: true 
+    css: styles.css
+    include-after-body:
+      - text: <script type="text/javascript" src="scripts.js"></script>
+execute:
+  echo: false
+  warning: false
+  message: false  
+---
+
+```{r setup}
+library(tidyverse)
+vars <- 
+  read_csv('variants.csv', col_types = cols()) %>% 
+  mutate(variant_id = str_c(SYMBOL, ' ', HGVSg))
+```
+
+```{=html}
+<!-- ── HTML Layout Start ──────────────────────────────────── -->
+<div class="container">
+  <div id="sidebar">
+    <h2>Variants</h2>
+    <ul id="variant-list"></ul>
+  </div>
+  <div id="main-content">
+```
+
+```{=html}
+<!-- ── Gene Info Section ────────────────────────────────── -->
+<details markdown="1" id="gene-info">
+  <summary>GENE INFO</summary>
+  <div id="gene-body">
+```
+
+```{r, results='asis'}
+# ── Gene Panels: wrap child QMD outputs ──────────────────
+for(i in seq_len(nrow(vars))) {
+  variant <- vars[i, , drop=FALSE]
+  cat(sprintf('<div class="gene-info-panel" data-variant-id="%s">',variant$variant_id)
+  )
+  cat(knitr::knit_child("gene-info.qmd", envir = list(variant = variant), quiet = TRUE))
+  cat('</div>\n')
+}
+```
+
+```{=html}
+  </div>
+</details>
+```
+
+```{=html}
+<!-- ── Variant Info Section ─────────────────────────────── -->
+<details markdown="1" id="variant-info" open>
+  <summary>VARIANT INFO</summary>
+  <div id="variant-body">
+```
+
+```{r, results='asis'}
+# ── Variant Panels: wrap child QMD outputs ───────────────
+for(i in seq_len(nrow(vars))) {
+  variant <- vars[i, , drop=FALSE]
+  cat(sprintf(
+    '<div class="variant-info-panel" data-variant-id="%s">', variant$variant_id)
+  )
+  cat(knitr::knit_child("variant-info.qmd", envir = list(variant = variant), quiet = TRUE))
+  cat('</div>\n')
+}
+```
+
+```{=html}
+  </div>
+</details>
+```
+
+
+```{=html}
+<!-- ── Read Viewer Section ────────────────────────────────── -->
+<details markdown="1" id="read-viewer" open>
+  <summary>READ VIEWER</summary>
+  <div id="jigv-body">
+```
+
+```{r, results='asis'}
+# ── Variant Panels: wrap child QMD outputs ───────────────
+for(i in seq_len(nrow(vars))) {
+  variant <- vars[i, , drop=FALSE]
+  cat(sprintf(
+    '<div class="jigv-panel" data-variant-id="%s">',
+    variant$variant_id)
+  )
+  # inline the JIGV HTML
+  jigv_html <- readr::read_file("jigv.html")
+  iframe_tag <- htmltools::tags$iframe(
+    srcdoc      = jigv_html,
+    width       = "100%",
+    height      = "600px",
+    frameborder = "0",
+    sandbox     = "allow-scripts allow-same-origin",
+  )
+  cat(htmltools::renderTags(iframe_tag)$html)
+  cat('</div>\n')
+}
+```
+
+
+```{=html}
+  </div>
+</details>
+</div>
+</div>
+```

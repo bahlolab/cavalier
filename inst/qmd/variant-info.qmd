@@ -1,0 +1,66 @@
+---
+execute:
+  echo: false
+  warning: false
+  message: false  
+---
+
+```{r, include=FALSE}
+library(tidyverse)
+stopifnot(
+  exists('variant'),
+  is.data.frame(variant)
+)
+```
+
+```{r results='asis', echo=FALSE}
+# `v` is a one-row tibble passed in from index.qmd
+
+ft <-
+  variant %>%
+    select(CHROM, POS, REF, ALT, HGVSp, HGVSc, CADD) %>% 
+  cavalier:::flex_table(transpose = T)
+
+html <- htmltools::renderTags(flextable::htmltools_value(ft))$html
+# emit *just* the table HTML
+cat(html)
+```
+
+<!-- ```{r, results='asis'} -->
+<!-- panels <- purrr::pmap_chr( -->
+<!--   list( -->
+<!--     vid   = vars$variant_id, -->
+<!--     chrom = vars$CHROM, -->
+<!--     pos   = vars$POS, -->
+<!--     ref   = vars$REF, -->
+<!--     alt   = vars$ALT, -->
+<!--     hvsp  = vars$HGVSp, -->
+<!--     hvsc  = vars$HGVSc, -->
+<!--     cadd  = vars$CADD -->
+<!--   ), -->
+<!--   function(vid, chrom, pos, ref, alt, hvsp, hvsc, cadd) { -->
+<!--     # build the flextable -->
+<!--     ft <- flextable( -->
+<!--       tibble( -->
+<!--         CHROM = chrom, -->
+<!--         POS   = pos, -->
+<!--         REF   = ref, -->
+<!--         ALT   = alt, -->
+<!--         HGVSp = hvsp, -->
+<!--         HGVSc = hvsc, -->
+<!--         CADD  = cadd -->
+<!--       ) -->
+<!--     ) -->
+<!--     # grab its HTML directly -->
+<!--     tbl_html <- flextable::htmltools_value(ft) -->
+<!--     # wrap in a panel div -->
+<!--     sprintf( -->
+<!--       '<div class="variant-info-panel" data-variant-id="%s">\n%s\n</div>', -->
+<!--       vid, tbl_html -->
+<!--     ) -->
+<!--   } -->
+<!-- ) -->
+
+<!-- # emit as one big blob so cat() gets a length-1 string -->
+<!-- cat(paste(panels, collapse = "\n"), "\n") -->
+<!-- ``` -->
