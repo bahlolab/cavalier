@@ -318,7 +318,13 @@ cell_dims_wrapped <- function(ft,
              height = height + height_nt) %>% 
       mutate(part = part_name) %>% 
       select(part, row_id, col_id, height, width) %>% 
-      nest(dims = c(height, width))
+      nest(dims = c(height, width)) %>% 
+      mutate(
+        dims = map(dims, ~ tibble(
+          width  = max(.x$width),
+          height = max(.x$height)
+        ))
+      )
   })
   
 }

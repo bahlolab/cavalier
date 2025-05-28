@@ -172,7 +172,9 @@ get_panelapp_panel <- function(id, version = NULL)
         inheritance == 'BIALLELIC' ~ 'AR',
         inheritance == 'MONOALLELIC' ~ 'AD',
         inheritance == 'BOTH' ~ 'AR/AD',
-        inheritance == 'X-LINKED' ~ 'XL')) %>% 
+        inheritance == 'X-LINKED'  & str_detect(mode_of_inheritance, 'monoallelic') ~ 'XLD',
+        inheritance == 'X-LINKED' ~ 'XLR',
+      )) %>% 
       select(list_id = panel_id,
              list_name = panel_name,
              version = panel_version,

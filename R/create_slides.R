@@ -153,18 +153,7 @@ create_slides <- function(variants,
   if (length(custom)) {
     
     sel <- setNames(str_remove(custom, '^custom_'), custom)
-    custom_data <-
-      select(variants, all_of(sel))
-    # %T>%
-    # # check correct data types
-    # (function(data) {
-    #     assert_that(
-    #         all(map_lgl(data, is.list)),
-    #         all(map_lgl(data, ~ all(map_lgl(., ~ {
-    #             is.data.frame(.) || is (., 'gg') | is(., 'flextable')
-    #         }))))
-    #     )
-    # })
+    custom_data <- select(variants, all_of(sel))
     slide_data <- bind_cols(slide_data, custom_data)
   }
   
