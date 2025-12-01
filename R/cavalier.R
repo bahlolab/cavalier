@@ -76,6 +76,9 @@ cavalier_opts$hpo_api_base_url <- "https://ontology.jax.org/api/"
 cavalier_opts$hpo_api_max_failuers <- 10L
 cavalier_opts$hpo_github_url <- "https://github.com/obophenotype/human-phenotype-ontology/"
 
+########## MI OMIM options ##################
+cavalier_opts$mi_omim_github_url <- "https://github.com/monarch-initiative/omim/"
+
 ########## PanelApp options ###############
 # can add additional PanelApp endpoints here if needed - name should start with 'PA'
 cavalier_opts$panelapp_urls <- list(

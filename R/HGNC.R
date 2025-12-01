@@ -1,32 +1,32 @@
 
-#' Get HGNC version from either get_cavalier_opt("hgnc_monthly_base_url") or disk cache
 #' @importFrom dplyr slice pull mutate filter
-get_hgnc_version <- function(
-    db_mode = get_cavalier_opt("database_mode"),
-    ver = get_cavalier_opt("hgnc_ver"))
-{
-  if (!is.null(ver)) {
-    return(ver)
+get_hgnc_version_latest <- function() {
+  rvest::read_html('https://storage.googleapis.com/public-download-files') %>% 
+    rvest::html_elements("key") %>%
+    rvest::html_text() %>% 
+    keep(str_detect, 'monthly/tsv/hgnc_complete_set_.+\\.txt$') %>% 
+    str_extract('(?<=hgnc_complete_set_)\\d{4}-\\d{2}-\\d{2}') %>% 
+    sort() %>% 
+    last()
+  
+}
+
+get_hgnc_version <- function(db_mode = get_cavalier_opt("database_mode"),
+                              ver = get_cavalier_opt("hgnc_version")) {
+  if (is.null(ver)) {
+    ver <-
+      get_version(
+        resource_name  = 'HGNC',
+        cache_name = 'hgnc_complete_set',
+        cache_subdir = 'HGNC',
+        func_online = get_hgnc_version_latest,
+        db_mode = db_mode
+      )
   }
   
-  func_online <- function() {
-    rvest::read_html('https://storage.googleapis.com/public-download-files') %>% 
-      rvest::html_elements("key") %>%
-      rvest::html_text() %>% 
-      keep(str_detect, 'monthly/tsv/hgnc_complete_set_.+\\.txt$') %>% 
-      str_extract('(?<=hgnc_complete_set_)\\d{4}-\\d{2}-\\d{2}') %>% 
-      sort() %>% 
-      last()
-        
-  }
+  message("Using HGNC version ", ver)
   
-  get_version(
-    resource_name  = 'HGNC',
-    cache_name = 'hgnc_complete_set',
-    cache_subdir = 'HGNC',
-    func_online = func_online,
-    db_mode = db_mode
-  )
+  ver
 }
 
 #' Get HGNC complete table from either get_cavalier_opt("hgnc_monthly_base_url") or disk cache
