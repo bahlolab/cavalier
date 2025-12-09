@@ -116,6 +116,7 @@ insecure <- function() httr::set_config(httr::config(ssl_verifypeer = 0L))
 secure <- function() httr::set_config(httr::config(ssl_verifypeer = 1L))
 
 
+#' @importFrom stringr str_split
 sort_versions <- function(x) {
   
   if(length(x) <=1) {

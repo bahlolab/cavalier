@@ -106,6 +106,7 @@ cavalier_opts$cen_url_hg38 <- 'https://hgdownload.soe.ucsc.edu/goldenPath/hg38/d
 cavalier_opts$agp_url_hg19 <- 'https://hgdownload.soe.ucsc.edu/goldenPath/hg19/bigZips/hg19.agp.gz'
 
  
+#' @importFrom rlang is_named
 #' @export
 set_cavalier_opt <- function(...) {
   dots <- dots_list(...)

@@ -1,5 +1,6 @@
 
 #' @importFrom dplyr slice pull mutate filter
+#' @importFrom stringr str_detect
 get_hgnc_version_latest <- function() {
   rvest::read_html('https://storage.googleapis.com/public-download-files') %>% 
     rvest::html_elements("key") %>%

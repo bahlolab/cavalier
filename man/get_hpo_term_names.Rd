@@ -4,7 +4,7 @@
 \alias{get_hpo_term_names}
 \title{Mapping of hpo_term_id to hpo_term_name}
 \usage{
-get_hpo_term_names(hpo_version = get_hpo_version())
+get_hpo_term_names()
 }
 \description{
 Mapping of hpo_term_id to hpo_term_name

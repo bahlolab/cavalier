@@ -84,7 +84,8 @@ get_omim_disease_map <- function(gene_key = c('ensembl', 'entrez')) {
     ) %>% 
     left_join(
       get_mi_omim_names() %>% 
-        select(disease_id = omim_id, disease_name = omim_name)
+        select(disease_id = omim_id, disease_name = omim_name),
+      by = 'disease_id'
     ) %>% 
     mutate(disease_name = if_else(is.na(disease_name), '???', disease_name))
 }

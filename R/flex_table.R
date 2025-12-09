@@ -2,6 +2,7 @@
 #' @importFrom flextable flextable delete_part theme_zebra italic bold colformat_char fit_to_width
 #' @importFrom flextable align autofit add_header_lines border_inner fp_border_default
 #' @importFrom flextable compose as_paragraph hyperlink_text
+#' @importFrom rlang is_bool
 flex_table <- function(data,
                        transpose = FALSE,
                        round = TRUE,

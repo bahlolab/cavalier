@@ -12,7 +12,7 @@ build_caches(
   UCSC = TRUE,
   PanelApp = TRUE,
   HPO = TRUE,
-  HPO_disease_names = TRUE,
+  MI_OMIM = TRUE,
   Genes4Epilepsy = TRUE
 )
 }

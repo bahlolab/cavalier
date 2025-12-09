@@ -8,7 +8,7 @@
 #'    <cache_dir>/<subdir>/<name>.rds
 #'    <cache_dir>/<subdir>/<name>.ver_<version>.rds
 #'    
-#' @importFrom stringr str_ends str_c
+#' @importFrom stringr str_ends str_c str_extract 
 #' @importFrom dplyr last
 cache <- function(name,
                   fun = NULL,

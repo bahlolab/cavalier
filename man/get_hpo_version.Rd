@@ -4,7 +4,10 @@
 \alias{get_hpo_version}
 \title{Get HPO version from GitHub or disk cache}
 \usage{
-get_hpo_version(db_mode = get_cavalier_opt("database_mode"))
+get_hpo_version(
+  db_mode = get_cavalier_opt("database_mode"),
+  ver = get_cavalier_opt("hpo_version")
+)
 }
 \description{
 Get HPO version from GitHub or disk cache
