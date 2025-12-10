@@ -90,11 +90,14 @@ cavalier_opts$panelapp_urls <- list(
 cavalier_opts$g4e_github_url <- 'https://github.com/bahlolab/Genes4Epilepsy/'
 
 #' @export
-get_cavalier_opt <- function(name = NULL) {
+get_cavalier_opt <- function(name = NULL, default = NULL) {
   if (is.null(name)) {
     return(as.list(cavalier_opts))
   }
-  cavalier_opts[[name]]
+  if (name %in% names(cavalier_opts)) {
+    return(cavalier_opts[[name]])
+  }
+  return(default)
 }
 
 ######### OMIM options ####################

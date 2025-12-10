@@ -13,6 +13,7 @@ build_caches(
   PanelApp = TRUE,
   HPO = TRUE,
   MI_OMIM = TRUE,
+  GENCODE = TRUE,
   Genes4Epilepsy = TRUE
 )
 }

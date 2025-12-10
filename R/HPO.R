@@ -46,15 +46,15 @@ get_hpo_version <- function(db_mode = get_cavalier_opt("database_mode"),
 #' Retrieve HPO genes_to_phenotype and phenotype_to_genes
 #' 
 #' Download or load from disk cache
-get_hpo_g2p_p2g <- function() {
-  hpo_version = get_hpo_version()
+get_hpo_g2p_p2g <- function(ver = get_hpo_version()) {
+  
   
   fun <- function() {
     
     g2p_url <- str_c(
       get_cavalier_opt("hpo_github_url"), 
       'releases/download/', 
-      hpo_version,
+      ver,
       '/genes_to_phenotype.txt'
     )
     
@@ -76,7 +76,7 @@ get_hpo_g2p_p2g <- function() {
     p2g_url <- str_c(
       get_cavalier_opt("hpo_github_url"),
       'releases/download/',
-      hpo_version,
+      ver,
       '/phenotype_to_genes.txt'
     )
     
@@ -102,7 +102,7 @@ get_hpo_g2p_p2g <- function() {
     fun = fun,
     name = 'genes_to_phenotype.phenotype_to_genes',
     subdir = 'HPO',
-    ver = hpo_version,
+    ver = ver,
   )
 }
 
@@ -154,7 +154,7 @@ get_gene_disease_map <- function(source = c('ALL', 'OMIM', 'ORPHA'))
 }
 
 #' Mapping of hpo_term_id to hpo_term_name
-get_hpo_term_names <- function()
+get_hpo_term_names <- function(ver = get_hpo_version())
 {
   bind_rows(
     get_phenotype_to_genes() %>%
@@ -183,18 +183,14 @@ get_hpo_gene_list <- function(hpo_id, prefer_omim = TRUE, hpo_version = get_hpo_
     is_scalar_character(hpo_version) || is.null(hpo_version)
   )
   
-  if (is.null(hpo_version)) {
-    hpo_version <- get_hpo_version()
-  }
+  term_name <- hpo_id2name(hpo_id)
   
-  term_name <- hpo_id2name(hpo_id, hpo_version)
-  
-  get_phenotype_to_genes(hpo_version) %>% 
+  get_phenotype_to_genes() %>% 
     filter(hpo_term_id == hpo_id) %>% 
     select(entrez_id, symbol, disease_id) %>% 
     distinct() %>% 
     left_join(
-      get_gene_disease_map(source = 'ALL', hpo_version = hpo_version) %>%
+      get_gene_disease_map(source = 'ALL') %>%
         select(-symbol),
       by = c('entrez_id', 'disease_id')) %>% 
     group_by(entrez_id) %>% 

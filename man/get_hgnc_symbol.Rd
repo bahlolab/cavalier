@@ -4,7 +4,7 @@
 \alias{get_hgnc_symbol}
 \title{Get HGNC hgnc_id, symbol table}
 \usage{
-get_hgnc_symbol()
+get_hgnc_symbol(ver = get_hgnc_version())
 }
 \description{
 Get HGNC hgnc_id, symbol table

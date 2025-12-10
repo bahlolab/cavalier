@@ -5,7 +5,8 @@
 \title{Get list of from HGNC by locus_group}
 \usage{
 get_hgnc_locus_group_list(
-  locus_group = c("protein-coding gene", "non-coding RNA", "pseudogene", "other", "ALL")
+  locus_group = c("protein-coding gene", "non-coding RNA", "pseudogene", "other", "ALL"),
+  ver = get_hgnc_version()
 )
 }
 \description{

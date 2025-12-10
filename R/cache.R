@@ -245,6 +245,7 @@ build_caches <- function(
     PanelApp = TRUE,
     HPO = TRUE,
     MI_OMIM = TRUE,
+    GENCODE = TRUE,
     # HPO_disease_names = TRUE,
     Genes4Epilepsy = TRUE) 
 {
@@ -287,12 +288,6 @@ build_caches <- function(
     invisible(get_gene_disease_map())
     message('HPO done')
   }
-  # if (HPO_disease_names) {
-  #   message('Building HPO disease names cache')
-  #   message('This may take some time...')
-  #   invisible(build_disease_name_cache())
-  #   message('HPO disease names cache done')
-  # }
   if (PanelApp) {
     message('Building PanelApp cache')
     message('This will take some time...')
@@ -303,6 +298,11 @@ build_caches <- function(
     message('Building MI OMIM cache')
     invisible(get_mi_omim_names())
     message('MI OMIM cache done')
+  }
+  if (GENCODE){
+    message('Building GENCODE cache')
+    invisible(get_gencode_coords())
+    message('GENCODE cache done')
   }
   
 }

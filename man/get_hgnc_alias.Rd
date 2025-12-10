@@ -4,7 +4,7 @@
 \alias{get_hgnc_alias}
 \title{Get HGNC gene symbols alias table to convert symbols to current HGNC symbol}
 \usage{
-get_hgnc_alias()
+get_hgnc_alias(ver = get_hgnc_version())
 }
 \description{
 Get HGNC gene symbols alias table to convert symbols to current HGNC symbol

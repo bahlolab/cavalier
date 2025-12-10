@@ -29,6 +29,7 @@ get_g4e_version <- function(db_mode = get_cavalier_opt("database_mode")) {
 #' 
 #' https://github.com/bahlolab/Genes4Epilepsy
 #' @importFrom dplyr across
+#' @importFrom stringr str_replace
 get_g4e_full_list <- function(version = get_g4e_version()) {
   
   fun <- function() {

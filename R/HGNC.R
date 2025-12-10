@@ -81,7 +81,7 @@ get_hgnc_complete <- function(
 #' @importFrom tidyr replace_na separate_rows
 #' @importFrom stringr str_c
 #' @importFrom dplyr arrange_all "%>%" mutate rename select if_else add_count filter case_when
-get_hgnc_alias <- function() 
+get_hgnc_alias <- function(ver = get_hgnc_version()) 
 {
   get_hgnc_complete() %>% 
     filter(!(is.na(alias_symbol) & is.na(prev_symbol))) %>%
@@ -102,7 +102,7 @@ get_hgnc_alias <- function()
 
 #' Get HGNC hgnc_id, symbol table
 #' @importFrom dplyr "%>%" select distinct
-get_hgnc_symbol <- function() 
+get_hgnc_symbol <- function(ver = get_hgnc_version()) 
 {
   get_hgnc_complete() %>% 
     select(hgnc_id, symbol) %>% 
@@ -112,7 +112,7 @@ get_hgnc_symbol <- function()
 
 #' Get HGNC hgnc_id, ensemble_gene_id table
 #' @importFrom dplyr "%>%" select distinct
-get_hgnc_ensembl <- function() 
+get_hgnc_ensembl <- function(ver = get_hgnc_version()) 
 {
     get_hgnc_complete() %>% 
      select(hgnc_id, ensembl_gene_id) %>% 
@@ -122,7 +122,7 @@ get_hgnc_ensembl <- function()
 
 #' Get HGNC hgnc_id, entrez_id table
 #' @importFrom dplyr "%>%" select distinct
-get_hgnc_entrez <- function() 
+get_hgnc_entrez <- function(ver = get_hgnc_version()) 
 {
     get_hgnc_complete() %>% 
      select(hgnc_id, entrez_id) %>% 
@@ -142,7 +142,7 @@ get_hgnc_locus_group <- function()
 
 # Replace gene symbols with HGNC approved symbol
 #' @export
-hgnc_sym2sym <- function(symbols, remove_unknown = FALSE) 
+hgnc_sym2sym <- function(symbols, remove_unknown = FALSE, ver = get_hgnc_version()) 
 {
     unknown <- which(!symbols %in% get_hgnc_complete()$symbol)
     hgnc_alias <- get_hgnc_alias()
@@ -248,7 +248,8 @@ hgnc_entrez2ensembl <- function(entrez_ids)
 
 #' Get list of from HGNC by locus_group
 get_hgnc_locus_group_list <- function(
-    locus_group = c('protein-coding gene', 'non-coding RNA', 'pseudogene', 'other', 'ALL')
+    locus_group = c('protein-coding gene', 'non-coding RNA', 'pseudogene', 'other', 'ALL'),
+    ver = get_hgnc_version()
 ) 
 {
   locus_group <- match.arg(locus_group)
