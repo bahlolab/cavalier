@@ -21,7 +21,6 @@ get_hpo_version_latest <- function() {
 }
 
 #' Get HPO version from GitHub or disk cache
-#' @importFrom purrr keep
 get_hpo_version <- function(db_mode = get_cavalier_opt("database_mode"),
                             ver = get_cavalier_opt("hpo_version")
     ) 
@@ -173,7 +172,7 @@ hpo_id2name <- function(hpo_term_ids)
 
 #' Get a gene list from HPO phenotype_to_genes table
 #' @export
-#' @importFrom dplyr inner_join anti_join add_row
+
 get_hpo_gene_list <- function(hpo_id, prefer_omim = TRUE, hpo_version = get_hpo_version()) {
   
   assert_that(

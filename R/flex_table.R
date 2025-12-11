@@ -280,7 +280,6 @@ fit_flex_table <- function(ft, height, width,
 }
 
 # return heights and widths for flextable with wrapping
-#' @importFrom tidyr nest
 cell_dims_wrapped <- function(ft,
                               max_lines = Inf)
 {

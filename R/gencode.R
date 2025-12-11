@@ -1,6 +1,4 @@
 
-#' @importFrom dplyr slice pull mutate filter
-#' @importFrom stringr str_detect
 get_gencode_version_latest <- function() {
   base_url <- 'https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/latest_release/'
   
@@ -33,9 +31,6 @@ get_gencode_version <- function(db_mode = get_cavalier_opt("database_mode"),
 }
 
 #' Get HGNC complete table from either get_cavalier_opt("hgnc_monthly_base_url") or disk cache
-#' @importFrom readr cols read_tsv
-#' @importFrom dplyr "%>%" mutate rename
-#' @importFrom stringr str_remove
 #' @importFrom rlang is_scalar_character
 #' @export
 get_gencode_coords <- function(

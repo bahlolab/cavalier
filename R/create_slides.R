@@ -1,7 +1,5 @@
 #' @importFrom officer read_pptx add_slide ph_with ph_location_type ph_location_template external_img 
-#' @importFrom dplyr arrange select mutate
 #' @importFrom tibble rownames_to_column
-#' @importFrom purrr walk map
 #' @export
 create_slides <- function(
     slide_layout,
@@ -82,9 +80,6 @@ get_slide_template <- function() {
 }
 
 #' @importFrom rlang dots_list is_scalar_double
-#' @importFrom purrr map_lgl walk map_df
-#' @importFrom stringr str_starts
-#' @importFrom dplyr row_number
 #' @export
 slide_layout <- function(...,
                          heights = NULL,

@@ -19,8 +19,6 @@ newline_every_n_chars <- function(x, n)
     }
 }
 
-#' @importFrom stringr str_sub
-#' @importFrom purrr pmap_chr
 #' @importFrom digest digest
 digest_df <- function(x, nchar = 12) 
 {
@@ -116,7 +114,6 @@ insecure <- function() httr::set_config(httr::config(ssl_verifypeer = 0L))
 secure <- function() httr::set_config(httr::config(ssl_verifypeer = 1L))
 
 
-#' @importFrom stringr str_split
 sort_versions <- function(x) {
   
   if(length(x) <=1) {

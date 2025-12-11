@@ -1,4 +1,4 @@
-FROM rocker/verse:4.5.2
+FROM rocker/tidyverse:4.5.2
 
 # use posit package manager for fast binary installs
 ENV RSPM="https://packagemanager.posit.co/cran/__linux__/jammy/latest"

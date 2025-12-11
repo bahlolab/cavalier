@@ -8,15 +8,11 @@
 #' @name cavalier
 "_PACKAGE"
 
-#' @importFrom purrr walk pwalk pmap flatten_chr map_chr 
-#' @importFrom stringr str_c
-#' @importFrom dplyr distinct transmute mutate filter
-#' @importFrom tidyr expand_grid pivot_wider
-#' @importFrom readr write_lines
-#' @importFrom magrittr '%T>%'
-#' @importFrom png readPNG writePNG
-#' @importFrom stringr str_c str_remove
-#' @importFrom abind abind
+#' @import dplyr
+#' @import tidyr
+#' @import stringr
+#' @import purrr
+#' @import readr
 NULL
 
 # environment to store default options, user settable with function cavalier_options()

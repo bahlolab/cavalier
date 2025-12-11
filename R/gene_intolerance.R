@@ -1,7 +1,5 @@
 
 #' Retrieve GeVIR table from get_cavalier_opt("gevir_url") or disk cache
-#' @importFrom readr read_csv
-#' @importFrom dplyr "%>%" mutate rename select
 get_gevir_table <- function()
 {
   gevir_url <- get_cavalier_opt("gevir_url")

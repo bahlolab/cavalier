@@ -1,5 +1,4 @@
 #' @importFrom png readPNG writePNG
-#' @importFrom stringr str_c str_remove
 #' @importFrom abind abind
 crop_png <- function(
     input_png,

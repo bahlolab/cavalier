@@ -8,7 +8,6 @@ build_caches(
   GeVIR = TRUE,
   HGNC = TRUE,
   GTEx = TRUE,
-  IGV = FALSE,
   UCSC = TRUE,
   PanelApp = FALSE,
   HPO = TRUE,

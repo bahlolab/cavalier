@@ -1,6 +1,4 @@
 
-#' @importFrom readr read_delim cols
-#' @importFrom dplyr "%>%" mutate rename
 get_gtex_expression <- function()
 {
   gtex_gene_median_tpm_url <- get_cavalier_opt("gtex_gene_median_tpm_url")
@@ -36,7 +34,6 @@ get_gtex_expression <- function()
 
 
 #' Replace symbol in GTEx expression with current HGNC version
-#' @importFrom dplyr coalesce
 get_gtex_expression_hgnc <- function()
 {
   get_gtex_expression() %>% 
@@ -58,7 +55,6 @@ get_gtex_tissues <- function()
 #' 
 
 #' @importFrom cowplot ggdraw draw_text
-#' @importFrom dplyr n_distinct
 #' @importFrom ggplot2 ggplot aes geom_bar scale_fill_manual ggtitle ylab xlab theme_bw theme guides 
 #' @importFrom ggplot2 coord_flip geom_col labs geom_text element_blank margin ylim facet_wrap element_text
 #' @importFrom rlang is_character is_scalar_character

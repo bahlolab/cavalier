@@ -1,6 +1,4 @@
 
-#' @importFrom dplyr slice pull mutate filter
-#' @importFrom stringr str_detect
 get_hgnc_version_latest <- function() {
   rvest::read_html('https://storage.googleapis.com/public-download-files') %>% 
     rvest::html_elements("key") %>%
@@ -31,9 +29,6 @@ get_hgnc_version <- function(db_mode = get_cavalier_opt("database_mode"),
 }
 
 #' Get HGNC complete table from either get_cavalier_opt("hgnc_monthly_base_url") or disk cache
-#' @importFrom readr cols read_tsv
-#' @importFrom dplyr "%>%" mutate rename
-#' @importFrom stringr str_remove
 #' @importFrom rlang is_scalar_character
 get_hgnc_complete <- function(
     local_file = get_cavalier_opt("hgnc_local_file"),
@@ -78,9 +73,6 @@ get_hgnc_complete <- function(
 }
 
 #' Get HGNC gene symbols alias table to convert symbols to current HGNC symbol
-#' @importFrom tidyr replace_na separate_rows
-#' @importFrom stringr str_c
-#' @importFrom dplyr arrange_all "%>%" mutate rename select if_else add_count filter case_when
 get_hgnc_alias <- function(ver = get_hgnc_version()) 
 {
   get_hgnc_complete() %>% 
@@ -101,7 +93,6 @@ get_hgnc_alias <- function(ver = get_hgnc_version())
 }
 
 #' Get HGNC hgnc_id, symbol table
-#' @importFrom dplyr "%>%" select distinct
 get_hgnc_symbol <- function(ver = get_hgnc_version()) 
 {
   get_hgnc_complete() %>% 
@@ -111,7 +102,6 @@ get_hgnc_symbol <- function(ver = get_hgnc_version())
 }
 
 #' Get HGNC hgnc_id, ensemble_gene_id table
-#' @importFrom dplyr "%>%" select distinct
 get_hgnc_ensembl <- function(ver = get_hgnc_version()) 
 {
     get_hgnc_complete() %>% 
@@ -121,7 +111,6 @@ get_hgnc_ensembl <- function(ver = get_hgnc_version())
 }
 
 #' Get HGNC hgnc_id, entrez_id table
-#' @importFrom dplyr "%>%" select distinct
 get_hgnc_entrez <- function(ver = get_hgnc_version()) 
 {
     get_hgnc_complete() %>% 
@@ -131,7 +120,6 @@ get_hgnc_entrez <- function(ver = get_hgnc_version())
 }
 
 #' Get HGNC hgnc_id, locus_group table
-#' @importFrom dplyr "%>%" select distinct
 get_hgnc_locus_group <- function() 
 {
   get_hgnc_complete() %>% 
