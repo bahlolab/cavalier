@@ -45,19 +45,24 @@ get_gencode_coords <- function(
       base_url <- 'https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/latest_release/'
       url <- str_c(base_url, 'gencode.', ver, '.primary_assembly.annotation.gtf.gz')
       cmd <- str_c(
-        "wget -qO - ",
+        "wget -qO - ", 
         url, 
-        " | gunzip -c | grep -P '\tgene\t' | ",
-        "awk -F'\t' '{ match($9, /gene_id \"([^\"]+)\"/, gid); match($9, /hgnc_id \"([^\"]+)\"/, hid); print $1 \"\t\" $4 \"\t\" $5 \"\t\" gid[1] \"\t\" hid[1] }'"
+        " | gunzip -c | grep -P '\tgene\t' | cut -f 1,4,5,9" 
       )
       
       gencode <-
         read_tsv(
-        pipe(cmd), 
-        col_names = c("chromosome", "start", "end", "ensembl_gene_id", "hgnc_id"),
-        col_types = "ciicc"
+          pipe(cmd), 
+          col_names = c("chromosome", "start", "end", "attributes"),
+          col_types = "ciic"
         ) %>% 
-        mutate(ensembl_gene_id = str_remove(ensembl_gene_id, '\\.[0-9]+$'))
+        mutate(
+          ensembl_gene_id = str_extract(attributes, 'gene_id "([^"]+)"', group = 1),
+          hgnc_id = str_extract(attributes, 'hgnc_id "([^"]+)"', group = 1),
+          ensembl_gene_id = str_remove(ensembl_gene_id, '\\.[0-9]+$')
+        ) %>% 
+        select(chromosome, start, end, ensembl_gene_id, hgnc_id) %>%
+        filter(!is.na(ensembl_gene_id))
       
       stopifnot(nrow(gencode) > 0)
       
