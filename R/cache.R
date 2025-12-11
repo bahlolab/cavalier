@@ -240,9 +240,8 @@ build_caches <- function(
     GeVIR = TRUE,
     HGNC = TRUE,
     GTEx = TRUE,
-    IGV = TRUE,
     UCSC = TRUE,
-    PanelApp = TRUE,
+    PanelApp = FALSE,
     HPO = TRUE,
     MI_OMIM = TRUE,
     GENCODE = TRUE,
@@ -263,12 +262,6 @@ build_caches <- function(
     message('Building GTEx cache')
     invisible(get_gtex_expression())
     message('GTEx done')
-  }
-  if (IGV) {
-    message('Downloading IGV geneomes')
-    invisible(get_igv_genome('hg38'))
-    invisible(get_igv_genome('hg19'))
-    message('IGV done')
   }
   if (UCSC) {
     message('Building UCSC assembly gaps')
