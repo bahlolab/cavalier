@@ -19,8 +19,6 @@ newline_every_n_chars <- function(x, n)
     }
 }
 
-#' @importFrom stringr str_sub
-#' @importFrom purrr pmap_chr
 #' @importFrom digest digest
 digest_df <- function(x, nchar = 12) 
 {

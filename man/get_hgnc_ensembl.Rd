@@ -4,7 +4,7 @@
 \alias{get_hgnc_ensembl}
 \title{Get HGNC hgnc_id, ensemble_gene_id table}
 \usage{
-get_hgnc_ensembl()
+get_hgnc_ensembl(ver = get_hgnc_version())
 }
 \description{
 Get HGNC hgnc_id, ensemble_gene_id table

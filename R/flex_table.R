@@ -1,7 +1,8 @@
 
 #' @importFrom flextable flextable delete_part theme_zebra italic bold colformat_char fit_to_width
 #' @importFrom flextable align autofit add_header_lines border_inner fp_border_default
-#' @importFrom flextable compose as_paragraph hyperlink_text
+#' @importFrom flextable as_paragraph hyperlink_text
+#' @importFrom rlang is_bool
 flex_table <- function(data,
                        transpose = FALSE,
                        round = TRUE,
@@ -37,7 +38,7 @@ flex_table <- function(data,
              function(ft, i) {
                url_col <- url_df$url_col[i]
                text_col <- url_df$text_col[i]
-               compose(ft, j = text_col,
+               flextable::compose(ft, j = text_col,
                        value = as_paragraph(
                          hyperlink_text(x = !!sym(text_col),
                                         url = !!sym(url_col)
@@ -86,7 +87,7 @@ flex_table_trans <- function(data, url_df = NULL, ncol = 1L)
              reduce(function(ft, i) {
                url_col <- str_c('url.', i)
                text_col <- str_c('value.', i)
-               compose(ft, j = text_col,
+               flextable::compose(ft, j = text_col,
                        value = as_paragraph(
                          hyperlink_text(x = !!sym(text_col),
                                         url = !!sym(url_col)
@@ -279,7 +280,6 @@ fit_flex_table <- function(ft, height, width,
 }
 
 # return heights and widths for flextable with wrapping
-#' @importFrom tidyr nest
 cell_dims_wrapped <- function(ft,
                               max_lines = Inf)
 {
@@ -318,7 +318,13 @@ cell_dims_wrapped <- function(ft,
              height = height + height_nt) %>% 
       mutate(part = part_name) %>% 
       select(part, row_id, col_id, height, width) %>% 
-      nest(dims = c(height, width))
+      nest(dims = c(height, width)) %>% 
+      mutate(
+        dims = map(dims, ~ tibble(
+          width  = max(.x$width),
+          height = max(.x$height)
+        ))
+      )
   })
   
 }

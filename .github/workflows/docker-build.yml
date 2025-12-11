@@ -1,0 +1,38 @@
+name: Build and publish Docker image
+
+on:
+  push:
+    tags:
+      - '*'                # run on any tag push
+  workflow_dispatch:       # allow manual trigger
+    inputs:
+      image_tag:
+        description: 'Docker image tag'
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          platforms: linux/amd64
+          tags: ghcr.io/bahlolab/cavalier:${{ inputs.image_tag || github.ref_name }}

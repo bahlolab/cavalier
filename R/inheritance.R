@@ -1,11 +1,10 @@
 
 #' @importFrom assertthat assert_that
 #' @importFrom rlang is_scalar_character is_scalar_double is_scalar_integerish
-#' @importFrom purrr reduce map_chr
 #' @importFrom magrittr and not
-#' @importFrom dplyr select mutate filter summarise_all across all_of summarise first
-#' @importFrom tidyr pivot_longer complete chop unchop
-#' @importFrom stringr str_c
+
+
+
 #' @export
 add_inheritance <- function(variants,
                             af_column = 'af_gnomad',
@@ -27,7 +26,7 @@ add_inheritance <- function(variants,
               is.null(min_depth) || is.data.frame(variants$depth_ref),
               is.null(min_depth) || is.data.frame(variants$depth_alt),
               is_scalar_character(af_column),
-              all(c('variant_id', af_column) %in% colnames(variants)),
+              all(c(uid_column, af_column) %in% colnames(variants)),
               is.character(affected) | is.null(affected),
               is.character(unaffected) | is.null(unaffected),
               xor(is.null(ped_file), is.null(affected)),

@@ -1,7 +1,6 @@
 
 #' @importFrom assertthat assert_that
 #' @importFrom rlang is_scalar_character
-#' @importFrom readr read_tsv
 #' @export
 read_ped <- function(file) {
   
@@ -47,7 +46,6 @@ read_ped <- function(file) {
 }
 
 #' @export
-#' @importFrom readr write_tsv
 write_ped <- function(...) 
 {
   write_tsv(..., col_names = F)
@@ -137,7 +135,6 @@ ped_add_parents <- function(ped_df,
 
 # identify trios in families
 # only returns an unambgiuous trio, e.g. a single affected child with two parents per family
-#' @importFrom dplyr filter select group_by ungroup n
 #' @export
 get_trio <- function(ped_df) 
 {

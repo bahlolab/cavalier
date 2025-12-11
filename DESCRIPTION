@@ -1,6 +1,6 @@
 Package: cavalier
 Title: Assist With Variant Interpretation Phase Of Next Generation Sequencing Analysis Pipeline
-Version: 24.06.0
+Version: 25.12.0
 Authors@R:
   c(person("Mark", "Bennett",
            email = "mark.bennett@wehi.edu.au",
@@ -32,7 +32,6 @@ Imports:
     flextable,
     kinship2,
     cowplot,
-    SeqArray,
     abind,
     magrittr,
     rlang,
@@ -41,12 +40,13 @@ Imports:
     ggimg,
     lubridate,
     rvest,
-    jsonlite
+    jsonlite,
+    gdtools
 License: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
 URL: https://github.com/bahlolab/cavalier
 BugReports: https://github.com/bahlolab/cavalier/issues
 LazyData: true
 Depends: 
     R (>= 2.10)
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.3
 Encoding: UTF-8

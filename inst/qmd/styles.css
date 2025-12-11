@@ -1,0 +1,83 @@
+.container {
+  display: flex;
+  height: 100vh;           /* fill the viewport vertically */
+  overflow: hidden;
+}
+#sidebar {
+  flex: 0 0 200px;         /* fixed 200 px wide sidebar */
+  background: #faf9d4;
+  border-right: 1px solid #ECE953;
+  border-left: 1px solid #ECE953;
+  border-top: 1px solid #ECE953;
+  border-radius: 6px;
+  padding: 1em;
+  overflow-y: auto;
+}
+#sidebar ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+#sidebar li + li {
+  margin-top: 0.5em;
+}
+#sidebar a {
+  font-family: Arial, sans-serif !important;
+  text-decoration: none;
+  color: #2372B9;
+  font-weight: bold;
+  display: block;
+  padding: 0.3em 0.5em;
+  border-radius: 6px;
+}
+#sidebar a:hover,
+#sidebar a.active {
+  background: #c2dcf3;
+}
+
+#main-content {
+  flex: 1;
+  padding-left: 1em;
+  padding-right: 1em;
+  overflow-y: auto;
+}
+/* Title Box*/
+h1.title {
+  font-family: Arial, sans-serif !important;
+  background: #eee !important;
+  background-color: #b9e2b6 !important; 
+  border: 1px solid #49A942 !important;
+  border-radius: 6px !important;
+  padding: 0.8em 1em !important;
+  margin: 0 0 1em !important;
+  font-size: 1.2em !important;
+  font-weight: bold !important;
+  text-align: center !important;  
+}
+h2  {
+  font-family: Arial, sans-serif !important;
+}
+/* Box container */
+details {
+  margin-bottom: 1em;
+  border: 1px solid #2372B9;
+  border-radius: 6px;
+  overflow: hidden;
+}
+/* Header bar */
+details > summary {
+  padding: 0.8em 1em;
+  background: #c2dcf3;
+  font-weight: bold;
+  cursor: pointer;
+  font-family: Arial, sans-serif !important;
+}
+/* Inner content styling */
+details > div {
+  padding: 0.8em 1em;
+}
+details > div img {
+  width: 100% !important;
+  height: auto !important;
+  display: block;
+}

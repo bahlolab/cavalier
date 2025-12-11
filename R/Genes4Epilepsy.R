@@ -1,6 +1,5 @@
 
 #' Get HPO version from GitHub or disk cache
-#' @importFrom purrr keep
 get_g4e_version <- function(db_mode = get_cavalier_opt("database_mode")) {
   
   func_online <- function() {
@@ -28,7 +27,6 @@ get_g4e_version <- function(db_mode = get_cavalier_opt("database_mode")) {
 #' Retrieve Genes4Epilepsy from GitHub
 #' 
 #' https://github.com/bahlolab/Genes4Epilepsy
-#' @importFrom dplyr across
 get_g4e_full_list <- function(version = get_g4e_version()) {
   
   fun <- function() {

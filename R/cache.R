@@ -8,8 +8,6 @@
 #'    <cache_dir>/<subdir>/<name>.rds
 #'    <cache_dir>/<subdir>/<name>.ver_<version>.rds
 #'    
-#' @importFrom stringr str_ends str_c
-#' @importFrom dplyr last
 cache <- function(name,
                   fun = NULL,
                   version = NULL,
@@ -117,7 +115,6 @@ get_version <- function(
     db_mode
 )
 {
-  version <- NULL
   
   version_cached <- get_latest_cached_version(
     name = cache_name,
@@ -125,7 +122,6 @@ get_version <- function(
   )
   
   if (db_mode == "offline" & !is.null(version_cached)) {
-    message("Using ", resource_name, " version ", version_cached)
     return(version_cached)
   }
   
@@ -139,7 +135,6 @@ get_version <- function(
   }
   
   if (!is.null(version_latest)) {
-    message("Using ", resource_name, " version ", version_latest)
     return(version_latest)
   } else if (db_mode == 'online') {
     stop("Failed to retrieve latest ",  resource_name, " version")
@@ -149,12 +144,10 @@ get_version <- function(
     if (db_mode == 'fallback') {
       message('Falling back to cached ', resource_name, ' version')
     }
-    message("Using ", resource_name, " version ", version_cached)
     return(version_cached)
   } else {
     stop("No cached version and failed to retrieve latest ",  resource_name, " version")
   }
-  
 }
 
 #' Store or load extenal file to disk
@@ -245,11 +238,12 @@ build_caches <- function(
     GeVIR = TRUE,
     HGNC = TRUE,
     GTEx = TRUE,
-    IGV = TRUE,
     UCSC = TRUE,
-    PanelApp = TRUE,
+    PanelApp = FALSE,
     HPO = TRUE,
-    HPO_disease_names = TRUE,
+    MI_OMIM = TRUE,
+    GENCODE = TRUE,
+    # HPO_disease_names = TRUE,
     Genes4Epilepsy = TRUE) 
 {
   if (HGNC) {
@@ -266,12 +260,6 @@ build_caches <- function(
     message('Building GTEx cache')
     invisible(get_gtex_expression())
     message('GTEx done')
-  }
-  if (IGV) {
-    message('Downloading IGV geneomes')
-    invisible(get_igv_genome('hg38'))
-    invisible(get_igv_genome('hg19'))
-    message('IGV done')
   }
   if (UCSC) {
     message('Building UCSC assembly gaps')
@@ -291,17 +279,22 @@ build_caches <- function(
     invisible(get_gene_disease_map())
     message('HPO done')
   }
-  if (HPO_disease_names) {
-    message('Building HPO disease names cache')
-    message('This may take some time...')
-    invisible(build_disease_name_cache())
-    message('HPO disease names cache done')
-  }
   if (PanelApp) {
     message('Building PanelApp cache')
     message('This will take some time...')
     invisible(build_panelapp_cache(sources = names(get_cavalier_opt('panelapp_urls'))))
     message('PanelApp cache done')
   }
+  if (MI_OMIM){
+    message('Building MI OMIM cache')
+    invisible(get_mi_omim_names())
+    message('MI OMIM cache done')
+  }
+  if (GENCODE){
+    message('Building GENCODE cache')
+    invisible(get_gencode_coords())
+    message('GENCODE cache done')
+  }
+  
 }
 

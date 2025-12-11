@@ -1,38 +1,17 @@
-FROM mambaorg/micromamba:1.5.8-noble
+FROM rocker/tidyverse:4.5.2
 
-LABEL \
-  author="Jacob Munro" \
-  description="Container for Cavalier" \
-  maintainer="Bahlo Lab"
+# use posit package manager for fast binary installs
+ENV RSPM="https://packagemanager.posit.co/cran/__linux__/jammy/latest"
 
-# install os deps
-USER root
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends \
-    procps \
-    xvfb \
-    xauth \
-  && apt-get clean -y \
-  && rm -rf /var/lib/apt/lists/*
+# Install BiocManager and GenomicRanges explicitly
+RUN R -q -e "install.packages('BiocManager'); BiocManager::install('GenomicRanges')"
 
-# install env with micromamba
-COPY environment.yml /tmp/env.yaml
-RUN micromamba install -y -n base -f /tmp/env.yaml \ 
-  && micromamba clean --all --yes
-
-# create igv.sh
-RUN cp /opt/conda/bin/igv /opt/conda/bin/igv.sh \
-    && echo "PATH=/opt/conda/bin:${PATH}" >> \
-    /opt/conda/lib/R/etc/Renviron
-
-# Install cavalier R package and build caches
+# Copy package source
 COPY . /tmp/cavalier
-RUN /opt/conda/bin/R --slave --vanilla -e "\
-    devtools::install(pkg = '/tmp/cavalier', force = TRUE, upgrade = 'never') \
-    "
 
-ENV PATH="/opt/conda/bin:${PATH}" \
-    TZ=Etc/UTC \
-    R_HOME=/opt/conda/lib/R/ \
-    R_ENVIRON=/opt/conda/lib/R/etc/Renviron \
-    R_LIBS_USER=/opt/conda/lib/R/site-library
+# Install cavalier
+RUN R -q -e "remotes::install_local('/tmp/cavalier', dependencies = TRUE, upgrade = 'never', build_vignettes = FALSE)"
+
+# Initialise cavalier cache
+RUN mkdir /cavalier_cache && \
+  R -q -e "cavalier::set_cavalier_opt(cache_dir = '/cavalier_cache'); cavalier::build_caches(PanelApp = FALSE)"

@@ -8,6 +8,12 @@
 #' @name cavalier
 "_PACKAGE"
 
+#' @import dplyr
+#' @import tidyr
+#' @import stringr
+#' @import purrr
+#' @import readr
+NULL
 
 # environment to store default options, user settable with function cavalier_options()
 cavalier_opts <- new.env()
@@ -67,7 +73,7 @@ cavalier_opts$gtex_tissues <-
 ############ HGNC options #################
 # NULL or specific monthly release e.g. "2024-06-04" or "local" for local file
 cavalier_opts$hgnc_ver = NULL
-cavalier_opts$hgnc_monthly_base_url <- 'http://ftp.ebi.ac.uk/pub/databases/genenames/hgnc/archive/monthly/tsv/'
+cavalier_opts$hgnc_monthly_base_url <- 'https://storage.googleapis.com/public-download-files/hgnc/archive/archive/monthly/tsv/'
 # set to a local file path for use without web access
 cavalier_opts$hgnc_local_file <- NULL
 
@@ -76,10 +82,13 @@ cavalier_opts$hpo_api_base_url <- "https://ontology.jax.org/api/"
 cavalier_opts$hpo_api_max_failuers <- 10L
 cavalier_opts$hpo_github_url <- "https://github.com/obophenotype/human-phenotype-ontology/"
 
+########## MI OMIM options ##################
+cavalier_opts$mi_omim_github_url <- "https://github.com/monarch-initiative/omim/"
+
 ########## PanelApp options ###############
 # can add additional PanelApp endpoints here if needed - name should start with 'PA'
 cavalier_opts$panelapp_urls <- list(
-  PAA = "https://panelapp.agha.umccr.org/",       # PanelApp Australia
+  PAA = "https://panelapp-aus.org/",       # PanelApp Australia
   PAE = "https://panelapp.genomicsengland.co.uk/" # PanelApp England
 )
 
@@ -87,11 +96,14 @@ cavalier_opts$panelapp_urls <- list(
 cavalier_opts$g4e_github_url <- 'https://github.com/bahlolab/Genes4Epilepsy/'
 
 #' @export
-get_cavalier_opt <- function(name = NULL) {
+get_cavalier_opt <- function(name = NULL, default = NULL) {
   if (is.null(name)) {
     return(as.list(cavalier_opts))
   }
-  cavalier_opts[[name]]
+  if (name %in% names(cavalier_opts)) {
+    return(cavalier_opts[[name]])
+  }
+  return(default)
 }
 
 ######### OMIM options ####################
@@ -103,6 +115,7 @@ cavalier_opts$cen_url_hg38 <- 'https://hgdownload.soe.ucsc.edu/goldenPath/hg38/d
 cavalier_opts$agp_url_hg19 <- 'https://hgdownload.soe.ucsc.edu/goldenPath/hg19/bigZips/hg19.agp.gz'
 
  
+#' @importFrom rlang is_named
 #' @export
 set_cavalier_opt <- function(...) {
   dots <- dots_list(...)

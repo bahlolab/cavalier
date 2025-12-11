@@ -4,7 +4,7 @@
 \alias{get_hgnc_entrez}
 \title{Get HGNC hgnc_id, entrez_id table}
 \usage{
-get_hgnc_entrez()
+get_hgnc_entrez(ver = get_hgnc_version())
 }
 \description{
 Get HGNC hgnc_id, entrez_id table

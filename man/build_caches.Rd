@@ -8,11 +8,11 @@ build_caches(
   GeVIR = TRUE,
   HGNC = TRUE,
   GTEx = TRUE,
-  IGV = TRUE,
   UCSC = TRUE,
-  PanelApp = TRUE,
+  PanelApp = FALSE,
   HPO = TRUE,
-  HPO_disease_names = TRUE,
+  MI_OMIM = TRUE,
+  GENCODE = TRUE,
   Genes4Epilepsy = TRUE
 )
 }

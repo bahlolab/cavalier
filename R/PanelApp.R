@@ -72,11 +72,7 @@ get_panelapp_panel_version <- function(
               str_detect(id, '^[A-z]+:\\d+'))
   
   func_online <- function() {
-    source <- str_extract(id, '^[A-z]+')
-    get_panelapp_panels(source = source) %>% 
-      filter(id == !!id) %>% 
-      pull(version) %>% 
-      first()
+    get_panelapp_version_history(id)[1]
   }
   
   get_version(
@@ -108,7 +104,7 @@ get_panelapp_panel <- function(id, version = NULL)
   if (is.null(version)) {
     version <- get_panelapp_panel_version(id)
   }
-  
+
   url <- str_c(
     get_panelapp_url(source), 
     'api/v1/panels/', str_extract(id, '\\d+'), '/',
@@ -172,7 +168,9 @@ get_panelapp_panel <- function(id, version = NULL)
         inheritance == 'BIALLELIC' ~ 'AR',
         inheritance == 'MONOALLELIC' ~ 'AD',
         inheritance == 'BOTH' ~ 'AR/AD',
-        inheritance == 'X-LINKED' ~ 'XL')) %>% 
+        inheritance == 'X-LINKED'  & str_detect(mode_of_inheritance, 'monoallelic') ~ 'XLD',
+        inheritance == 'X-LINKED' ~ 'XLR',
+      )) %>% 
       select(list_id = panel_id,
              list_name = panel_name,
              version = panel_version,
@@ -212,7 +210,11 @@ get_panelapp_version_history <- function(id)
     retry('GET', url, accept_json()) %>%
     content()
   
-  versions <- unique(map_chr(response, 'panel_version'))
+  versions <-
+    map(response, 'panel_version') %>% 
+    keep(is_scalar_character) %>% 
+    unlist() %>% 
+    unique()
   
   return(versions)
 }
