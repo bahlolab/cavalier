@@ -13,5 +13,5 @@ COPY . /tmp/cavalier
 RUN R -q -e "remotes::install_local('/tmp/cavalier', dependencies = TRUE, upgrade = 'never', build_vignettes = FALSE)"
 
 # Initialise cavalier cache
-RUN mkdir /cavalier_cache && 
+RUN mkdir /cavalier_cache && \
   R -q -e "cavalier::set_cavalier_opt(cache_dir = '/cavalier_cache'); cavalier::build_caches(PanelApp = FALSE)"
