@@ -1,7 +1,7 @@
 
 #' @importFrom flextable flextable delete_part theme_zebra italic bold colformat_char fit_to_width
 #' @importFrom flextable align autofit add_header_lines border_inner fp_border_default
-#' @importFrom flextable compose as_paragraph hyperlink_text
+#' @importFrom flextable as_paragraph hyperlink_text
 #' @importFrom rlang is_bool
 flex_table <- function(data,
                        transpose = FALSE,
@@ -38,7 +38,7 @@ flex_table <- function(data,
              function(ft, i) {
                url_col <- url_df$url_col[i]
                text_col <- url_df$text_col[i]
-               compose(ft, j = text_col,
+               flextable::compose(ft, j = text_col,
                        value = as_paragraph(
                          hyperlink_text(x = !!sym(text_col),
                                         url = !!sym(url_col)
@@ -87,7 +87,7 @@ flex_table_trans <- function(data, url_df = NULL, ncol = 1L)
              reduce(function(ft, i) {
                url_col <- str_c('url.', i)
                text_col <- str_c('value.', i)
-               compose(ft, j = text_col,
+               flextable::compose(ft, j = text_col,
                        value = as_paragraph(
                          hyperlink_text(x = !!sym(text_col),
                                         url = !!sym(url_col)

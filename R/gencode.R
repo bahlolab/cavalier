@@ -45,18 +45,23 @@ get_gencode_coords <- function(
       base_url <- 'https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/latest_release/'
       url <- str_c(base_url, 'gencode.', ver, '.primary_assembly.annotation.gtf.gz')
       cmd <- str_c(
-        "curl -s ",
+        "wget -qO - ",
         url, 
         " | gunzip -c | grep -P '\tgene\t' | ",
         "awk -F'\t' '{ match($9, /gene_id \"([^\"]+)\"/, gid); match($9, /hgnc_id \"([^\"]+)\"/, hid); print $1 \"\t\" $4 \"\t\" $5 \"\t\" gid[1] \"\t\" hid[1] }'"
       )
       
-      read_tsv(
+      gencode <-
+        read_tsv(
         pipe(cmd), 
         col_names = c("chromosome", "start", "end", "ensembl_gene_id", "hgnc_id"),
         col_types = "ciicc"
         ) %>% 
         mutate(ensembl_gene_id = str_remove(ensembl_gene_id, '\\.[0-9]+$'))
+      
+      stopifnot(nrow(gencode) > 0)
+      
+      return(gencode)
     }
 
     return(
