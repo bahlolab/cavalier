@@ -4,7 +4,7 @@ FROM rocker/tidyverse:4.5.2
 ENV RSPM="https://packagemanager.posit.co/cran/__linux__/jammy/latest"
 
 # Install BiocManager and GenomicRanges explicitly
-RUN R -q -e "install.packages(c('BiocManager', 'DT')); BiocManager::install('GenomicRanges')"
+RUN R -q -e "install.packages(c('DT'))"
 
 # Copy package source
 COPY . /tmp/cavalier
