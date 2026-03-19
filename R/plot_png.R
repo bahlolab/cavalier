@@ -69,8 +69,7 @@ plot_png_facets <- function(
     id_png_tbl %>% 
     ggplot() + 
     geom_rect_img(aes(xmin = 0, xmax = dims$width, ymin = 0, ymax = dims$height, img = png)) +
-    facet_wrap(~id, strip.position = 'top',
-               ncol = min(nrow(id), max_cols)) + 
+    facet_wrap(~id, strip.position = 'top', ncol = min(nrow(id_png_tbl), max_cols)) + 
     theme_void(base_size = base_size) + 
     coord_fixed() +
     scale_x_continuous(limits = c(0, dims$width), expand = c(0.01, 0.01)) +
